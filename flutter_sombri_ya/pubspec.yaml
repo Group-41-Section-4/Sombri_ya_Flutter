@@ -66,6 +66,9 @@ flutter:
     - assets/images/pin.png
     - assets/images/pin_no_umbrella.png
     - assets/images/home_button.png
+    - assets/images/umbrella.png
+    - assets/images/logo.png
+    - assets/images/logo_no_bg.png
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images
