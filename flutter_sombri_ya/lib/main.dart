@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_sombri_ya/home.dart';
+import 'theme.dart';
 
 void main() {
   runApp(const MyApp());
@@ -11,8 +13,11 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Flutter Demo',
-      theme: ThemeData(
+      title: 'Sombri-Ya',
+      debugShowCheckedModeBanner: false,
+      theme: AppThem.light(),
+      home: const HomePage(),
+      //theme: ThemeData(
         // This is the theme of your application.
         //
         // TRY THIS: Try running your application with "flutter run". You'll see
@@ -28,9 +33,8 @@ class MyApp extends StatelessWidget {
         //
         // This works for code too, not just values: Most code changes can be
         // tested with just a hot reload.
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
-      ),
-      home: const MyHomePage(title: 'Flutter Demo Home Page'),
+        //colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
+      //),
     );
   }
 }
