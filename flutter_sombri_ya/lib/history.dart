@@ -5,6 +5,7 @@ class HistoryPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    //Ejemplo para ver el historial
     final history = [
       {"date": "Septiembre 15, 2025", "duration": "Duración: 5 minutos"},
       {"date": "Agosto 31, 2025", "duration": "Duración: 12 horas"},
