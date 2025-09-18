@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'theme.dart'; // usa tus colores de AppThem
+import 'menu.dart';
 
 class HomePage extends StatelessWidget {
   const HomePage({super.key});
@@ -20,9 +21,9 @@ class HomePage extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Home'),
-        // si prefieres sin título y sólo los íconos, usa toolbarHeight y quita title
+        title: const Text('Home')
       ),
+      endDrawer: const AppDrawer(),
       body: Stack(
         children: [
           // MAPA
@@ -165,21 +166,39 @@ class _BottomBar extends StatelessWidget {
       shape: const CircularNotchedRectangle(),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
-        children: const [
+        children: [
+          // Botón Home (puede navegar o solo mostrar activo)
           Padding(
-            padding: EdgeInsets.all(14),
-            child: Icon(Icons.home),
+            padding: const EdgeInsets.all(14),
+            child: IconButton(
+              icon: const Icon(Icons.home),
+              onPressed: () {
+                // Aquí podrías navegar a Home o dejarlo fijo
+                // Navigator.pushNamed(context, '/home');
+              },
+            ),
           ),
-          SizedBox(width: 48), // espacio para el notch del FAB
+
+          const SizedBox(width: 48), // espacio para el notch del FAB
+
+          // Botón Menu que abre el Drawer
           Padding(
-            padding: EdgeInsets.all(14),
-            child: Icon(Icons.menu), // reemplaza por el que necesites
+            padding: const EdgeInsets.all(14),
+            child: Builder(
+              builder: (context) => IconButton(
+                icon: const Icon(Icons.menu),
+                onPressed: () {
+                  Scaffold.of(context).openEndDrawer();
+                },
+              ),
+            ),
           ),
         ],
       ),
     );
   }
 }
+
 
 /// Modelo ligero sólo para esta pantalla
 class _Station {
