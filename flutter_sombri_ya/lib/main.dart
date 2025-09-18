@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_sombri_ya/home.dart';
+import 'package:flutter_sombri_ya/rent.dart';
 import 'theme.dart';
 
 void main() {
@@ -16,7 +17,7 @@ class MyApp extends StatelessWidget {
       title: 'Sombri-Ya',
       debugShowCheckedModeBanner: false,
       theme: AppThem.light(),
-      home: const HomePage(),
+      home: const RentPage(),
       //theme: ThemeData(
         // This is the theme of your application.
         //

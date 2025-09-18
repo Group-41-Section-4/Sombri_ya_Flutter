@@ -68,6 +68,7 @@ flutter:
     - assets/images/home_button.png
     - assets/images/notification.png
     - assets/images/profile.png
+    - assets/images/qr_img.png
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images
