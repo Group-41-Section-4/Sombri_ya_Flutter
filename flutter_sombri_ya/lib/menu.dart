@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'history.dart';
 
 class AppDrawer extends StatelessWidget {
   const AppDrawer({super.key});
@@ -39,12 +40,20 @@ class AppDrawer extends StatelessWidget {
           ListTile(
             leading: const Icon(Icons.bookmark_border),
             title: const Text("Historial de Reservas"),
-            onTap: () {},
+            onTap: () {
+              Navigator.pop(context);
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder:(context) => const HistoryPage()),
+              );
+            },
           ),
           ListTile(
             leading: const Icon(Icons.payment),
             title: const Text("Métodos de Pago"),
-            onTap: () {},
+            onTap: (
+
+                ) {},
           ),
           ListTile(
             leading: const Icon(Icons.check_box_outlined),
