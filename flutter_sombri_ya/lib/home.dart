@@ -6,7 +6,6 @@ class HomePage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      // ───────── BARRA SUPERIOR ─────────
       appBar: AppBar(
         backgroundColor: const Color(0xFF28BCEF),
         foregroundColor: Colors.white,
@@ -27,7 +26,6 @@ class HomePage extends StatelessWidget {
         ],
       ),
 
-      // ───────── CUERPO (MAPA + BOTÓN ESTACIONES) ─────────
       body: Stack(
         children: [
           Positioned.fill(
@@ -51,7 +49,9 @@ class HomePage extends StatelessWidget {
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
                   elevation: 6,
                 ),
-                onPressed: () {},
+                onPressed: () {
+                  //TODO: When the ESTACIONES button is pressed
+                },
                 child: const Text(
                   'ESTACIONES',
                   style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, letterSpacing: 1.2),
@@ -62,54 +62,57 @@ class HomePage extends StatelessWidget {
         ],
       ),
 
-      // ───────── FAB ROJO CENTRADO (ASSET) ─────────
       floatingActionButton: SizedBox(
         width: 76,
         height: 76,
         child: FloatingActionButton(
-          backgroundColor: Colors.white, // fondo transparente para el PNG
+          backgroundColor : const Color(0xFFFF4645),
           elevation: 6,
           onPressed: () {},
           child: Image.asset(
             'assets/images/home_button.png',
-            width: 48,
-            height: 48,
+            width: 52,
+            height: 52,
           ),
         ),
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
 
-      // ───────── BOTTOM APP BAR AZUL ─────────
-      bottomNavigationBar: BottomAppBar(
-        shape: const CircularNotchedRectangle(),
-        notchMargin: 8,
-        elevation: 10,
-        color: const Color(0xFF28BCEF),
-        child: SizedBox(
-          height: 64,
+      bottomNavigationBar: SafeArea(
+        child: Container(
+          height: 70, 
+          color: const Color(0xFF28BCEF), 
           child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
-              // Izquierda: Mapa
               Column(
+                mainAxisSize: MainAxisSize.min,
                 mainAxisAlignment: MainAxisAlignment.center,
-                children: const [
-                  Icon(Icons.map_outlined, color: Colors.white),
-                  SizedBox(height: 4),
-                  Text(
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.map, color: Colors.white),
+                    onPressed: () {
+                      // TODO: Whenn the map button is pressed
+                    },
+                  ),
+                  const Text(
                     "Mapa",
                     style: TextStyle(color: Colors.white, fontSize: 12),
                   ),
                 ],
               ),
-              const SizedBox(width: 48), // espacio para el notch
-              // Derecha: Más
+      
               Column(
+                mainAxisSize: MainAxisSize.min,
                 mainAxisAlignment: MainAxisAlignment.center,
-                children: const [
-                  Icon(Icons.more_horiz, color: Colors.white),
-                  SizedBox(height: 4),
-                  Text(
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.menu, color: Colors.white),
+                    onPressed: () {
+                      // TODO: When the menu button is pressed
+                    },
+                  ),
+                  const Text(
                     "Más",
                     style: TextStyle(color: Colors.white, fontSize: 12),
                   ),
