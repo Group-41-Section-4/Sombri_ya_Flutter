@@ -1,7 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_sombri_ya/home.dart';
+
+import 'package:flutter_sombri_ya/rent.dart';
+import 'theme.dart';
+
 import 'home.dart';
 import 'menu.dart';
+
 
 
 void main() {
@@ -23,6 +28,7 @@ class MyApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF28BCEF)),
       ),
       home: const SplashScreen(),
+
       //theme: ThemeData(
       // This is the theme of your application.
       //
