@@ -2,9 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_sombri_ya/home.dart';
 import 'theme.dart';
 
-//Just to test the view
-import 'package:flutter_sombri_ya/notifications.dart';
-
 void main() {
   runApp(const MyApp());
 }
@@ -19,8 +16,9 @@ class MyApp extends StatelessWidget {
       title: 'Sombri-Ya',
       debugShowCheckedModeBanner: false,
       theme: AppThem.light(),
-      //home: const HomePage(),
-      home: const NotificationsPage(),
+
+      home: const HomePage(),
+      //home: const ProfilePage(),
       //theme: ThemeData(
       // This is the theme of your application.
       //
