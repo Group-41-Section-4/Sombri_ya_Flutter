@@ -13,7 +13,7 @@ class AppDrawer extends StatelessWidget {
         children: [
           SizedBox(
             height: 100,
-            child: const DrawerHeader(
+            child:  DrawerHeader(
               decoration: BoxDecoration(
                 color: Color(0xFF90E0EF),
               ),
@@ -21,12 +21,13 @@ class AppDrawer extends StatelessWidget {
               padding: EdgeInsets.all(16),
               child: Text(
                 "Menu",
-                style: TextStyle(
+                style: GoogleFonts.cormorantGaramond(
                   color: Colors.black,
                   fontSize: 24,
                   fontWeight: FontWeight.bold,
                 ),
               ),
+
             ),
           ),
           ListTile(

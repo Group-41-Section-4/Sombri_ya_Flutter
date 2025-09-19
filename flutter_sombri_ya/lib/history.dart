@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 class HistoryPage extends StatelessWidget {
   const HistoryPage({super.key});
@@ -17,7 +18,12 @@ class HistoryPage extends StatelessWidget {
       appBar: AppBar(
         backgroundColor: const Color(0xFF90E0EF),
         centerTitle: true,
-        title: const Text("Historial"),
+        title:  Text("Historial",
+          style: GoogleFonts.cormorantGaramond(
+            color: Colors.black,
+            fontSize: 24,
+            fontWeight: FontWeight.bold,
+          ),),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () => Navigator.pop(context),

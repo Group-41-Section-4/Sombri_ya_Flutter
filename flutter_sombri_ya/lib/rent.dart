@@ -16,7 +16,13 @@ class RentPage extends StatelessWidget {
         backgroundColor: const Color(0xFF90E0EF),
         centerTitle: true,
         foregroundColor: Colors.black,
-        title: const Text('Rentar'),
+        title: Text('Rentar',
+          style: GoogleFonts.cormorantGaramond(
+            fontSize: 22,
+            fontWeight: FontWeight.bold,
+            color: Colors.black,
+          ),
+        ),
         leading: IconButton(
           icon: const Icon(Icons.notifications_none),
           onPressed: () {

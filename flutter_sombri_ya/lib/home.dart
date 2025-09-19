@@ -18,8 +18,8 @@ class HomePage extends StatelessWidget {
         backgroundColor: const Color(0xFF90E0EF),
         foregroundColor: Colors.black,
         centerTitle: true,
-        title: Text('Home',
-          style: GoogleFonts.heptaSlab(
+        title: Text('',
+          style: GoogleFonts.cormorantGaramond(
           fontSize: 22,
           fontWeight: FontWeight.bold,
           color: Colors.black,

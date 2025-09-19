@@ -67,9 +67,9 @@ class _NotificationsPageState extends State<NotificationsPage> {
           icon: const Icon(Icons.arrow_back),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text(
+        title:  Text(
           'Notificaciones',
-          style: TextStyle(
+          style: GoogleFonts.cormorantGaramond(
             color: Colors.black,
             fontWeight: FontWeight.bold,
             fontSize: 30,

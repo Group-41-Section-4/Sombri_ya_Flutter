@@ -15,9 +15,13 @@ class _ProfilePageState extends State<ProfilePage> {
     return Scaffold(
       backgroundColor: const Color(0xFFFFFDFD),
       appBar: AppBar(
-        title: const Text(
+        title: Text(
           'Cuenta',
-          style: TextStyle(color: Colors.black, fontSize: 30),
+          style: GoogleFonts.cormorantGaramond(
+            color: Colors.black,
+            fontSize: 24,
+            fontWeight: FontWeight.bold,
+          ),
         ),
         centerTitle: true,
         backgroundColor: const Color(0xFF90E0EF),
