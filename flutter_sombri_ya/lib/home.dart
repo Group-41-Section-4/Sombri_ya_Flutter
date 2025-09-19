@@ -1,5 +1,11 @@
 import 'package:flutter/material.dart';
 
+import 'package:flutter_map/flutter_map.dart';
+import 'package:latlong2/latlong.dart';
+import 'theme.dart'; // usa tus colores de AppThem
+import 'menu.dart';
+
+
 class HomePage extends StatelessWidget {
   const HomePage({super.key});
 
@@ -7,6 +13,7 @@ class HomePage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+
         backgroundColor: const Color(0xFF28BCEF),
         foregroundColor: Colors.white,
         title: const Text('Home'),
@@ -25,6 +32,8 @@ class HomePage extends StatelessWidget {
           ),
         ],
       ),
+
+      endDrawer: const AppDrawer(),
 
       body: Stack(
         children: [
@@ -78,6 +87,7 @@ class HomePage extends StatelessWidget {
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
 
+
       bottomNavigationBar: SafeArea(
         child: Container(
           height: 70, 
@@ -119,9 +129,44 @@ class HomePage extends StatelessWidget {
                 ],
               ),
             ],
+
+  @override
+  Widget build(BuildContext context) {
+    return BottomAppBar(
+      shape: const CircularNotchedRectangle(),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceAround,
+        children: [
+          // Botón Home (puede navegar o solo mostrar activo)
+          Padding(
+            padding: const EdgeInsets.all(14),
+            child: IconButton(
+              icon: const Icon(Icons.home),
+              onPressed: () {
+                // Aquí podrías navegar a Home o dejarlo fijo
+                // Navigator.pushNamed(context, '/home');
+              },
+            ),
+          ),
+
+          const SizedBox(width: 48), // espacio para el notch del FAB
+
+          // Botón Menu que abre el Drawer
+          Padding(
+            padding: const EdgeInsets.all(14),
+            child: Builder(
+              builder: (context) => IconButton(
+                icon: const Icon(Icons.menu),
+                onPressed: () {
+                  Scaffold.of(context).openEndDrawer();
+                },
+              ),
+            ),
+
           ),
         ),
       ),
     );
   }
 }
+
