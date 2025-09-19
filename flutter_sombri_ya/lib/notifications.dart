@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'theme.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 enum NotificationType { weather, subscription, reminder }
 
@@ -58,11 +59,14 @@ class _NotificationsPageState extends State<NotificationsPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppThem.primaryColor,
+      backgroundColor: const Color(0xFFFFFDFD),
       appBar: AppBar(
-        backgroundColor: AppThem.primaryColor,
+        backgroundColor: const Color(0xFF90E0EF),
         elevation: 0,
-        leading: const BackButton(color: Colors.black),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => Navigator.pop(context),
+        ),
         title: const Text(
           'Notificaciones',
           style: TextStyle(
@@ -74,7 +78,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
         centerTitle: true,
       ),
       body: Container(
-        color: AppThem.primaryColor,
+        color: const Color(0xFFFFFDFD),
         child: Column(
           children: [
             Expanded(

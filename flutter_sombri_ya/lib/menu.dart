@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'history.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 class AppDrawer extends StatelessWidget {
   const AppDrawer({super.key});
@@ -14,14 +15,14 @@ class AppDrawer extends StatelessWidget {
             height: 100,
             child: const DrawerHeader(
               decoration: BoxDecoration(
-                color: Color(0xFF28BCEF),
+                color: Color(0xFF90E0EF),
               ),
               margin: EdgeInsets.zero,
               padding: EdgeInsets.all(16),
               child: Text(
                 "Menu",
                 style: TextStyle(
-                  color: Colors.white,
+                  color: Colors.black,
                   fontSize: 24,
                   fontWeight: FontWeight.bold,
                 ),

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'theme.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
@@ -12,14 +13,14 @@ class _ProfilePageState extends State<ProfilePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppThem.primaryColor,
+      backgroundColor: const Color(0xFFFFFDFD),
       appBar: AppBar(
         title: const Text(
           'Cuenta',
           style: TextStyle(color: Colors.black, fontSize: 30),
         ),
         centerTitle: true,
-        backgroundColor: AppThem.primaryColor,
+        backgroundColor: const Color(0xFF90E0EF),
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.black),
@@ -38,16 +39,16 @@ class _ProfilePageState extends State<ProfilePage> {
               children: [
                 CircleAvatar(
                   radius: 100,
-                  backgroundColor: Colors.white,
+                  backgroundColor: const Color(0xFFADD8E6),
                   child: ClipOval(
-                    child: Image.asset('assets/images/profile_icon.png'),
+                    child: Image.asset('assets/images/raindrop.png'),
                   ),
                 ),
               ],
             ),
             const SizedBox(height: 10),
             const Text(
-              'Cambiar foto de perfil',
+              'Minutos en el que el usuario ha estado seco: 0',
               style: TextStyle(color: Colors.black54, fontSize: 14),
             ),
             const SizedBox(height: 30),
@@ -82,7 +83,7 @@ class _ProfilePageState extends State<ProfilePage> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(25),
-        border: Border.all(color: AppThem.primaryColor, width: 1),
+        border: Border.all(color: Colors.black, width: 1),
         boxShadow: const [BoxShadow(blurRadius: 6, color: Colors.black12)],
       ),
       child: Row(

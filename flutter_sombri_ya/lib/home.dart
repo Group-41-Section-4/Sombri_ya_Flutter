@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
-
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
-import 'theme.dart'; // usa tus colores de AppThem
+import 'theme.dart'; // usa tus colores de AppTheme
 import 'menu.dart';
-
+import 'notifications.dart';
+import 'profile.dart';
+import 'rent.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 class HomePage extends StatelessWidget {
   const HomePage({super.key});
@@ -13,20 +15,38 @@ class HomePage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-
-        backgroundColor: const Color(0xFF28BCEF),
-        foregroundColor: Colors.white,
-        title: const Text('Home'),
+        backgroundColor: const Color(0xFF90E0EF),
+        foregroundColor: Colors.black,
+        centerTitle: true,
+        title: Text('Home',
+          style: GoogleFonts.heptaSlab(
+          fontSize: 22,
+          fontWeight: FontWeight.bold,
+          color: Colors.black,
+        ),
+      ),
         leading: IconButton(
           icon: const Icon(Icons.notifications_none),
-          onPressed: () {},
+          onPressed: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder:(context) => const NotificationsPage()),
+            );
+          },
         ),
         actions: [
           IconButton(
-            onPressed: () {},
+            onPressed: () {
+              Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                      builder:(context) => const ProfilePage(),
+                  ),
+              );
+            },
             icon: const CircleAvatar(
               radius: 16,
-              backgroundColor: Colors.white24,
+              backgroundColor: Colors.black,
               backgroundImage: AssetImage('assets/images/profile.png'),
             ),
           ),
@@ -55,15 +75,21 @@ class HomePage extends StatelessWidget {
                   backgroundColor: const Color(0xFF005E7C),
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 12),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(20),
+                  ),
                   elevation: 6,
                 ),
                 onPressed: () {
-                  //TODO: When the ESTACIONES button is pressed
+                  // TODO: When the ESTACIONES button is pressed
                 },
-                child: const Text(
+                child: Text(
                   'ESTACIONES',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, letterSpacing: 1.2),
+                  style: GoogleFonts.robotoSlab(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 1.2,
+                  ),
                 ),
               ),
             ),
@@ -71,102 +97,65 @@ class HomePage extends StatelessWidget {
         ],
       ),
 
+      //Middle button, call to action
       floatingActionButton: SizedBox(
         width: 76,
         height: 76,
         child: FloatingActionButton(
-          backgroundColor : const Color(0xFFFF4645),
+          backgroundColor: Colors.transparent,
           elevation: 6,
-          onPressed: () {},
+          shape: const CircleBorder(),
+          onPressed: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => const RentPage(),
+              ),
+            );
+          },
           child: Image.asset(
             'assets/images/home_button.png',
-            width: 52,
-            height: 52,
+            width: 100,
+            height: 100,
           ),
         ),
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
 
-
-      bottomNavigationBar: SafeArea(
-        child: Container(
-          height: 70, 
-          color: const Color(0xFF28BCEF), 
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: [
-              Column(
-                mainAxisSize: MainAxisSize.min,
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  IconButton(
-                    icon: const Icon(Icons.map, color: Colors.white),
-                    onPressed: () {
-                      // TODO: Whenn the map button is pressed
-                    },
-                  ),
-                  const Text(
-                    "Mapa",
-                    style: TextStyle(color: Colors.white, fontSize: 12),
-                  ),
-                ],
-              ),
-      
-              Column(
-                mainAxisSize: MainAxisSize.min,
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  IconButton(
-                    icon: const Icon(Icons.menu, color: Colors.white),
-                    onPressed: () {
-                      // TODO: When the menu button is pressed
-                    },
-                  ),
-                  const Text(
-                    "Más",
-                    style: TextStyle(color: Colors.white, fontSize: 12),
-                  ),
-                ],
-              ),
-            ],
-
-  @override
-  Widget build(BuildContext context) {
-    return BottomAppBar(
-      shape: const CircularNotchedRectangle(),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
-        children: [
-          // Botón Home (puede navegar o solo mostrar activo)
-          Padding(
-            padding: const EdgeInsets.all(14),
-            child: IconButton(
-              icon: const Icon(Icons.home),
-              onPressed: () {
-                // Aquí podrías navegar a Home o dejarlo fijo
-                // Navigator.pushNamed(context, '/home');
-              },
-            ),
-          ),
-
-          const SizedBox(width: 48), // espacio para el notch del FAB
-
-          // Botón Menu que abre el Drawer
-          Padding(
-            padding: const EdgeInsets.all(14),
-            child: Builder(
-              builder: (context) => IconButton(
-                icon: const Icon(Icons.menu),
+      bottomNavigationBar: BottomAppBar(
+        shape: const CircularNotchedRectangle(),
+        color: const Color(0xFF90E0EF),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceAround,
+          children: [
+            // Botón Home
+            Padding(
+              padding: const EdgeInsets.all(14),
+              child: IconButton(
+                icon: const Icon(Icons.home, color: Colors.black),
                 onPressed: () {
-                  Scaffold.of(context).openEndDrawer();
+                  // Navigator.pushNamed(context, '/home');
                 },
               ),
             ),
 
-          ),
+            const SizedBox(width: 48), // espacio para el notch del FAB
+
+            // Botón Menú
+            Padding(
+              padding: const EdgeInsets.all(14),
+              child: Builder(
+                builder: (context) => IconButton(
+                  icon: const Icon(Icons.menu, color: Colors.black),
+                  onPressed: () {
+                    Scaffold.of(context).openEndDrawer();
+                  },
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );
   }
 }
-

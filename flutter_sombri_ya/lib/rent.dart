@@ -1,4 +1,9 @@
 import 'package:flutter/material.dart';
+import 'menu.dart';
+import 'home.dart';
+import 'notifications.dart';
+import 'profile.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 class RentPage extends StatelessWidget {
   const RentPage({super.key});
@@ -8,16 +13,29 @@ class RentPage extends StatelessWidget {
     return Scaffold(
       // AppBar (same as Home)
       appBar: AppBar(
-        backgroundColor: const Color(0xFF28BCEF),
-        foregroundColor: Colors.white,
+        backgroundColor: const Color(0xFF90E0EF),
+        centerTitle: true,
+        foregroundColor: Colors.black,
         title: const Text('Rentar'),
         leading: IconButton(
           icon: const Icon(Icons.notifications_none),
-          onPressed: () {},
+          onPressed: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder:(context) => const NotificationsPage()),
+            );
+          },
         ),
         actions: [
           IconButton(
-            onPressed: () {},
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder:(context) => const ProfilePage(),
+                ),
+              );
+            },
             icon: const CircleAvatar(
               radius: 16,
               backgroundColor: Colors.white24,
@@ -27,6 +45,7 @@ class RentPage extends StatelessWidget {
         ],
       ),
 
+      endDrawer: const AppDrawer(),
       // QR Scanner Body or NFC Activation
       body: Stack(
         children: [
@@ -95,33 +114,58 @@ class RentPage extends StatelessWidget {
       ),
 
       // Bottom Navigation Bar
-      bottomNavigationBar: SafeArea(
-        child: Container(
-          height: 76,
-          color: const Color(0xFF28BCEF),
+        bottomNavigationBar: BottomAppBar(
+          shape: const CircularNotchedRectangle(),
+          color: const Color(0xFF90E0EF),
           child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: const [
-              _BottomItem(icon: Icons.map, label: 'Mapa'),
-              SizedBox(width: 48),
-              _BottomItem(icon: Icons.menu, label: 'Más'),
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: [
+              // Botón Home
+              Padding(
+                padding: const EdgeInsets.all(14),
+                child: IconButton(
+                  icon: const Icon(Icons.home, color: Colors.black),
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => const HomePage()),
+                    );
+                  },
+                ),
+              ),
+
+              const SizedBox(width: 48), // espacio para el notch del FAB
+
+              // Botón Menú
+              Padding(
+                padding: const EdgeInsets.all(14),
+                child: Builder(
+                  builder: (context) => IconButton(
+                    icon: const Icon(Icons.menu, color: Colors.black),
+                    onPressed: () {
+                      Scaffold.of(context).openEndDrawer();
+                    },
+                  ),
+                ),
+              ),
             ],
           ),
         ),
-      ),
+
 
       // Floating Action Button (Home)
       floatingActionButton: SizedBox(
         width: 76,
         height: 76,
         child: FloatingActionButton(
-          backgroundColor : const Color(0xFFFF4645),
+          backgroundColor : Colors.transparent,
           elevation: 6,
+          shape: const CircleBorder(),
           onPressed: () {},
           child: Image.asset(
             'assets/images/home_button.png',
-            width: 52,
-            height: 52,
+            width: 100,
+            height: 100,
           ),
         ),
       ),
@@ -132,23 +176,35 @@ class RentPage extends StatelessWidget {
 
 
 
-  class _BottomItem extends StatelessWidget {
-    final IconData icon;
-    final String label;
-    const _BottomItem({required this.icon, required this.label});
+class _BottomItem extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final VoidCallback? onTap;
 
-    @override
-    Widget build(BuildContext context) {
-      return SizedBox(
-        width: 88, height: 64,
+  const _BottomItem({
+    required this.icon,
+    required this.label,
+    this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      child: SizedBox(
+        width: 88,
+        height: 64,
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, color: Colors.white),
+            Icon(icon, color: Colors.black),
             const SizedBox(height: 4),
-            Text(label, style: const TextStyle(color: Colors.white, fontSize: 12)),
+            Text(label,
+                style: const TextStyle(color: Colors.black, fontSize: 12)),
           ],
         ),
-      );
-    }
+      ),
+    );
   }
+}
+

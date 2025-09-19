@@ -77,7 +77,7 @@ class SplashScreen extends StatelessWidget {
           // Botón
           ElevatedButton(
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFFFC5152),
+              backgroundColor: const Color(0xFF001242),
               foregroundColor: Colors.white,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(30),
@@ -92,7 +92,7 @@ class SplashScreen extends StatelessWidget {
             },
             child: const Text(
               "Iniciar Sesión",
-              style: TextStyle(fontSize: 16),
+              style: TextStyle(fontSize: 30),
             ),
           ),
         ],

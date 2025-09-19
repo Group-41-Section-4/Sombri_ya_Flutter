@@ -15,7 +15,8 @@ class HistoryPage extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: const Color(0xFF28BCEF),
+        backgroundColor: const Color(0xFF90E0EF),
+        centerTitle: true,
         title: const Text("Historial"),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
