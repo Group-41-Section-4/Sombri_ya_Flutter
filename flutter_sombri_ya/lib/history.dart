@@ -6,7 +6,6 @@ class HistoryPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    //Ejemplo para ver el historial
     final history = [
       {"date": "Septiembre 15, 2025", "duration": "Duración: 5 minutos"},
       {"date": "Agosto 31, 2025", "duration": "Duración: 12 horas"},
@@ -18,12 +17,14 @@ class HistoryPage extends StatelessWidget {
       appBar: AppBar(
         backgroundColor: const Color(0xFF90E0EF),
         centerTitle: true,
-        title:  Text("Historial",
+        title: Text(
+          "Historial",
           style: GoogleFonts.cormorantGaramond(
             color: Colors.black,
             fontSize: 24,
             fontWeight: FontWeight.bold,
-          ),),
+          ),
+        ),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () => Navigator.pop(context),
@@ -32,7 +33,6 @@ class HistoryPage extends StatelessWidget {
       backgroundColor: const Color(0xFFFFFDFD),
       body: Column(
         children: [
-          // Lista de tarjetas
           Expanded(
             child: ListView.builder(
               padding: const EdgeInsets.all(16),
@@ -69,23 +69,20 @@ class HistoryPage extends StatelessWidget {
             ),
           ),
 
-          // Botón "Borrar historial"
           Padding(
             padding: const EdgeInsets.all(16),
             child: SizedBox(
               width: double.infinity,
               child: ElevatedButton(
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFFFC5152), // rojo
+                  backgroundColor: const Color(0xFFFC5152),
                   foregroundColor: Colors.white,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(30),
                   ),
                   padding: const EdgeInsets.symmetric(vertical: 16),
                 ),
-                onPressed: () {
-                  // poner metodos para borrar el historial
-                },
+                onPressed: () {},
                 child: const Text(
                   "Borrar Historial",
                   style: TextStyle(fontSize: 16),
