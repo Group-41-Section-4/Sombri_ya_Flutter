@@ -126,7 +126,7 @@ class RentPage extends StatelessWidget {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
-              // Botón Home
+              //  Home button
               Padding(
                 padding: const EdgeInsets.all(14),
                 child: IconButton(

@@ -34,9 +34,9 @@ class AppDrawer extends StatelessWidget {
             leading: const Icon(Icons.settings),
             title: const Text("Configuración"),
             onTap: () {
-              // Navegar a configuración
-              Navigator.pop(context); // cierra el drawer
-              // Navigator.pushNamed(context, '/settings');
+              // TODO: add functionality to navigate to "configuraciones" view
+              Navigator.pop(context);
+
             },
           ),
           ListTile(
@@ -54,7 +54,7 @@ class AppDrawer extends StatelessWidget {
             leading: const Icon(Icons.payment),
             title: const Text("Métodos de Pago"),
             onTap: (
-
+                // TODO: add functionality to navigate to "métodos de pago" view
                 ) {},
           ),
           ListTile(
@@ -65,7 +65,9 @@ class AppDrawer extends StatelessWidget {
           ListTile(
             leading: const Icon(Icons.help_outline),
             title: const Text("Ayuda"),
-            onTap: () {},
+            onTap: () {
+              // TODO: add functionality to navigate to "ayuda" view
+            },
           ),
         ],
       ),

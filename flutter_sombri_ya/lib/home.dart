@@ -97,7 +97,7 @@ class HomePage extends StatelessWidget {
         ],
       ),
 
-      //Middle button, call to action
+      //Botón para rentar sombrillas
       floatingActionButton: SizedBox(
         width: 76,
         height: 76,

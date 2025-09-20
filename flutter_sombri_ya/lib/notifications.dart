@@ -50,10 +50,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
   ];
 
   void _clearNotifications() {
-    // setState(() {
-    //   _notifications.clear();
-    // });
-    //print("Borrando notificaciones...");
+    // TODO: add functionality to eliminate notifications
   }
 
   @override
