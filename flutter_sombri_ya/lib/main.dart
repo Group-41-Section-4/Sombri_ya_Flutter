@@ -1,6 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_sombri_ya/home.dart';
 
+import 'package:flutter_sombri_ya/rent.dart';
+import 'theme.dart';
+
+import 'home.dart';
+import 'menu.dart';
+import 'login.dart';
+
+
 void main() {
   runApp(const MyApp());
 }
@@ -56,7 +64,7 @@ class SplashScreen extends StatelessWidget {
             onPressed: () {
               Navigator.pushReplacement(
                 context,
-                MaterialPageRoute(builder: (context) => const HomePage()),
+                MaterialPageRoute(builder: (context) => const LoginPage()),
               );
             },
             child: const Text("Iniciar Sesión", style: TextStyle(fontSize: 30)),

@@ -1,12 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_sombri_ya/main.dart';
+import 'package:flutter_sombri_ya/signin.dart';
 import 'package:latlong2/latlong.dart';
+// import 'package:local_auth/local_auth.dart';
 import 'theme.dart';
-import 'login.dart';
+import 'home.dart';
+import "signin.dart";
 
-class SigninPage extends StatelessWidget {
-  const SigninPage({super.key});
+class LoginPage extends StatelessWidget {
+  // final LocalAuthentication auth = LocalAuthentication();
+  const LoginPage({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -37,7 +41,7 @@ class SigninPage extends StatelessWidget {
                 child: Column(
                   children: [
                     const Text(
-                      "Regístrate",
+                      "Iniciar sesión",
                       style: TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.bold,
@@ -91,31 +95,55 @@ class SigninPage extends StatelessWidget {
                         return null;
                       },
                     ),
-                    const SizedBox(height: 15),
-                    TextFormField(
-                      obscureText: true,
-                      decoration: InputDecoration(
-                        labelText: "Confirmar contraseña",
-                        hintText: "Contraseña",
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        filled: true,
-                        fillColor: Color(0xFFF2F2F2),
-                        contentPadding: const EdgeInsets.symmetric(
-                          vertical: 10,
-                          horizontal: 15,
+                    const SizedBox(height: 10),
+                    const Align(
+                      alignment: Alignment.center,
+                      child: Text(
+                        "¿Olvidaste tu contraseña?",
+                        style: TextStyle(color: Colors.grey, fontSize: 12),
+                      )
+                    ),
+                    const SizedBox(height: 10),
+                    Align(
+                      alignment: Alignment.center,
+                      child: GestureDetector(
+                        onTap: () {
+                          Navigator.pushReplacement(
+                            context,
+                            MaterialPageRoute(builder: (_) => const SigninPage()),
+                          );
+                        },
+                        child: const Text(
+                          "¿No tienes una cuenta? Regístrate",
+                          style: TextStyle(color: Colors.grey, fontSize: 12),
                         ),
                       ),
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return "Confirma tu contraseña";
-                        }
-                        return null;
-                      },
                     ),
 
+                    const SizedBox(height: 20,),
 
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        onPressed: () {
+                          Navigator.pushReplacement(
+                              context,
+                              MaterialPageRoute(builder: (context) => const HomePage()),
+                          );
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF001242),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                        ),
+                        child: const Text(
+                          "Iniciar sesión",
+                          style: TextStyle(fontSize: 16, color: const Color(0xFFFFFDFD)),
+                        ),
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -123,25 +151,20 @@ class SigninPage extends StatelessWidget {
 
               const SizedBox(height: 40),
 
-              ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF001242),
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(30),
-                  ),
-                  padding: const EdgeInsets.symmetric(horizontal: 70, vertical: 15),
+              // Footer
+              const Text(
+                "Sombri-Ya",
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black,
                 ),
-                onPressed: () {
-                  Navigator.pushReplacement(
-                    context,
-                    MaterialPageRoute(builder: (context) => const LoginPage()),
-                  );
-                },
-                child: const Text(
-                  "Registrar",
-                  style: TextStyle(fontSize: 20),
-                ),
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                "Ahorra tiempo y mantente\nseco en cualquier trayecto",
+                textAlign: TextAlign.center,
+                style: TextStyle(color: Colors.white, fontSize: 14),
               ),
             ],
           ),
