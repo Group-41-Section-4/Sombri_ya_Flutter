@@ -1,12 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_sombri_ya/main.dart';
+import 'package:flutter_sombri_ya/signin.dart';
 import 'package:latlong2/latlong.dart';
+// import 'package:local_auth/local_auth.dart';
 import 'theme.dart';
-import 'login.dart';
+import 'home.dart';
+import "signin.dart";
 
-class SigninPage extends StatelessWidget {
-  const SigninPage({super.key});
+class LoginPage extends StatelessWidget {
+  // final LocalAuthentication auth = LocalAuthentication();
+  const LoginPage({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -75,20 +79,29 @@ class SigninPage extends StatelessWidget {
                     ),
                     const SizedBox(height: 10),
                     const Align(
-                        alignment: Alignment.center,
-                        child: Text(
-                          "¿Olvidaste tu contraseña?",
-                          style: TextStyle(color: Colors.grey, fontSize: 12),
-                        )
+                      alignment: Alignment.center,
+                      child: Text(
+                        "¿Olvidaste tu contraseña?",
+                        style: TextStyle(color: Colors.grey, fontSize: 12),
+                      )
                     ),
                     const SizedBox(height: 10),
-                    const Align(
-                        alignment: Alignment.center,
-                        child: Text(
+                    Align(
+                      alignment: Alignment.center,
+                      child: GestureDetector(
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (_) => const SigninPage()),
+                          );
+                        },
+                        child: const Text(
                           "¿No tienes una cuenta? Regístrate",
                           style: TextStyle(color: Colors.grey, fontSize: 12),
-                        )
+                        ),
+                      ),
                     ),
+
                     const SizedBox(height: 20,),
 
                     SizedBox(
@@ -96,8 +109,8 @@ class SigninPage extends StatelessWidget {
                       child: ElevatedButton(
                         onPressed: () {
                           Navigator.pushReplacement(
-                            context,
-                            MaterialPageRoute(builder: (context) => const HomePage()),
+                              context,
+                              MaterialPageRoute(builder: (context) => const HomePage()),
                           );
                         },
                         style: ElevatedButton.styleFrom(

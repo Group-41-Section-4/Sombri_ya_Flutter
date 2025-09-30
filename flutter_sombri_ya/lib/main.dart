@@ -6,6 +6,7 @@ import 'theme.dart';
 
 import 'home.dart';
 import 'menu.dart';
+import 'login.dart';
 
 
 
@@ -87,7 +88,7 @@ class SplashScreen extends StatelessWidget {
             onPressed: () {
               Navigator.pushReplacement(
                 context,
-                MaterialPageRoute(builder: (context) => const HomePage()),
+                MaterialPageRoute(builder: (context) => const LoginPage()),
               );
             },
             child: const Text(
