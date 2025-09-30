@@ -78,6 +78,8 @@ flutter:
     - assets/images/logo_no_bg.png
     - assets/images/profile_icon.png
     - assets/images/raindrop.png
+    - assets/images/umbrella_available.png
+    - assets/images/no_umbrella.png
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images
