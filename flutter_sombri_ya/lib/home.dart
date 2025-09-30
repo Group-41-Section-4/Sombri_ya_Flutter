@@ -63,6 +63,23 @@ class HomePage extends StatelessWidget {
               cacheWidth: 1080,
             ),
           ),
+
+          Positioned(
+            top: 60, 
+            left: 130, 
+            child: Image.asset('assets/images/pin.png', width: 60, height: 60,)
+            ),
+          Positioned(
+            top: 265, 
+            left: 380, 
+            child: Image.asset('assets/images/pin_no_umbrella.png', width: 60, height: 60),
+            ),
+          Positioned(
+            top: 350, 
+            left: 150, 
+            child: Image.asset('assets/images/pin.png', width: 60, height: 60),
+            ),
+
           Positioned(
             top: 16,
             left: 0,
@@ -82,7 +99,14 @@ class HomePage extends StatelessWidget {
                   elevation: 6,
                 ),
                 onPressed: () {
-                  // TODO: When the ESTACIONES button is pressed
+                  showModalBottomSheet(
+                    context: context,
+                    isScrollControlled: true,
+                    backgroundColor: Colors.transparent,
+                    builder: (context) {
+                      return const EstacionesSheet();
+                    },
+                  );
                 },
                 child: Text(
                   'ESTACIONES',
@@ -150,6 +174,94 @@ class HomePage extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class EstacionesSheet extends StatelessWidget {
+  const EstacionesSheet({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return DraggableScrollableSheet(
+      initialChildSize: 0.3,
+      minChildSize: 0.2,
+      maxChildSize: 0.8,
+      builder: (context, scrollController) {
+        return Container(
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+          ),
+          child: ListView(
+            controller: scrollController,
+            padding: const EdgeInsets.all(16),
+            children: [
+              const Text(
+                "Estaciones cercanas",
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 12),
+
+              _buildEstacionCard("ML - 2", "Edificio ML piso 2", "4 min", "200 mts", 5, 2),
+              _buildEstacionCard("W - 1", "Edificio W piso 1", "6 min", "300 mts", 5, 2),
+              _buildEstacionCard("B - 2", "Edificio B piso 2", "8 min", "400 mts", 5, 2),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildEstacionCard(String titulo, String direccion, String tiempo, String distancia, int disponibles, int ocupadas) {
+    return Card(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      elevation: 3,
+      margin: const EdgeInsets.only(bottom: 12),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Row(
+          crossAxisAlignment:  CrossAxisAlignment.start ,
+          children: [
+            Image.asset('assets/images/pin.png', width: 50, height: 50),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(titulo, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 6),
+                  
+                  Row(
+                    children: [
+                      Image.asset('assets/images/umbrella_available.png', width: 20, height: 20),
+                      const SizedBox(width: 4),
+                      Text("$disponibles", style: const TextStyle(color: Colors.green, fontWeight: FontWeight.bold)),
+
+                      const SizedBox(width: 12),
+
+                      Image.asset('assets/images/no_umbrella.png', width: 20, height: 20),
+                      const SizedBox(width: 4),
+                      Text("$ocupadas", style: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
+                    ],
+                  ),
+
+                  const SizedBox(height: 6),
+                  Text(direccion, style: const TextStyle(color: Colors.grey)),
+                ],
+              ),
+            ),
+            const SizedBox(width:0),
+            Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(tiempo, style: const TextStyle(color: Colors.green)),
+                Text(distancia, style: const TextStyle(color: Colors.grey)),
+              ],
+            ),
+          ],
+        ),          
       ),
     );
   }
