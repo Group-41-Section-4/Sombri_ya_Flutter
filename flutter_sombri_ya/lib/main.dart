@@ -9,15 +9,12 @@ import 'menu.dart';
 import 'login.dart';
 
 
-
 void main() {
   runApp(const MyApp());
 }
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
-
-  // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -29,25 +26,6 @@ class MyApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF28BCEF)),
       ),
       home: const SplashScreen(),
-
-      //theme: ThemeData(
-      // This is the theme of your application.
-      //
-      // TRY THIS: Try running your application with "flutter run". You'll see
-      // the application has a purple toolbar. Then, without quitting the app,
-      // try changing the seedColor in the colorScheme below to Colors.green
-      // and then invoke "hot reload" (save your changes or press the "hot
-      // reload" button in a Flutter-supported IDE, or press "r" if you used
-      // the command line to start the app).
-      //
-      // Notice that the counter didn't reset back to zero; the application
-      // state is not lost during the reload. To reset the state, use hot
-      // restart instead.
-      //
-      // This works for code too, not just values: Most code changes can be
-      // tested with just a hot reload.
-      //colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
-      //),
     );
   }
 }
@@ -58,14 +36,13 @@ class SplashScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF28BCEF), // azul de fondo
+      backgroundColor: const Color(0xFF28BCEF),
       body: Column(
-        mainAxisAlignment: MainAxisAlignment.center,      // centra verticalmente
-        crossAxisAlignment: CrossAxisAlignment.center,    // centra horizontalmente
+        mainAxisAlignment: MainAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          // Logo
           Align(
-            alignment: Alignment.center, // fuerza al centro
+            alignment: Alignment.center,
             child: Image.asset(
               'assets/images/logo_no_bg.png',
               fit: BoxFit.contain,
@@ -73,9 +50,8 @@ class SplashScreen extends StatelessWidget {
             ),
           ),
 
-          const SizedBox(height: 40), // espacio entre logo y botón
+          const SizedBox(height: 40),
 
-          // Botón
           ElevatedButton(
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFF001242),
@@ -91,15 +67,10 @@ class SplashScreen extends StatelessWidget {
                 MaterialPageRoute(builder: (context) => const LoginPage()),
               );
             },
-            child: const Text(
-              "Iniciar Sesión",
-              style: TextStyle(fontSize: 30),
-            ),
+            child: const Text("Iniciar Sesión", style: TextStyle(fontSize: 30)),
           ),
         ],
       ),
     );
   }
 }
-
-

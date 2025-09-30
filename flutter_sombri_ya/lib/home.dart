@@ -1,7 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_map/flutter_map.dart';
-import 'package:latlong2/latlong.dart';
-import 'theme.dart'; // usa tus colores de AppTheme
 import 'menu.dart';
 import 'notifications.dart';
 import 'profile.dart';
@@ -18,19 +15,22 @@ class HomePage extends StatelessWidget {
         backgroundColor: const Color(0xFF90E0EF),
         foregroundColor: Colors.black,
         centerTitle: true,
-        title: Text('',
+        title: Text(
+          '',
           style: GoogleFonts.cormorantGaramond(
-          fontSize: 22,
-          fontWeight: FontWeight.bold,
-          color: Colors.black,
+            fontSize: 22,
+            fontWeight: FontWeight.bold,
+            color: Colors.black,
+          ),
         ),
-      ),
         leading: IconButton(
           icon: const Icon(Icons.notifications_none),
           onPressed: () {
             Navigator.push(
               context,
-              MaterialPageRoute(builder:(context) => const NotificationsPage()),
+              MaterialPageRoute(
+                builder: (context) => const NotificationsPage(),
+              ),
             );
           },
         ),
@@ -38,10 +38,8 @@ class HomePage extends StatelessWidget {
           IconButton(
             onPressed: () {
               Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                      builder:(context) => const ProfilePage(),
-                  ),
+                context,
+                MaterialPageRoute(builder: (context) => const ProfilePage()),
               );
             },
             icon: const CircleAvatar(
@@ -74,7 +72,10 @@ class HomePage extends StatelessWidget {
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF005E7C),
                   foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 12),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 40,
+                    vertical: 12,
+                  ),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(20),
                   ),
@@ -97,7 +98,6 @@ class HomePage extends StatelessWidget {
         ],
       ),
 
-      //Botón para rentar sombrillas
       floatingActionButton: SizedBox(
         width: 76,
         height: 76,
@@ -108,9 +108,7 @@ class HomePage extends StatelessWidget {
           onPressed: () {
             Navigator.push(
               context,
-              MaterialPageRoute(
-                builder: (context) => const RentPage(),
-              ),
+              MaterialPageRoute(builder: (context) => const RentPage()),
             );
           },
           child: Image.asset(
@@ -128,7 +126,6 @@ class HomePage extends StatelessWidget {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceAround,
           children: [
-            // Botón Home
             Padding(
               padding: const EdgeInsets.all(14),
               child: IconButton(
@@ -139,9 +136,7 @@ class HomePage extends StatelessWidget {
               ),
             ),
 
-            const SizedBox(width: 48), // espacio para el notch del FAB
-
-            // Botón Menú
+            const SizedBox(width: 48),
             Padding(
               padding: const EdgeInsets.all(14),
               child: Builder(
