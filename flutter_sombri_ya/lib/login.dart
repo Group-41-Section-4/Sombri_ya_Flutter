@@ -3,6 +3,7 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_sombri_ya/main.dart';
 import 'package:flutter_sombri_ya/signin.dart';
 import 'package:latlong2/latlong.dart';
+import 'package:flutter_sombri_ya/forgot_password.dart';
 // import 'package:local_auth/local_auth.dart';
 import 'theme.dart';
 import 'home.dart';
@@ -96,13 +97,22 @@ class LoginPage extends StatelessWidget {
                       },
                     ),
                     const SizedBox(height: 10),
-                    const Align(
+                    Align(
                       alignment: Alignment.center,
-                      child: Text(
-                        "¿Olvidaste tu contraseña?",
-                        style: TextStyle(color: Colors.grey, fontSize: 12),
-                      )
+                      child: GestureDetector(
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(builder:  (_) => const ForgotPassword()),
+                          );
+                        },
+                        child: const Text(
+                          "¿Olvidaste tu contraseña?",
+                          style: TextStyle(color: Colors.grey, fontSize: 12, decoration: TextDecoration.underline),
+                        ),
+                      ),
                     ),
+
                     const SizedBox(height: 10),
                     Align(
                       alignment: Alignment.center,
