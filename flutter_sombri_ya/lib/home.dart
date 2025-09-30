@@ -63,6 +63,23 @@ class HomePage extends StatelessWidget {
               cacheWidth: 1080,
             ),
           ),
+
+          Positioned(
+            top: 60, 
+            left: 130, 
+            child: Image.asset('assets/images/pin.png', width: 60, height: 60,)
+            ),
+          Positioned(
+            top: 265, 
+            left: 380, 
+            child: Image.asset('assets/images/pin_no_umbrella.png', width: 60, height: 60),
+            ),
+          Positioned(
+            top: 350, 
+            left: 150, 
+            child: Image.asset('assets/images/pin.png', width: 60, height: 60),
+            ),
+
           Positioned(
             top: 16,
             left: 0,
