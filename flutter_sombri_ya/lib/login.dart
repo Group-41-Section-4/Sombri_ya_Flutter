@@ -51,31 +51,49 @@ class LoginPage extends StatelessWidget {
                     const SizedBox(height: 20),
                     const Icon(Icons.person, size: 50, color: Color(0xFF001242)),
                     const SizedBox(height: 15),
-                    TextField(
+                    TextFormField(
                       decoration: InputDecoration(
+                        labelText: "Correo electrónico",
                         hintText: "correo@ejemplo.com",
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(8),
                         ),
+                        filled: true,
+                        fillColor: Color(0xFFF2F2F2),
                         contentPadding: const EdgeInsets.symmetric(
                           vertical: 10,
                           horizontal: 15,
                         ),
                       ),
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return "Ingresa tu correo";
+                        }
+                        return null;
+                      },
                     ),
                     const SizedBox(height: 15),
-                    TextField(
-                      obscureText: true, // para que se oculte la contraseña
+                    TextFormField(
+                      obscureText: true,
                       decoration: InputDecoration(
-                        hintText: "contraseña",
+                        labelText: "Contraseña",
+                        hintText: "Contraseña",
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(8),
                         ),
+                        filled: true,
+                        fillColor: Color(0xFFF2F2F2),
                         contentPadding: const EdgeInsets.symmetric(
                           vertical: 10,
                           horizontal: 15,
                         ),
                       ),
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return "Ingresa tu contraseña";
+                        }
+                        return null;
+                      },
                     ),
                     const SizedBox(height: 10),
                     const Align(
@@ -90,7 +108,7 @@ class LoginPage extends StatelessWidget {
                       alignment: Alignment.center,
                       child: GestureDetector(
                         onTap: () {
-                          Navigator.push(
+                          Navigator.pushReplacement(
                             context,
                             MaterialPageRoute(builder: (_) => const SigninPage()),
                           );

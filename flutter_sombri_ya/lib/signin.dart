@@ -37,7 +37,7 @@ class SigninPage extends StatelessWidget {
                 child: Column(
                   children: [
                     const Text(
-                      "Iniciar sesión",
+                      "Regístrate",
                       style: TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.bold,
@@ -47,72 +47,75 @@ class SigninPage extends StatelessWidget {
                     const SizedBox(height: 20),
                     const Icon(Icons.person, size: 50, color: Color(0xFF001242)),
                     const SizedBox(height: 15),
-                    TextField(
+                    TextFormField(
                       decoration: InputDecoration(
+                        labelText: "Correo electrónico",
                         hintText: "correo@ejemplo.com",
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(8),
                         ),
+                        filled: true,
+                        fillColor: Color(0xFFF2F2F2),
                         contentPadding: const EdgeInsets.symmetric(
                           vertical: 10,
                           horizontal: 15,
                         ),
                       ),
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return "Ingresa tu correo";
+                        }
+                        return null;
+                      },
                     ),
                     const SizedBox(height: 15),
-                    TextField(
-                      obscureText: true, // para que se oculte la contraseña
+                    TextFormField(
+                      obscureText: true,
                       decoration: InputDecoration(
-                        hintText: "contraseña",
+                        labelText: "Contraseña",
+                        hintText: "Contraseña",
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(8),
                         ),
+                        filled: true,
+                        fillColor: Color(0xFFF2F2F2),
                         contentPadding: const EdgeInsets.symmetric(
                           vertical: 10,
                           horizontal: 15,
                         ),
                       ),
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return "Ingresa tu contraseña";
+                        }
+                        return null;
+                      },
                     ),
-                    const SizedBox(height: 10),
-                    const Align(
-                        alignment: Alignment.center,
-                        child: Text(
-                          "¿Olvidaste tu contraseña?",
-                          style: TextStyle(color: Colors.grey, fontSize: 12),
-                        )
-                    ),
-                    const SizedBox(height: 10),
-                    const Align(
-                        alignment: Alignment.center,
-                        child: Text(
-                          "¿No tienes una cuenta? Regístrate",
-                          style: TextStyle(color: Colors.grey, fontSize: 12),
-                        )
-                    ),
-                    const SizedBox(height: 20,),
-
-                    SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton(
-                        onPressed: () {
-                          Navigator.pushReplacement(
-                            context,
-                            MaterialPageRoute(builder: (context) => const HomePage()),
-                          );
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF001242),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          padding: const EdgeInsets.symmetric(vertical: 14),
+                    const SizedBox(height: 15),
+                    TextFormField(
+                      obscureText: true,
+                      decoration: InputDecoration(
+                        labelText: "Confirmar contraseña",
+                        hintText: "Contraseña",
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
                         ),
-                        child: const Text(
-                          "Iniciar sesión",
-                          style: TextStyle(fontSize: 16, color: const Color(0xFFFFFDFD)),
+                        filled: true,
+                        fillColor: Color(0xFFF2F2F2),
+                        contentPadding: const EdgeInsets.symmetric(
+                          vertical: 10,
+                          horizontal: 15,
                         ),
                       ),
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return "Confirma tu contraseña";
+                        }
+                        return null;
+                      },
                     ),
+
+
                   ],
                 ),
               ),
@@ -120,20 +123,25 @@ class SigninPage extends StatelessWidget {
 
               const SizedBox(height: 40),
 
-              // Footer
-              const Text(
-                "Sombri-Ya",
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black,
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF001242),
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(30),
+                  ),
+                  padding: const EdgeInsets.symmetric(horizontal: 70, vertical: 15),
                 ),
-              ),
-              const SizedBox(height: 8),
-              const Text(
-                "Ahorra tiempo y mantente\nseco en cualquier trayecto",
-                textAlign: TextAlign.center,
-                style: TextStyle(color: Colors.white, fontSize: 14),
+                onPressed: () {
+                  Navigator.pushReplacement(
+                    context,
+                    MaterialPageRoute(builder: (context) => const LoginPage()),
+                  );
+                },
+                child: const Text(
+                  "Registrar",
+                  style: TextStyle(fontSize: 20),
+                ),
               ),
             ],
           ),
