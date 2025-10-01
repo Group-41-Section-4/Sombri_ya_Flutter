@@ -1,8 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_map/flutter_map.dart';
-import 'package:flutter_sombri_ya/main.dart';
-import 'package:latlong2/latlong.dart';
-import 'theme.dart';
 import 'login.dart';
 
 class SigninPage extends StatelessWidget {
@@ -45,7 +41,11 @@ class SigninPage extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 20),
-                    const Icon(Icons.person, size: 50, color: Color(0xFF001242)),
+                    const Icon(
+                      Icons.person,
+                      size: 50,
+                      color: Color(0xFF001242),
+                    ),
                     const SizedBox(height: 15),
                     TextFormField(
                       decoration: InputDecoration(
@@ -114,12 +114,9 @@ class SigninPage extends StatelessWidget {
                         return null;
                       },
                     ),
-
-
                   ],
                 ),
               ),
-
 
               const SizedBox(height: 40),
 
@@ -130,7 +127,10 @@ class SigninPage extends StatelessWidget {
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(30),
                   ),
-                  padding: const EdgeInsets.symmetric(horizontal: 70, vertical: 15),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 70,
+                    vertical: 15,
+                  ),
                 ),
                 onPressed: () {
                   Navigator.pushReplacement(
@@ -138,10 +138,7 @@ class SigninPage extends StatelessWidget {
                     MaterialPageRoute(builder: (context) => const LoginPage()),
                   );
                 },
-                child: const Text(
-                  "Registrar",
-                  style: TextStyle(fontSize: 20),
-                ),
+                child: const Text("Registrar", style: TextStyle(fontSize: 20)),
               ),
             ],
           ),
