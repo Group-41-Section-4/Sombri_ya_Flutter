@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'history.dart';
+import 'payment_methods.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class AppDrawer extends StatelessWidget {
@@ -13,10 +14,8 @@ class AppDrawer extends StatelessWidget {
         children: [
           SizedBox(
             height: 100,
-            child:  DrawerHeader(
-              decoration: BoxDecoration(
-                color: Color(0xFF90E0EF),
-              ),
+            child: DrawerHeader(
+              decoration: BoxDecoration(color: Color(0xFF90E0EF)),
               margin: EdgeInsets.zero,
               padding: EdgeInsets.all(16),
               child: Text(
@@ -27,7 +26,6 @@ class AppDrawer extends StatelessWidget {
                   fontWeight: FontWeight.bold,
                 ),
               ),
-
             ),
           ),
           ListTile(
@@ -36,7 +34,6 @@ class AppDrawer extends StatelessWidget {
             onTap: () {
               // TODO: add functionality to navigate to "configuraciones" view
               Navigator.pop(context);
-
             },
           ),
           ListTile(
@@ -46,16 +43,22 @@ class AppDrawer extends StatelessWidget {
               Navigator.pop(context);
               Navigator.push(
                 context,
-                MaterialPageRoute(builder:(context) => const HistoryPage()),
+                MaterialPageRoute(builder: (context) => const HistoryPage()),
               );
             },
           ),
           ListTile(
             leading: const Icon(Icons.payment),
             title: const Text("Métodos de Pago"),
-            onTap: (
-                // TODO: add functionality to navigate to "métodos de pago" view
-                ) {},
+            onTap: () {
+              Navigator.pop(context);
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const PaymentMethodsPage(),
+                ),
+              );
+            },
           ),
           ListTile(
             leading: const Icon(Icons.check_box_outlined),
