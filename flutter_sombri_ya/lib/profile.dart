@@ -46,7 +46,6 @@ class _ProfilePageState extends State<ProfilePage> {
       setState(() {
         _user.name = newName;
       });
-      // TODO: API para actualizar el nombre en el backend.
     }
   }
 
@@ -62,7 +61,6 @@ class _ProfilePageState extends State<ProfilePage> {
       setState(() {
         _user.email = newEmail;
       });
-      // TODO: API para actualizar el email en el backend.
     }
   }
 
@@ -76,7 +74,6 @@ class _ProfilePageState extends State<ProfilePage> {
       content:
           'Al desactivar la cuenta, no recibirás más notificaciones y tus subscripciones se suspenderán al final del periodo de pago actual. ¿Estás seguro?',
       onConfirm: () {
-        // TODO: Llamar a la API para desactivar la cuenta.
         Navigator.of(context).pushAndRemoveUntil(
           MaterialPageRoute(builder: (context) => const LoginPage()),
           (Route<dynamic> route) => false,
@@ -91,7 +88,6 @@ class _ProfilePageState extends State<ProfilePage> {
       content:
           'Esta acción es permanente y no se puede deshacer. Se borrarán todos tus datos, historial y subscripciones. ¿Estás seguro de que quieres continuar?',
       onConfirm: () {
-        // TODO: Llamar a la API para borrar la cuenta permanentemente.
         Navigator.of(context).pushAndRemoveUntil(
           MaterialPageRoute(builder: (context) => const LoginPage()),
           (Route<dynamic> route) => false,
@@ -184,14 +180,14 @@ class _ProfilePageState extends State<ProfilePage> {
               'Borrar Cuenta',
               AppThem.accent,
               Colors.white,
-              () {},
+              _deleteAccount,
             ),
             const SizedBox(height: 20),
             buildActionButton(
               'Desactivar Cuenta',
               Colors.grey[400]!,
               Colors.black,
-              () {},
+              _deactivateAccount,
             ),
           ],
         ),

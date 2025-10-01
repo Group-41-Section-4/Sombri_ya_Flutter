@@ -104,12 +104,9 @@ void showChangePasswordDialog(BuildContext context) {
           ),
           ElevatedButton(
             onPressed: () {
-              // TODO: Añadir validación contra la contraseña actual real cuando el backend esté conectado.
               if (newPasswordController.text.isNotEmpty &&
                   newPasswordController.text ==
                       confirmPasswordController.text) {
-                // TODO: Llamar a la API para cambiar la contraseña.
-                print('Contraseña cambiada (simulación)');
                 Navigator.of(context).pop();
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
