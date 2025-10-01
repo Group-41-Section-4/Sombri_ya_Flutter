@@ -1,11 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_map/flutter_map.dart';
-import 'package:flutter_sombri_ya/main.dart';
 import 'package:flutter_sombri_ya/signin.dart';
-import 'package:latlong2/latlong.dart';
 import 'package:flutter_sombri_ya/forgot_password.dart';
 // import 'package:local_auth/local_auth.dart';
-import 'theme.dart';
 import 'home.dart';
 import "signin.dart";
 
@@ -50,7 +46,11 @@ class LoginPage extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 20),
-                    const Icon(Icons.person, size: 50, color: Color(0xFF001242)),
+                    const Icon(
+                      Icons.person,
+                      size: 50,
+                      color: Color(0xFF001242),
+                    ),
                     const SizedBox(height: 15),
                     TextFormField(
                       decoration: InputDecoration(
@@ -103,12 +103,18 @@ class LoginPage extends StatelessWidget {
                         onTap: () {
                           Navigator.push(
                             context,
-                            MaterialPageRoute(builder:  (_) => const ForgotPassword()),
+                            MaterialPageRoute(
+                              builder: (_) => const ForgotPassword(),
+                            ),
                           );
                         },
                         child: const Text(
                           "¿Olvidaste tu contraseña?",
-                          style: TextStyle(color: Colors.grey, fontSize: 12, decoration: TextDecoration.underline),
+                          style: TextStyle(
+                            color: Colors.grey,
+                            fontSize: 12,
+                            decoration: TextDecoration.underline,
+                          ),
                         ),
                       ),
                     ),
@@ -120,7 +126,9 @@ class LoginPage extends StatelessWidget {
                         onTap: () {
                           Navigator.pushReplacement(
                             context,
-                            MaterialPageRoute(builder: (_) => const SigninPage()),
+                            MaterialPageRoute(
+                              builder: (_) => const SigninPage(),
+                            ),
                           );
                         },
                         child: const Text(
@@ -130,15 +138,17 @@ class LoginPage extends StatelessWidget {
                       ),
                     ),
 
-                    const SizedBox(height: 20,),
+                    const SizedBox(height: 20),
 
                     SizedBox(
                       width: double.infinity,
                       child: ElevatedButton(
                         onPressed: () {
                           Navigator.pushReplacement(
-                              context,
-                              MaterialPageRoute(builder: (context) => const HomePage()),
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const HomePage(),
+                            ),
                           );
                         },
                         style: ElevatedButton.styleFrom(
@@ -150,14 +160,16 @@ class LoginPage extends StatelessWidget {
                         ),
                         child: const Text(
                           "Iniciar sesión",
-                          style: TextStyle(fontSize: 16, color: const Color(0xFFFFFDFD)),
+                          style: TextStyle(
+                            fontSize: 16,
+                            color: const Color(0xFFFFFDFD),
+                          ),
                         ),
                       ),
                     ),
                   ],
                 ),
               ),
-
 
               const SizedBox(height: 40),
 

@@ -30,27 +30,51 @@ class _NotificationsPageState extends State<NotificationsPage> {
     AppNotification(
       type: NotificationType.weather,
       title: 'Clima',
-      message: 'El reporte del clima de hoy es soleado con 25°C.',
+      message: 'El reporte del clima de hoy es...',
       time: '9:41 AM',
     ),
-
     AppNotification(
       type: NotificationType.subscription,
       title: 'Subscripción',
-      message: 'Tu subscripción se renueva en 5 días.',
+      message: 'Tu subscripción se renueva en...',
       time: '9:41 AM',
     ),
-
     AppNotification(
       type: NotificationType.reminder,
       title: 'Recordatorio',
-      message: 'Recordatorio de regreso de sombrilla.',
+      message: 'Recordatorio de regreso de sombrilla',
       time: '9:41 AM',
+    ),
+    AppNotification(
+      type: NotificationType.weather,
+      title: 'Alerta de Lluvia',
+      message: 'Se esperan lluvias fuertes a las 3:00 PM.',
+      time: '1:15 PM',
+    ),
+    AppNotification(
+      type: NotificationType.reminder,
+      title: 'Mantenimiento',
+      message: 'Tu sombrilla necesita una revisión.',
+      time: 'Ayer',
+    ),
+    AppNotification(
+      type: NotificationType.subscription,
+      title: 'Pago Exitoso',
+      message: 'Se ha procesado el pago de tu plan mensual.',
+      time: 'Ayer',
+    ),
+    AppNotification(
+      type: NotificationType.weather,
+      title: 'Clima Fin de Semana',
+      message: 'El pronóstico para el sábado es soleado.',
+      time: 'Hace 2 días',
     ),
   ];
 
   void _clearNotifications() {
-    // TODO: add functionality to eliminate notifications
+    setState(() {
+      _notifications.clear();
+    });
   }
 
   @override
@@ -64,7 +88,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
           icon: const Icon(Icons.arrow_back),
           onPressed: () => Navigator.pop(context),
         ),
-        title:  Text(
+        title: Text(
           'Notificaciones',
           style: GoogleFonts.cormorantGaramond(
             color: Colors.black,
@@ -79,39 +103,52 @@ class _NotificationsPageState extends State<NotificationsPage> {
         child: Column(
           children: [
             Expanded(
-              child: ListView.builder(
-                padding: const EdgeInsets.all(20),
-                itemCount: _notifications.length,
-                itemBuilder: (context, index) {
-                  return _NotificationCard(notification: _notifications[index]);
-                },
-              ),
-            ),
-
-            Padding(
-              padding: const EdgeInsets.all(20.0),
-              child: SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: _clearNotifications,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppThem.accent,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(30),
+              child: _notifications.isEmpty
+                  ? const Center(
+                      child: Text(
+                        'No tienes notificaciones',
+                        style: TextStyle(
+                          color: Colors.black,
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    )
+                  : ListView.builder(
+                      padding: const EdgeInsets.all(16.0),
+                      itemCount: _notifications.length,
+                      itemBuilder: (context, index) {
+                        return _NotificationCard(
+                          notification: _notifications[index],
+                        );
+                      },
                     ),
-                  ),
-                  child: const Text(
-                    'Borrar Notificaciones',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
+            ),
+            if (_notifications.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.all(20.0),
+                child: SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: _clearNotifications,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppThem.accent,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(30),
+                      ),
+                    ),
+                    child: const Text(
+                      'Borrar Notificaciones',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
                     ),
                   ),
                 ),
               ),
-            ),
           ],
         ),
       ),
@@ -138,7 +175,7 @@ class _NotificationCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Card(
       margin: const EdgeInsets.only(bottom: 15),
-      color: const Color.fromARGB(255, 220, 240, 255),
+      color: const Color(0xFFADD8E6),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
       elevation: 8,
       shadowColor: Colors.black,
