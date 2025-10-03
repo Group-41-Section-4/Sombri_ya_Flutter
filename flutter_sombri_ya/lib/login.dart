@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_sombri_ya/signin.dart';
 import 'package:flutter_sombri_ya/forgot_password.dart';
 // import 'package:local_auth/local_auth.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import 'home.dart';
 import "signin.dart";
 
@@ -12,7 +13,7 @@ class LoginPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF28BCEF),
+      backgroundColor: const Color(0xFF90E0EF),
       body: Center(
         child: SingleChildScrollView(
           child: Column(
@@ -186,7 +187,7 @@ class LoginPage extends StatelessWidget {
               const Text(
                 "Ahorra tiempo y mantente\nseco en cualquier trayecto",
                 textAlign: TextAlign.center,
-                style: TextStyle(color: Colors.white, fontSize: 14),
+                style: TextStyle(color: Color(0xFF001242), fontSize: 14),
               ),
             ],
           ),

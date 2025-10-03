@@ -10,7 +10,7 @@ class ForgotPassword extends StatelessWidget {
     final TextEditingController emailController = TextEditingController();
 
     return Scaffold(
-      backgroundColor: const Color(0xFF28BCEF),
+      backgroundColor: const Color(0xFF90E0EF),
       body: Center(
         child: SingleChildScrollView(
           child: Column(
