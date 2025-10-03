@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
-import 'location_service.dart';
+import 'package:geolocator/geolocator.dart';
+import 'location_service.dart' hide LocationServiceDisabledException;
 import 'menu.dart';
 import 'notifications.dart';
 import 'profile.dart';
@@ -14,23 +15,40 @@ class HomePage extends StatefulWidget {
   State<HomePage> createState() => _HomePageState();
 }
 
-class _HomePageState extends State<HomePage> {
+class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
   final LocationService _locationService = LocationService();
   GoogleMapController? _mapController;
   LatLng _initialPosition = const LatLng(4.603083745590484, -74.06513067239409);
   Marker? _userLocationMarker;
-
   bool _isLoading = true;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _setUserLocation();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _setUserLocation();
+    }
   }
 
   Future<void> _setUserLocation() async {
     try {
       final position = await _locationService.getCurrentLocation();
+      if (!mounted) {
+        return;
+      }
+
       setState(() {
         _initialPosition = position;
         _userLocationMarker = Marker(
@@ -44,11 +62,46 @@ class _HomePageState extends State<HomePage> {
         _isLoading = false;
       });
       _mapController?.animateCamera(CameraUpdate.newLatLng(_initialPosition));
+    } on LocationServiceDisabledException {
+      _showEnableLocationDialog();
+      setState(() {
+        _isLoading = false;
+      });
     } catch (e) {
       setState(() {
         _isLoading = false;
       });
     }
+  }
+
+  void _showEnableLocationDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Ubicación Desactivada'),
+          content: const Text(
+            'Para mostrar las estaciones cercanas, por favor activa los servicios de ubicación de tu dispositivo.',
+          ),
+          actions: <Widget>[
+            TextButton(
+              child: const Text('Cancelar'),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+            TextButton(
+              child: const Text('Activar Ubicación'),
+              onPressed: () {
+                Geolocator.openLocationSettings();
+                Navigator.of(context).pop();
+              },
+            ),
+          ],
+        );
+      },
+    );
   }
 
   @override

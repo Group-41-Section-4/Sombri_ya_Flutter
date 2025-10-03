@@ -1,11 +1,13 @@
 import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 
+class LocationServiceDisabledException implements Exception {}
+
 class LocationService {
   Future<LatLng> getCurrentLocation() async {
     bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
     if (!serviceEnabled) {
-      return const LatLng(4.603083745590484, -74.06513067239409);
+      throw LocationServiceDisabledException();
     }
 
     LocationPermission permission = await Geolocator.checkPermission();
@@ -17,9 +19,7 @@ class LocationService {
     }
 
     if (permission == LocationPermission.deniedForever) {
-      throw Exception(
-        'Los permisos de ubicación están denegados permanentemente.',
-      );
+      throw Exception('Los permisos de ubicación están denegados.');
     }
 
     Position position = await Geolocator.getCurrentPosition(
