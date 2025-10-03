@@ -1,8 +1,63 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+
 import 'login.dart';
 
-class SigninPage extends StatelessWidget {
+class SigninPage extends StatefulWidget {
   const SigninPage({super.key});
+
+  @override
+  State<SigninPage> createState() => _SigninPageState();
+}
+
+class _SigninPageState extends State<SigninPage> {
+
+  final TextEditingController emailController = TextEditingController();
+  final TextEditingController passwordController = TextEditingController();
+  final TextEditingController confirmPasswordController = TextEditingController();
+  bool useBiometrics = false;
+  final storage = const FlutterSecureStorage();
+
+  Future<void> register(BuildContext context) async {
+    final email = emailController.text;
+    final password = passwordController.text;
+    final confirmPassword = confirmPasswordController.text;
+
+    if (password != confirmPassword) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Las contraseñas no coinciden")),
+      );
+      return;
+    }
+
+    final url = Uri.parse("https://TU-BACKEND.herokuapp.com/auth/register");
+    final response = await http.post(
+      url,
+      headers: {"Content-Type": "application/json"},
+      body: jsonEncode({
+        "email": email,
+        "password": password,
+        "biometric_enabled": useBiometrics,
+      }),
+    );
+
+    if (response.statusCode == 201 || response.statusCode == 200) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Usuario registrado correctamente, inicia sesión")),
+      );
+
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => const LoginPage()),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Error al registrarse, intenta nuevamente")),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -114,6 +169,15 @@ class SigninPage extends StatelessWidget {
                         return null;
                       },
                     ),
+                    CheckboxListTile(
+                      title: const Text("Habilitar inicio de sesión con biometría"),
+                      value: useBiometrics,
+                      onChanged: (val) {
+                        setState(() {
+                          useBiometrics = val ?? false;
+                        });
+                      },
+                    ),
                   ],
                 ),
               ),
@@ -132,12 +196,7 @@ class SigninPage extends StatelessWidget {
                     vertical: 15,
                   ),
                 ),
-                onPressed: () {
-                  Navigator.pushReplacement(
-                    context,
-                    MaterialPageRoute(builder: (context) => const LoginPage()),
-                  );
-                },
+                onPressed:() => register(context),
                 child: const Text("Registrar", style: TextStyle(fontSize: 20)),
               ),
             ],
