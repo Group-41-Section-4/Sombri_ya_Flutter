@@ -5,7 +5,7 @@ class LocationService {
   Future<LatLng> getCurrentLocation() async {
     bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
     if (!serviceEnabled) {
-      return const LatLng(4.60971, -74.08175);
+      return const LatLng(4.603083745590484, -74.06513067239409);
     }
 
     LocationPermission permission = await Geolocator.checkPermission();

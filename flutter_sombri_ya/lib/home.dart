@@ -16,11 +16,8 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   final LocationService _locationService = LocationService();
-
   GoogleMapController? _mapController;
-
-  LatLng _initialPosition = const LatLng(4.60971, -74.08175);
-
+  LatLng _initialPosition = const LatLng(4.603083745590484, -74.06513067239409);
   Marker? _userLocationMarker;
 
   bool _isLoading = true;
@@ -154,16 +151,16 @@ class _HomePageState extends State<HomePage> {
               ),
             ),
           ),
-          Positioned(
-            top: 60,
-            left: 130,
-            child: Image.asset('assets/images/pin.png', width: 60, height: 60),
-          ),
-          Positioned(
-            top: 350,
-            left: 150,
-            child: Image.asset('assets/images/pin.png', width: 60, height: 60),
-          ),
+          // Positioned(
+          //   top: 60,
+          //   left: 130,
+          //   child: Image.asset('assets/images/pin.png', width: 60, height: 60),
+          // ),
+          // Positioned(
+          //   top: 350,
+          //   left: 150,
+          //   child: Image.asset('assets/images/pin.png', width: 60, height: 60),
+          // ),
         ],
       ),
       floatingActionButton: SizedBox(
