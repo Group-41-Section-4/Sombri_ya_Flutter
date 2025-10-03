@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_sombri_ya/strategies/qr_rent_strategy.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'menu.dart';
 import 'home.dart';
@@ -26,7 +27,7 @@ class _RentPageState extends State<RentPage> {
   @override
   void initState() {
     super.initState();
-    // TODO: cambiar de NFC a QR  
+    // TODO: cambiar de NFC a QR
     _hasScanned = false;
     _rentContext = RentContext(
       QrRentStrategy(
@@ -46,7 +47,7 @@ class _RentPageState extends State<RentPage> {
       _rentContext.strategy = QrRentStrategy(
         onCodeScanned: (code) {
           setState(() {
-            _qrResult = code;    
+            _qrResult = code;
           });
           debugPrint("Procesando renta con QR: $code");
         },
@@ -130,7 +131,9 @@ class _RentPageState extends State<RentPage> {
                     });
 
                     ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text("Sombrilla rentada con QR: $code")),
+                      SnackBar(
+                        content: Text("Sombrilla rentada con QR: $code"),
+                      ),
                     );
 
                     debugPrint("Código QR detectado: $code");
@@ -170,7 +173,7 @@ class _RentPageState extends State<RentPage> {
           ),
 
           //Show QR Result
-          if(_qrResult != null)
+          if (_qrResult != null)
             Positioned(
               top: MediaQuery.of(context).size.height * 0.22,
               left: 0,
