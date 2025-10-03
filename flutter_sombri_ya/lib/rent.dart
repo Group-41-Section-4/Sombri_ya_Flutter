@@ -5,9 +5,14 @@ import 'notifications.dart';
 import 'profile.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-class RentPage extends StatelessWidget {
+class RentPage extends StatefulWidget {
   const RentPage({super.key});
 
+  @override
+  State<RentPage> createState() => _RentPageState();
+}
+
+class _RentPageState extends State<RentPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
