@@ -5,6 +5,11 @@ import 'notifications.dart';
 import 'profile.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+//Strategy Imports
+import '../strategies/qr_rent_strategy.dart';
+import '../strategies/nfc_rent_strategy.dart';
+import '../strategies/rent_strategy.dart';
+
 class RentPage extends StatefulWidget {
   const RentPage({super.key});
 
@@ -13,6 +18,38 @@ class RentPage extends StatefulWidget {
 }
 
 class _RentPageState extends State<RentPage> {
+
+  late RentContext _rentContext;
+
+  @override
+  void initState() {
+    super.initState();
+    // TODO: cambiar de NFC a QR
+    _rentContext = RentContext(NfcRentStrategy()); // cambiar por qr cuando esté implementado
+    _rentContext.rent();
+  }
+
+  void _switchToQr() {
+    setState(() {
+      //TODO: Implementar QRRentStrategy
+      //_rentContext.strategy = QrRentStrategy();
+    });
+  }
+
+  Future<void> _switchToNfc() async{
+    setState(() {
+      _rentContext.strategy = NfcRentStrategy();
+    });
+    await _rentContext.rent();
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text("Renta por NFC ejecutado"))
+    );
+
+  }
+
+
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -116,9 +153,7 @@ class _RentPageState extends State<RentPage> {
                   elevation: 8,
                   shadowColor: Colors.black26,
                 ),
-                onPressed: () {
-                  // TODO: NFC logic
-                },
+                onPressed: _switchToNfc,
               ),
             ),
           ),

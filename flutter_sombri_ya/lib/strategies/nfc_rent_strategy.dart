@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_nfc_kit/flutter_nfc_kit.dart';
+import 'rent_strategy.dart';
 
 class NfcRentStrategy implements RentStrategy {
   @override
