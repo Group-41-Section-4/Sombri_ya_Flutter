@@ -1,12 +1,108 @@
 import 'package:flutter/material.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:geolocator/geolocator.dart';
+import 'location_service.dart' hide LocationServiceDisabledException;
 import 'menu.dart';
 import 'notifications.dart';
 import 'profile.dart';
 import 'rent.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-class HomePage extends StatelessWidget {
+class HomePage extends StatefulWidget {
   const HomePage({super.key});
+
+  @override
+  State<HomePage> createState() => _HomePageState();
+}
+
+class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
+  final LocationService _locationService = LocationService();
+  GoogleMapController? _mapController;
+  LatLng _initialPosition = const LatLng(4.603083745590484, -74.06513067239409);
+  Marker? _userLocationMarker;
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _setUserLocation();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _setUserLocation();
+    }
+  }
+
+  Future<void> _setUserLocation() async {
+    try {
+      final position = await _locationService.getCurrentLocation();
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _initialPosition = position;
+        _userLocationMarker = Marker(
+          markerId: const MarkerId('userLocation'),
+          position: _initialPosition,
+          icon: BitmapDescriptor.defaultMarkerWithHue(
+            BitmapDescriptor.hueAzure,
+          ),
+          infoWindow: const InfoWindow(title: 'Tu Ubicación'),
+        );
+        _isLoading = false;
+      });
+      _mapController?.animateCamera(CameraUpdate.newLatLng(_initialPosition));
+    } on LocationServiceDisabledException {
+      _showEnableLocationDialog();
+      setState(() {
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
+
+  void _showEnableLocationDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Ubicación Desactivada'),
+          content: const Text(
+            'Para mostrar las estaciones cercanas, por favor activa los servicios de ubicación de tu dispositivo.',
+          ),
+          actions: <Widget>[
+            TextButton(
+              child: const Text('Cancelar'),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+            TextButton(
+              child: const Text('Activar Ubicación'),
+              onPressed: () {
+                Geolocator.openLocationSettings();
+                Navigator.of(context).pop();
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -55,30 +151,22 @@ class HomePage extends StatelessWidget {
 
       body: Stack(
         children: [
-          Positioned.fill(
-            child: Image.asset(
-              'assets/images/map.png',
-              fit: BoxFit.cover,
-              filterQuality: FilterQuality.low,
-              cacheWidth: 1080,
+          GoogleMap(
+            initialCameraPosition: CameraPosition(
+              target: _initialPosition,
+              zoom: 16,
             ),
+            onMapCreated: (controller) {
+              _mapController = controller;
+            },
+            markers: _userLocationMarker != null ? {_userLocationMarker!} : {},
+            myLocationEnabled: true,
+            myLocationButtonEnabled: true,
+            mapToolbarEnabled: false,
+            zoomControlsEnabled: false,
           ),
 
-          Positioned(
-            top: 60, 
-            left: 130, 
-            child: Image.asset('assets/images/pin.png', width: 60, height: 60,)
-            ),
-          Positioned(
-            top: 265, 
-            left: 380, 
-            child: Image.asset('assets/images/pin_no_umbrella.png', width: 60, height: 60),
-            ),
-          Positioned(
-            top: 350, 
-            left: 150, 
-            child: Image.asset('assets/images/pin.png', width: 60, height: 60),
-            ),
+          if (_isLoading) const Center(child: CircularProgressIndicator()),
 
           Positioned(
             top: 16,
@@ -103,9 +191,7 @@ class HomePage extends StatelessWidget {
                     context: context,
                     isScrollControlled: true,
                     backgroundColor: Colors.transparent,
-                    builder: (context) {
-                      return const EstacionesSheet();
-                    },
+                    builder: (context) => const EstacionesSheet(),
                   );
                 },
                 child: Text(
@@ -113,15 +199,23 @@ class HomePage extends StatelessWidget {
                   style: GoogleFonts.robotoSlab(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
-                    letterSpacing: 1.2,
                   ),
                 ),
               ),
             ),
           ),
+          // Positioned(
+          //   top: 60,
+          //   left: 130,
+          //   child: Image.asset('assets/images/pin.png', width: 60, height: 60),
+          // ),
+          // Positioned(
+          //   top: 350,
+          //   left: 150,
+          //   child: Image.asset('assets/images/pin.png', width: 60, height: 60),
+          // ),
         ],
       ),
-
       floatingActionButton: SizedBox(
         width: 76,
         height: 76,
@@ -143,7 +237,6 @@ class HomePage extends StatelessWidget {
         ),
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
-
       bottomNavigationBar: BottomAppBar(
         shape: const CircularNotchedRectangle(),
         color: const Color(0xFF90E0EF),
@@ -154,21 +247,16 @@ class HomePage extends StatelessWidget {
               padding: const EdgeInsets.all(14),
               child: IconButton(
                 icon: const Icon(Icons.home, color: Colors.black),
-                onPressed: () {
-                  // Navigator.pushNamed(context, '/home');
-                },
+                onPressed: () {},
               ),
             ),
-
             const SizedBox(width: 48),
             Padding(
               padding: const EdgeInsets.all(14),
               child: Builder(
                 builder: (context) => IconButton(
                   icon: const Icon(Icons.menu, color: Colors.black),
-                  onPressed: () {
-                    Scaffold.of(context).openEndDrawer();
-                  },
+                  onPressed: () => Scaffold.of(context).openEndDrawer(),
                 ),
               ),
             ),
@@ -204,9 +292,30 @@ class EstacionesSheet extends StatelessWidget {
               ),
               const SizedBox(height: 12),
 
-              _buildEstacionCard("ML - 2", "Edificio ML piso 2", "4 min", "200 mts", 5, 2),
-              _buildEstacionCard("W - 1", "Edificio W piso 1", "6 min", "300 mts", 5, 2),
-              _buildEstacionCard("B - 2", "Edificio B piso 2", "8 min", "400 mts", 5, 2),
+              _buildEstacionCard(
+                "ML - 2",
+                "Edificio ML piso 2",
+                "4 min",
+                "200 mts",
+                5,
+                2,
+              ),
+              _buildEstacionCard(
+                "W - 1",
+                "Edificio W piso 1",
+                "6 min",
+                "300 mts",
+                5,
+                2,
+              ),
+              _buildEstacionCard(
+                "B - 2",
+                "Edificio B piso 2",
+                "8 min",
+                "400 mts",
+                5,
+                2,
+              ),
             ],
           ),
         );
@@ -214,7 +323,14 @@ class EstacionesSheet extends StatelessWidget {
     );
   }
 
-  Widget _buildEstacionCard(String titulo, String direccion, String tiempo, String distancia, int disponibles, int ocupadas) {
+  Widget _buildEstacionCard(
+    String titulo,
+    String direccion,
+    String tiempo,
+    String distancia,
+    int disponibles,
+    int ocupadas,
+  ) {
     return Card(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       elevation: 3,
@@ -222,7 +338,7 @@ class EstacionesSheet extends StatelessWidget {
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Row(
-          crossAxisAlignment:  CrossAxisAlignment.start ,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Image.asset('assets/images/pin.png', width: 50, height: 50),
             const SizedBox(width: 12),
@@ -230,20 +346,46 @@ class EstacionesSheet extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(titulo, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                  Text(
+                    titulo,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                   const SizedBox(height: 6),
-                  
+
                   Row(
                     children: [
-                      Image.asset('assets/images/umbrella_available.png', width: 20, height: 20),
+                      Image.asset(
+                        'assets/images/umbrella_available.png',
+                        width: 20,
+                        height: 20,
+                      ),
                       const SizedBox(width: 4),
-                      Text("$disponibles", style: const TextStyle(color: Colors.green, fontWeight: FontWeight.bold)),
+                      Text(
+                        "$disponibles",
+                        style: const TextStyle(
+                          color: Colors.green,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
 
                       const SizedBox(width: 12),
 
-                      Image.asset('assets/images/no_umbrella.png', width: 20, height: 20),
+                      Image.asset(
+                        'assets/images/no_umbrella.png',
+                        width: 20,
+                        height: 20,
+                      ),
                       const SizedBox(width: 4),
-                      Text("$ocupadas", style: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
+                      Text(
+                        "$ocupadas",
+                        style: const TextStyle(
+                          color: Colors.red,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                     ],
                   ),
 
@@ -252,7 +394,7 @@ class EstacionesSheet extends StatelessWidget {
                 ],
               ),
             ),
-            const SizedBox(width:0),
+            const SizedBox(width: 0),
             Column(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -261,7 +403,7 @@ class EstacionesSheet extends StatelessWidget {
               ],
             ),
           ],
-        ),          
+        ),
       ),
     );
   }
