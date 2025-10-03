@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:mobile_scanner/mobile_scanner.dart';
 import 'menu.dart';
 import 'home.dart';
 import 'notifications.dart';
@@ -20,18 +21,38 @@ class RentPage extends StatefulWidget {
 class _RentPageState extends State<RentPage> {
 
   late RentContext _rentContext;
+  String? _qrResult;
+
+  bool _hasScanned = false;
 
   @override
   void initState() {
     super.initState();
-    // TODO: cambiar de NFC a QR
-    _rentContext = RentContext(NfcRentStrategy()); // cambiar por qr cuando esté implementado
-    _rentContext.rent();
+    // TODO: cambiar de NFC a QR  
+    _hasScanned = false;
+    _rentContext = RentContext(
+      QrRentStrategy(
+        onCodeScanned: (code) {
+          setState(() {
+            _qrResult = code;
+          });
+          debugPrint("Procesando renta con QR: $code");
+        },
+      ),
+    );
   }
 
   void _switchToQr() {
     setState(() {
       //TODO: Implementar QRRentStrategy
+      _rentContext.strategy = QrRentStrategy(
+        onCodeScanned: (code) {
+          setState(() {
+            _qrResult = code;    
+          });
+          debugPrint("Procesando renta con QR: $code");
+        },
+      );
       //_rentContext.strategy = QrRentStrategy();
     });
   }
@@ -98,13 +119,38 @@ class _RentPageState extends State<RentPage> {
       // QR Scanner Body or NFC Activation
       body: Stack(
         children: [
-          Positioned.fill(
-            child: Image.asset(
-              'assets/images/qr_img.png',
-              fit: BoxFit.cover,
-              filterQuality: FilterQuality.low,
-              cacheWidth: 1080,
-            ),
+          MobileScanner(
+            fit: BoxFit.cover,
+            onDetect: (capture) {
+              if (!_hasScanned) {
+                _hasScanned = true;
+
+                final barcodes = capture.barcodes;
+
+                if (barcodes.isNotEmpty) {
+                  final code = barcodes.first.rawValue;
+                  if (code != null) {
+                    setState(() {
+                      _qrResult = code;
+                    });
+
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text("Sombrilla rentada con QR: $code")),
+                    );
+
+                    debugPrint("Código QR detectado: $code");
+
+                    Future.delayed(const Duration(seconds: 3), () {
+                      if (mounted) {
+                        setState(() {
+                          _qrResult = null;
+                        });
+                      }
+                    });
+                  }
+                }
+              }
+            },
           ),
 
           // Scanner square
@@ -128,9 +174,28 @@ class _RentPageState extends State<RentPage> {
             ),
           ),
 
+          //Show QR Result
+          if(_qrResult != null)
+            Positioned(
+              top: MediaQuery.of(context).size.height * 0.22,
+              left: 0,
+              right: 0,
+              child: Center(
+                child: Text(
+                  "QR Detectado: $_qrResult",
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    backgroundColor: Colors.black54,
+                  ),
+                ),
+              ),
+            ),
+
           // Activate NFC button
           Positioned(
-            bottom: 100,
+            bottom: 130,
             left: 0,
             right: 0,
             child: Center(
@@ -206,7 +271,7 @@ class _RentPageState extends State<RentPage> {
           backgroundColor: Colors.transparent,
           elevation: 6,
           shape: const CircleBorder(),
-          onPressed: () {},
+          onPressed: (_switchToQr),
           child: Image.asset(
             'assets/images/home_button.png',
             width: 100,
