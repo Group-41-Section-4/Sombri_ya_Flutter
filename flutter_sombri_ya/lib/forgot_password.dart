@@ -2,13 +2,59 @@ import 'package:flutter/material.dart';
 import 'login.dart';
 import 'reset_password.dart';
 
-class ForgotPassword extends StatelessWidget {
+class ForgotPassword extends StatefulWidget {
   const ForgotPassword({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    final TextEditingController emailController = TextEditingController();
+  State<ForgotPassword> createState() => _ForgotPasswordState();
+}
 
+class _ForgotPasswordState extends State<ForgotPassword> {
+  final TextEditingController emailController = TextEditingController();
+  bool _isLoading = false;
+
+  @override
+  void dispose() {
+    emailController.dispose();
+    super.dispose();
+  }
+
+  void _sendResetEmail() {
+    if (emailController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Por favor ingresa un correo electrónico"),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    setState(() {
+      _isLoading = true;
+    });
+
+    Future.delayed(const Duration(seconds: 2), () {
+      setState(() {
+        _isLoading = false;
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("Se envió un correo a ${emailController.text}"),
+          backgroundColor: Colors.green,
+        ),
+      );
+
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => const ResetPasswordPage()),
+      );
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFF90E0EF),
       body: Center(
@@ -69,25 +115,7 @@ class ForgotPassword extends StatelessWidget {
                     SizedBox(
                       width: double.infinity,
                       child: ElevatedButton(
-                        onPressed: () {
-                          Future.delayed(const Duration(seconds: 2), () {
-                            Navigator.pushReplacement(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => const ResetPasswordPage(),
-                              ),
-                            );
-                          });
-                        },
-                        //   ScaffoldMessenger.of(context).showSnackBar(
-                        //     SnackBar(
-                        //       content: Text(
-                        //         "Se envió un correo a ${emailController.text}",
-                        //       ),
-                        //       backgroundColor: Colors.green,
-                        //     ),
-                        //   );
-                        // },
+                        onPressed: _isLoading ? null : _sendResetEmail,
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFF001242),
                           shape: RoundedRectangleBorder(
@@ -95,10 +123,17 @@ class ForgotPassword extends StatelessWidget {
                           ),
                           padding: const EdgeInsets.symmetric(vertical: 14),
                         ),
-                        child: const Text(
-                          "Enviar",
-                          style: TextStyle(fontSize: 16, color: Colors.white,)
-                        ),
+                        child: _isLoading
+                            ? const CircularProgressIndicator(
+                                color: Colors.white,
+                              )
+                            : const Text(
+                                "Enviar",
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  color: Colors.white,
+                                ),
+                              ),
                       ),
                     ),
 
