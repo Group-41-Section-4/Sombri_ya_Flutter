@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:geolocator/geolocator.dart';
 import 'location_service.dart' hide LocationServiceDisabledException;
+import 'service_adapters/stations_service.dart';
+import 'models/station_model.dart';
 import 'menu.dart';
 import 'notifications.dart';
 import 'profile.dart';
@@ -17,16 +19,23 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
   final LocationService _locationService = LocationService();
+  final StationsService _stationsService = StationsService();
+
   GoogleMapController? _mapController;
   LatLng _initialPosition = const LatLng(4.603083745590484, -74.06513067239409);
-  Marker? _userLocationMarker;
   bool _isLoading = true;
+
+  Set<Marker> _markers = {};
+
+  List<Station> _nearbyStations = [];
+  BitmapDescriptor? _stationIcon;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    _setUserLocation();
+    _loadCustomMarkerIcon();
+    _initializeMap();
   }
 
   @override
@@ -35,43 +44,93 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
     super.dispose();
   }
 
+  Future<void> _loadCustomMarkerIcon() async {
+    final icon = await BitmapDescriptor.asset(
+      const ImageConfiguration(size: Size(48, 48)),
+      'assets/images/pin.png',
+    );
+    setState(() {
+      _stationIcon = icon;
+    });
+  }
+
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
-      _setUserLocation();
+      _initializeMap();
     }
   }
 
-  Future<void> _setUserLocation() async {
+  Future<void> _initializeMap() async {
     try {
-      final position = await _locationService.getCurrentLocation();
+      final userPosition = await _locationService.getCurrentLocation();
       if (!mounted) {
         return;
       }
 
       setState(() {
-        _initialPosition = position;
-        _userLocationMarker = Marker(
-          markerId: const MarkerId('userLocation'),
-          position: _initialPosition,
-          icon: BitmapDescriptor.defaultMarkerWithHue(
-            BitmapDescriptor.hueAzure,
-          ),
-          infoWindow: const InfoWindow(title: 'Tu Ubicación'),
-        );
+        _initialPosition = userPosition;
         _isLoading = false;
+        _updateMarkers(userPosition, []);
       });
-      _mapController?.animateCamera(CameraUpdate.newLatLng(_initialPosition));
+
+      _mapController?.animateCamera(
+        CameraUpdate.newLatLngZoom(_initialPosition, 16),
+      );
+
+      _fetchNearbyStations(userPosition);
     } on LocationServiceDisabledException {
       _showEnableLocationDialog();
-      setState(() {
-        _isLoading = false;
-      });
+      setState(() => _isLoading = false);
     } catch (e) {
-      setState(() {
-        _isLoading = false;
-      });
+      setState(() => _isLoading = false);
     }
+  }
+
+  Future<void> _fetchNearbyStations(LatLng location) async {
+    try {
+      final stations = await _stationsService.findNearbyStations(location);
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _nearbyStations = stations;
+      });
+      _updateMarkers(_initialPosition, stations);
+    } catch (e) {
+      print("Error: $e");
+    }
+  }
+
+  void _updateMarkers(LatLng userPosition, List<Station> stations) {
+    final Set<Marker> markers = {};
+    markers.add(
+      Marker(
+        markerId: const MarkerId('userLocation'),
+        position: userPosition,
+        icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueAzure),
+        infoWindow: const InfoWindow(title: 'Tu Ubicación'),
+      ),
+    );
+
+    for (final station in stations) {
+      markers.add(
+        Marker(
+          markerId: MarkerId(station.id),
+          position: LatLng(station.latitude, station.longitude),
+          icon: _stationIcon ?? BitmapDescriptor.defaultMarker,
+          infoWindow: InfoWindow(
+            title: station.placeName,
+            snippet: '${station.availableUmbrellas} sombrillas disponibles',
+          ),
+        ),
+      );
+    }
+
+    setState(() {
+      _markers = markers;
+    });
   }
 
   void _showEnableLocationDialog() {
@@ -159,7 +218,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
             onMapCreated: (controller) {
               _mapController = controller;
             },
-            markers: _userLocationMarker != null ? {_userLocationMarker!} : {},
+            markers: _markers,
             myLocationEnabled: true,
             myLocationButtonEnabled: true,
             mapToolbarEnabled: false,
@@ -191,7 +250,8 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                     context: context,
                     isScrollControlled: true,
                     backgroundColor: Colors.transparent,
-                    builder: (context) => const EstacionesSheet(),
+                    builder: (context) =>
+                        EstacionesSheet(stations: _nearbyStations),
                   );
                 },
                 child: Text(
@@ -204,16 +264,6 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
               ),
             ),
           ),
-          // Positioned(
-          //   top: 60,
-          //   left: 130,
-          //   child: Image.asset('assets/images/pin.png', width: 60, height: 60),
-          // ),
-          // Positioned(
-          //   top: 350,
-          //   left: 150,
-          //   child: Image.asset('assets/images/pin.png', width: 60, height: 60),
-          // ),
         ],
       ),
       floatingActionButton: SizedBox(
@@ -268,12 +318,13 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
 }
 
 class EstacionesSheet extends StatelessWidget {
-  const EstacionesSheet({super.key});
+  final List<Station> stations;
+  const EstacionesSheet({super.key, required this.stations});
 
   @override
   Widget build(BuildContext context) {
     return DraggableScrollableSheet(
-      initialChildSize: 0.3,
+      initialChildSize: 0.4,
       minChildSize: 0.2,
       maxChildSize: 0.8,
       builder: (context, scrollController) {
@@ -282,39 +333,46 @@ class EstacionesSheet extends StatelessWidget {
             color: Colors.white,
             borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
           ),
-          child: ListView(
-            controller: scrollController,
-            padding: const EdgeInsets.all(16),
+          child: Column(
             children: [
+              Container(
+                width: 40,
+                height: 5,
+                margin: const EdgeInsets.symmetric(vertical: 10),
+                decoration: BoxDecoration(
+                  color: Colors.grey[300],
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
               const Text(
                 "Estaciones cercanas",
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 12),
-
-              _buildEstacionCard(
-                "ML - 2",
-                "Edificio ML piso 2",
-                "4 min",
-                "200 mts",
-                5,
-                2,
-              ),
-              _buildEstacionCard(
-                "W - 1",
-                "Edificio W piso 1",
-                "6 min",
-                "300 mts",
-                5,
-                2,
-              ),
-              _buildEstacionCard(
-                "B - 2",
-                "Edificio B piso 2",
-                "8 min",
-                "400 mts",
-                5,
-                2,
+              Expanded(
+                child: stations.isEmpty
+                    ? const Center(
+                        child: Text("No se encontraron estaciones cercanas."),
+                      )
+                    : ListView.builder(
+                        controller: scrollController,
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        itemCount: stations.length,
+                        itemBuilder: (context, index) {
+                          final station = stations[index];
+                          final occupiedUmbrellas =
+                              station.totalUmbrellas -
+                              station.availableUmbrellas;
+                          return _buildEstacionCard(
+                            station.placeName,
+                            station.description,
+                            "",
+                            "${station.distanceMeters} mts",
+                            station.availableUmbrellas,
+                            occupiedUmbrellas,
+                          );
+                        },
+                      ),
               ),
             ],
           ),
