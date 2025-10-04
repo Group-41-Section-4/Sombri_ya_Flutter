@@ -7,139 +7,66 @@ import 'notifications.dart';
 import 'profile.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import '../return.dart';
-
-//Strategy Imports
-import '../strategies/nfc_rent_strategy.dart';
-import '../strategies/qr_rent_strategy.dart';
-import '../strategies/rent_strategy.dart';
 
 import '../services/api.dart';
 import '../models/gps_coord.dart';
-import '../models/rental.dart';
 
-class RentPage extends StatefulWidget {
+class ReturnPage extends StatefulWidget {
   final GpsCoord userPosition;
 
-  const RentPage({
+  const ReturnPage({
     super.key,
     required this.userPosition,
   });
 
   @override
-  State<RentPage> createState() => _RentPageState();
+  State<ReturnPage> createState() => _ReturnPageState();
 }
 
-class _RentPageState extends State<RentPage> {
-  late RentContext _rentContext;
-  String? _qrResult;
+class _ReturnPageState extends State<ReturnPage> {
   final Api api = Api();
   final storage = const FlutterSecureStorage();
 
   final MobileScannerController _scannerController = MobileScannerController();
   bool _isProcessing = false;
   String? _lastCode;
-  bool hasRental = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _checkActiveRental();
-    _rentContext = RentContext(
-      QrRentStrategy(
-        onCodeScanned: (code) {
-          setState(() {
-            _qrResult = code;
-          });
-          debugPrint("Procesando renta con QR: $code");
-        },
-      ),
-    );
-  }
-
-  Future<void> _checkActiveRental() async {
-    final rentalId = await storage.read(key: "rental_id");
-    setState(() {
-      hasRental = rentalId != null;
-    });
-  }
-
-  void _switchToQr() {
-    setState(() {
-      _rentContext.strategy = QrRentStrategy(
-        onCodeScanned: (code) {
-          setState(() {
-            _qrResult = code;
-          });
-          debugPrint("Procesando renta con QR: $code");
-        },
-      );
-    });
-  }
-
-  Future<void> _switchToNfc() async {
-    setState(() {
-      _rentContext.strategy = NfcRentStrategy();
-    });
-    await _rentContext.rent();
-
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(const SnackBar(content: Text("Renta por NFC ejecutado")));
-  }
+  String? _qrResult;
 
   Future<void> _processQrCode(String code) async {
     try {
       final data = jsonDecode(code);
       final stationId = data["station_id"];
 
-      final existingRental = await storage.read(key: "rental_id");
-      if (existingRental != null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("❌ Ya tienes una renta activa")),
-        );
-        return;
-      }
-
       final userId = await storage.read(key: "user_id");
       final token = await storage.read(key: "auth_token");
 
-      final rental = await api.startRental(
-        userId: userId!,
-        stationStartId: stationId,
-        startGps: widget.userPosition,
-        authType: "qr",
-      );
+      final rentalId = await storage.read(key: "rental_id");
 
-      // 🔍 Debug
-      print("📦 startRental -> rental.id='${rental.id}'");
-
-      // 🛡️ Si no vino el id en la respuesta (por mapeo/serialización), buscamos la renta activa
-      String? rentalIdToSave = rental.id.isNotEmpty ? rental.id : null;
-      if (rentalIdToSave == null) {
-        final active = await api.getActiveRental(userId);
-        rentalIdToSave = active?.id;
-        print("🔁 Fallback getActiveRental -> id='${rentalIdToSave ?? '(null)'}'");
-      } 
-
-      if (rentalIdToSave == null || rentalIdToSave.isEmpty) {
+      if(rentalId == null) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("No pude obtener el ID de la renta 😕")),
+          const SnackBar(content: Text("❌ No tienes una renta activa")),
         );
         return;
       }
 
-      // 💾 Guardar y actualizar UI
-      await storage.write(key: "rental_id", value: rentalIdToSave);
-      setState(() => hasRental = true);
+      print("🧩 rentalId=$rentalId | stationId=$stationId");
 
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Renta iniciada: ${rentalIdToSave}")),
+      await api.endRental( 
+        rentalId: rentalId!, 
+        stationEndId: stationId,
+        endGps: widget.userPosition,
       );
-    } catch (e, stack) {
+
+      await storage.delete(key: "rental_id"); 
+
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Error al procesar QR")),
+        const SnackBar(content: Text("🌞 Sombrilla devuelta exitosamente")),
+      );
+
+      Navigator.pop(context); // volver a rent.dart o home
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("❌ Error al procesar devolución")),
       );
     }
   }
@@ -152,7 +79,7 @@ class _RentPageState extends State<RentPage> {
         centerTitle: true,
         foregroundColor: Colors.black,
         title: Text(
-          'Rentar',
+          'Devolver sombrilla',
           style: GoogleFonts.cormorantGaramond(
             fontSize: 22,
             fontWeight: FontWeight.bold,
@@ -218,7 +145,6 @@ class _RentPageState extends State<RentPage> {
               });
             },
           ),
-        
 
           // Scanner square
           Align(
@@ -260,16 +186,16 @@ class _RentPageState extends State<RentPage> {
               ),
             ),
 
-          // Botón para activar NFC
+          // Botón manual de devolución
           Positioned(
             bottom: 130,
             left: 0,
             right: 0,
             child: Center(
-              child: hasRental ? ElevatedButton.icon(
+              child: ElevatedButton.icon(
                 icon: const Icon(Icons.assignment_return, size: 32),
                 label: const Text(
-                  'Ir a devolución',
+                  '✅ Devolver sombrilla',
                   style: TextStyle(fontWeight: FontWeight.w700, fontSize: 20),
                 ),
                 style: ElevatedButton.styleFrom(
@@ -279,48 +205,21 @@ class _RentPageState extends State<RentPage> {
                     horizontal: 32,
                     vertical: 16,
                   ),
-                  shape: StadiumBorder(
-                    side: BorderSide(color: const Color(0xFF004D63)),
-                  ),
+                  shape: const StadiumBorder(),
                   elevation: 8,
                   shadowColor: Colors.black26,
                 ),
                 onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => ReturnPage(userPosition: widget.userPosition),
-                    ),
-                  ).then((_) {
-                    _checkActiveRental();
-                  });
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text("Escanea el QR para devolver")),
+                  );
                 },
-              )
-              : ElevatedButton.icon(
-                icon: const Icon(Icons.nfc, size: 32),
-                label: const Text(
-                  'Activar por NFC',
-                  style: TextStyle(fontWeight: FontWeight.w700, fontSize: 20),
-                ),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.white,
-                  foregroundColor: const Color(0xFF004D63),
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 32,
-                    vertical: 16,
-                  ),
-                  shape: StadiumBorder(
-                    side: BorderSide(color: const Color(0xFF004D63)),
-                  ),
-                  elevation: 8,
-                  shadowColor: Colors.black26,
-                ),
-                onPressed: _switchToNfc,
               ),
             ),
           ),
         ],
       ),
+
       bottomNavigationBar: BottomAppBar(
         shape: const CircularNotchedRectangle(),
         color: const Color(0xFF90E0EF),
@@ -362,7 +261,7 @@ class _RentPageState extends State<RentPage> {
           backgroundColor: Colors.transparent,
           elevation: 6,
           shape: const CircleBorder(),
-          onPressed: (_switchToQr),
+          onPressed: () {},
           child: Image.asset(
             'assets/images/home_button.png',
             width: 100,
