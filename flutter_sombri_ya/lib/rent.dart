@@ -1,18 +1,29 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:flutter_sombri_ya/strategies/qr_rent_strategy.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'menu.dart';
 import 'home.dart';
 import 'notifications.dart';
 import 'profile.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 //Strategy Imports
 import '../strategies/nfc_rent_strategy.dart';
+import '../strategies/qr_rent_strategy.dart';
 import '../strategies/rent_strategy.dart';
 
+import '../services/api.dart';
+import '../models/gps_coord.dart';
+import '../models/rental.dart';
+
 class RentPage extends StatefulWidget {
-  const RentPage({super.key});
+  final GpsCoord userPosition;
+
+  const RentPage({
+    super.key,
+    required this.userPosition,
+  });
 
   @override
   State<RentPage> createState() => _RentPageState();
@@ -21,14 +32,16 @@ class RentPage extends StatefulWidget {
 class _RentPageState extends State<RentPage> {
   late RentContext _rentContext;
   String? _qrResult;
+  final Api api = Api();
+  final storage = const FlutterSecureStorage();
 
-  bool _hasScanned = false;
+  final MobileScannerController _scannerController = MobileScannerController();
+  bool _isProcessing = false;
+  String? _lastCode;
 
   @override
   void initState() {
     super.initState();
-    // TODO: cambiar de NFC a QR
-    _hasScanned = false;
     _rentContext = RentContext(
       QrRentStrategy(
         onCodeScanned: (code) {
@@ -43,7 +56,6 @@ class _RentPageState extends State<RentPage> {
 
   void _switchToQr() {
     setState(() {
-      //TODO: Implementar QRRentStrategy
       _rentContext.strategy = QrRentStrategy(
         onCodeScanned: (code) {
           setState(() {
@@ -52,7 +64,6 @@ class _RentPageState extends State<RentPage> {
           debugPrint("Procesando renta con QR: $code");
         },
       );
-      //_rentContext.strategy = QrRentStrategy();
     });
   }
 
@@ -67,10 +78,34 @@ class _RentPageState extends State<RentPage> {
     ).showSnackBar(const SnackBar(content: Text("Renta por NFC ejecutado")));
   }
 
+  Future<void> _processQrCode(String code) async {
+    try {
+      final data = jsonDecode(code);
+      final stationId = data["station_id"];
+
+      final userId = await storage.read(key: "user_id");
+      final token = await storage.read(key: "auth_token");
+
+      final rental = await api.startRental(
+        userId: userId!,
+        stationStartId: stationId,
+        startGps: widget.userPosition,
+        authType: "qr",
+      );
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Renta iniciada: ${rental.id}")),
+      );
+    } catch (e, stack) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Error al procesar QR")),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      // AppBar (same as Home)
       appBar: AppBar(
         backgroundColor: const Color(0xFF90E0EF),
         centerTitle: true,
@@ -112,42 +147,34 @@ class _RentPageState extends State<RentPage> {
       ),
 
       endDrawer: const AppDrawer(),
-      // QR Scanner Body or NFC Activation
+
       body: Stack(
         children: [
           MobileScanner(
+            controller: _scannerController,
             fit: BoxFit.cover,
-            onDetect: (capture) {
-              if (!_hasScanned) {
-                _hasScanned = true;
+            onDetect: (capture) async {
+              if (_isProcessing) return;
 
-                final barcodes = capture.barcodes;
+              final raw = capture.barcodes.isNotEmpty
+                  ? capture.barcodes.first.rawValue
+                  : null;
+              if (raw == null) return;
 
-                if (barcodes.isNotEmpty) {
-                  final code = barcodes.first.rawValue;
-                  if (code != null) {
-                    setState(() {
-                      _qrResult = code;
-                    });
+              if (raw == _lastCode) return;
 
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text("Sombrilla rentada con QR: $code"),
-                      ),
-                    );
+              _isProcessing = true;
+              _lastCode = raw;
 
-                    debugPrint("Código QR detectado: $code");
+              await _scannerController.stop();
 
-                    Future.delayed(const Duration(seconds: 3), () {
-                      if (mounted) {
-                        setState(() {
-                          _qrResult = null;
-                        });
-                      }
-                    });
-                  }
-                }
-              }
+              await _processQrCode(raw);
+
+              Future.delayed(const Duration(seconds: 3), () async {
+                _isProcessing = false;
+                _lastCode = null;
+                await _scannerController.start();
+              });
             },
           ),
 
@@ -172,7 +199,7 @@ class _RentPageState extends State<RentPage> {
             ),
           ),
 
-          //Show QR Result
+          // Mostrar el resultado del QR
           if (_qrResult != null)
             Positioned(
               top: MediaQuery.of(context).size.height * 0.22,
@@ -191,7 +218,7 @@ class _RentPageState extends State<RentPage> {
               ),
             ),
 
-          // Activate NFC button
+          // Botón para activar NFC
           Positioned(
             bottom: 130,
             left: 0,
@@ -223,14 +250,12 @@ class _RentPageState extends State<RentPage> {
         ],
       ),
 
-      // Bottom Navigation Bar
       bottomNavigationBar: BottomAppBar(
         shape: const CircularNotchedRectangle(),
         color: const Color(0xFF90E0EF),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceAround,
           children: [
-            //  Home button
             Padding(
               padding: const EdgeInsets.all(14),
               child: IconButton(
@@ -243,9 +268,7 @@ class _RentPageState extends State<RentPage> {
                 },
               ),
             ),
-
-            const SizedBox(width: 48), // espacio para el notch del FAB
-            // Botón Menú
+            const SizedBox(width: 48),
             Padding(
               padding: const EdgeInsets.all(14),
               child: Builder(
@@ -261,7 +284,6 @@ class _RentPageState extends State<RentPage> {
         ),
       ),
 
-      // Floating Action Button (Home)
       floatingActionButton: SizedBox(
         width: 76,
         height: 76,
