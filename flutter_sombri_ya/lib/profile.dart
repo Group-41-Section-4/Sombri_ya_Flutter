@@ -116,7 +116,6 @@ class _ProfilePageState extends State<ProfilePage> {
 
   Future<void> _loadUserProfile() async {
     final token = await storage.read(key: 'auth_token');
-    debugPrint("🔑 Token leído: $token");
 
     if (token == null) {
       setState(() {
@@ -305,7 +304,6 @@ class _ProfilePageState extends State<ProfilePage> {
           children: [
             const SizedBox(height: 20),
 
-            // 🌧️ Indicador circular de distancia seca
             Text(
               "Te has mantenido seco durante",
               style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
