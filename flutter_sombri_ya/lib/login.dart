@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_sombri_ya/signin.dart';
 import 'package:flutter_sombri_ya/forgot_password.dart';
-// import 'package:local_auth/local_auth.dart';
+import 'package:local_auth/local_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'home.dart';
 import "signin.dart";
@@ -19,12 +19,13 @@ class LoginPage extends StatefulWidget {
 class _LoginPageState extends State<LoginPage> {
 
   final storage = const FlutterSecureStorage();
+  final LocalAuthentication auth = LocalAuthentication();
 
   Future<void> login(BuildContext context) async {
     final email = emailController.text;
     final password = passwordController.text;
 
-    final url = Uri.parse("https://TU-BACKEND.herokuapp.com/auth/login/password");
+    final url = Uri.parse("https://sombri-ya-back-4def07fa1804.herokuapp.com/auth/login/password");
     final response = await http.post(
       url,
       headers: {"Content-Type": "application/json"},
@@ -34,7 +35,7 @@ class _LoginPageState extends State<LoginPage> {
       }),
     );
 
-    if (response.statusCode == 200) {
+    if (response.statusCode == 200 || response.statusCode == 201) {
       final data = jsonDecode(response.body);
       final token = data["access_token"];
       await storage.write(key: "auth_token", value: token);
@@ -62,7 +63,7 @@ class _LoginPageState extends State<LoginPage> {
 
       final idToken = googleAuth.idToken;
 
-      final url = Uri.parse("https://TU-BACKEND.herokuapp.com/auth/login/google");
+      final url = Uri.parse("https://sombri-ya-back-4def07fa1804.herokuapp.com/auth/login/google");
       final response = await http.post(
         url,
         headers: {"Content-Type": "application/json"},
@@ -91,6 +92,7 @@ class _LoginPageState extends State<LoginPage> {
       );
     }
   }
+
 
   final TextEditingController emailController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
@@ -254,9 +256,13 @@ class _LoginPageState extends State<LoginPage> {
                       width: double.infinity,
                       child: OutlinedButton.icon(
                         onPressed: () => loginWithGoogle(context), // Login con Google
-                        icon: Image.asset(
-                          'assets/images/google_logo.png', // 👈 debes tener un logo en assets
-                          height: 20,
+                        icon: SizedBox(
+                          width: 10,
+                          height: 10, //
+                          child: Image.asset(
+                            'assets/images/google_logo2.png',
+                            fit: BoxFit.contain,
+                          ),
                         ),
                         label: const Text(
                           "Iniciar sesión con Google",

@@ -15,6 +15,7 @@ class SigninPage extends StatefulWidget {
 class _SigninPageState extends State<SigninPage> {
 
   final TextEditingController emailController = TextEditingController();
+  final TextEditingController nameController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
   final TextEditingController confirmPasswordController = TextEditingController();
   bool useBiometrics = false;
@@ -22,6 +23,7 @@ class _SigninPageState extends State<SigninPage> {
 
   Future<void> register(BuildContext context) async {
     final email = emailController.text;
+    final name = nameController.text;
     final password = passwordController.text;
     final confirmPassword = confirmPasswordController.text;
 
@@ -32,13 +34,14 @@ class _SigninPageState extends State<SigninPage> {
       return;
     }
 
-    final url = Uri.parse("https://TU-BACKEND.herokuapp.com/auth/register");
+    final url = Uri.parse("https://sombri-ya-back-4def07fa1804.herokuapp.com/auth/register");
     final response = await http.post(
       url,
       headers: {"Content-Type": "application/json"},
       body: jsonEncode({
-        "email": email,
-        "password": password,
+        "email": emailController.text,
+        "name": nameController.text,
+        "password": passwordController.text,
         "biometric_enabled": useBiometrics,
       }),
     );
@@ -103,6 +106,7 @@ class _SigninPageState extends State<SigninPage> {
                     ),
                     const SizedBox(height: 15),
                     TextFormField(
+                      controller: emailController,
                       decoration: InputDecoration(
                         labelText: "Correo electrónico",
                         hintText: "correo@ejemplo.com",
@@ -125,7 +129,31 @@ class _SigninPageState extends State<SigninPage> {
                     ),
                     const SizedBox(height: 15),
                     TextFormField(
+                      controller: nameController,
+                      decoration: InputDecoration(
+                        labelText: "Nombre",
+                        hintText: "Nombre",
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        filled: true,
+                        fillColor: Color(0xFFF2F2F2),
+                        contentPadding: const EdgeInsets.symmetric(
+                          vertical: 10,
+                          horizontal: 15,
+                        ),
+                      ),
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return "Ingresa tu nombre";
+                        }
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 15),
+                    TextFormField(
                       obscureText: true,
+                      controller: passwordController,
                       decoration: InputDecoration(
                         labelText: "Contraseña",
                         hintText: "Contraseña",
@@ -149,6 +177,7 @@ class _SigninPageState extends State<SigninPage> {
                     const SizedBox(height: 15),
                     TextFormField(
                       obscureText: true,
+                      controller: confirmPasswordController,
                       decoration: InputDecoration(
                         labelText: "Confirmar contraseña",
                         hintText: "Contraseña",
