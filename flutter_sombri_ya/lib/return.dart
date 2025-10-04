@@ -29,47 +29,90 @@ class _ReturnPageState extends State<ReturnPage> {
 
   final MobileScannerController _scannerController = MobileScannerController();
   bool _isProcessing = false;
-  String? _lastCode;
-  String? _qrResult;
+  bool _endedSuccessfully = false;
+  String? rentalIdDebug;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkRentalDebug();
+  }
+
+  Future<void> _checkRentalDebug() async {
+    final rentalId = await storage.read(key: "rental_id");
+    if (!mounted) return;
+    setState(() => rentalIdDebug = rentalId);
+  }
+
+  /// Limpia la renta, muestra mensaje y detiene el escáner
+  Future<void> _finishAndExit(String message, Color color) async {
+    await storage.delete(key: "rental_id");
+    await _scannerController.stop();
+    setState(() {
+      _endedSuccessfully = true;
+      rentalIdDebug = null;
+    });
+
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message), backgroundColor: color),
+    );
+
+    Navigator.pop(context);
+  }
 
   Future<void> _processQrCode(String code) async {
     try {
       final data = jsonDecode(code);
-      final stationId = data["station_id"];
+      final stationId = data["station_id"]?.toString();
 
-      final userId = await storage.read(key: "user_id");
-
-      if (userId == null) {
+      if (stationId == null || stationId.isEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("❌ Usuario no encontrado")),
+          const SnackBar(
+            content: Text("⚠️ QR inválido: falta station_id"),
+            backgroundColor: Colors.orange,
+          ),
         );
         return;
       }
 
+      final userId = await storage.read(key: "user_id");
+      if (userId == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("❌ Usuario no encontrado"),
+            backgroundColor: Colors.red,
+          ),
+        );
+        return;
+      }
+
+      print("🧭 stationId leído del QR: $stationId");
       print("🧩 userId=$userId | stationId=$stationId");
 
       await api.endRental(
         userId: userId,
         stationEndId: stationId,
-        endGps: widget.userPosition, // tu back todavía no usa endGps
       );
 
-      // limpiar la renta activa en local (aunque ya no uses rental_id en el back)
-      await storage.delete(key: "rental_id");
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("🌞 Sombrilla devuelta exitosamente")),
-      );
-
-      Navigator.pop(context); // volver a la pantalla anterior
+      await _finishAndExit("🌞 Sombrilla devuelta exitosamente", Colors.green);
     } catch (e) {
-      print("❌ Error en _processQrCode: $e");
+      final msg = e.toString();
+      print("❌ Error en _processQrCode: $msg");
+
+      if (msg.contains("No active rental found")) {
+        await _finishAndExit("☂️ No tenías ninguna sombrilla activa", Colors.orange);
+        return;
+      }
+
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("❌ Error al procesar devolución: $e")),
+        SnackBar(
+          content: Text("❌ Error al procesar devolución: $e"),
+          backgroundColor: Colors.red,
+        ),
       );
     }
   }
-
 
   @override
   Widget build(BuildContext context) {
@@ -122,71 +165,55 @@ class _ReturnPageState extends State<ReturnPage> {
             controller: _scannerController,
             fit: BoxFit.cover,
             onDetect: (capture) async {
-              if (_isProcessing) return;
-
+              if (_isProcessing || _endedSuccessfully) return;
               final raw = capture.barcodes.isNotEmpty
                   ? capture.barcodes.first.rawValue
                   : null;
               if (raw == null) return;
 
-              //if (raw == _lastCode) return;
-
               _isProcessing = true;
-              _lastCode = raw;
+              print("🎯 QR detectado: $raw");
 
               await _scannerController.stop();
-
               await _processQrCode(raw);
 
-              Future.delayed(const Duration(seconds: 3), () async {
+              // Si falló, se reactiva
+              if (!_endedSuccessfully) {
+                await Future.delayed(const Duration(seconds: 3));
                 _isProcessing = false;
-                _lastCode = null;
                 await _scannerController.start();
-              });
+              }
             },
           ),
 
-          // Scanner square
+          // Debug del rental_id actual
+          Positioned(
+            top: 16,
+            left: 16,
+            child: Container(
+              padding: const EdgeInsets.all(8),
+              color: Colors.black54,
+              child: Text(
+                "rental_id en storage: ${rentalIdDebug ?? '(null)'}",
+                style: const TextStyle(color: Colors.white, fontSize: 14),
+              ),
+            ),
+          ),
+
+          // Cuadro del escáner
           Align(
             alignment: Alignment.center,
             child: Container(
               width: MediaQuery.of(context).size.width * 0.78,
               height: MediaQuery.of(context).size.width * 0.58,
               decoration: BoxDecoration(
-                color: Colors.transparent,
                 borderRadius: BorderRadius.circular(8),
                 border: Border.all(color: const Color(0xFF28BCEF), width: 3),
-                boxShadow: const [
-                  BoxShadow(
-                    color: Colors.black26,
-                    blurRadius: 8,
-                    spreadRadius: 1,
-                  ),
-                ],
               ),
             ),
           ),
 
-          // Mostrar el resultado del QR
-          if (_qrResult != null)
-            Positioned(
-              top: MediaQuery.of(context).size.height * 0.22,
-              left: 0,
-              right: 0,
-              child: Center(
-                child: Text(
-                  "QR Detectado: $_qrResult",
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    backgroundColor: Colors.black54,
-                  ),
-                ),
-              ),
-            ),
-
-          // Botón manual de devolución
+          // Botón guía
           Positioned(
             bottom: 130,
             left: 0,
@@ -195,7 +222,7 @@ class _ReturnPageState extends State<ReturnPage> {
               child: ElevatedButton.icon(
                 icon: const Icon(Icons.assignment_return, size: 32),
                 label: const Text(
-                  '✅ Devolver sombrilla',
+                  '✅ Escanea para devolver',
                   style: TextStyle(fontWeight: FontWeight.w700, fontSize: 20),
                 ),
                 style: ElevatedButton.styleFrom(
@@ -211,7 +238,10 @@ class _ReturnPageState extends State<ReturnPage> {
                 ),
                 onPressed: () {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text("Escanea el QR para devolver")),
+                    const SnackBar(
+                      content: Text("Escanea el QR de la estación para devolver"),
+                      backgroundColor: Colors.orange,
+                    ),
                   );
                 },
               ),
@@ -226,47 +256,37 @@ class _ReturnPageState extends State<ReturnPage> {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceAround,
           children: [
-            Padding(
-              padding: const EdgeInsets.all(14),
-              child: IconButton(
-                icon: const Icon(Icons.home, color: Colors.black),
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => const HomePage()),
-                  );
-                },
-              ),
+            IconButton(
+              icon: const Icon(Icons.home, color: Colors.black),
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const HomePage()),
+                );
+              },
             ),
             const SizedBox(width: 48),
-            Padding(
-              padding: const EdgeInsets.all(14),
-              child: Builder(
-                builder: (context) => IconButton(
-                  icon: const Icon(Icons.menu, color: Colors.black),
-                  onPressed: () {
-                    Scaffold.of(context).openEndDrawer();
-                  },
-                ),
+            Builder(
+              builder: (context) => IconButton(
+                icon: const Icon(Icons.menu, color: Colors.black),
+                onPressed: () {
+                  Scaffold.of(context).openEndDrawer();
+                },
               ),
             ),
           ],
         ),
       ),
 
-      floatingActionButton: SizedBox(
-        width: 76,
-        height: 76,
-        child: FloatingActionButton(
-          backgroundColor: Colors.transparent,
-          elevation: 6,
-          shape: const CircleBorder(),
-          onPressed: () {},
-          child: Image.asset(
-            'assets/images/home_button.png',
-            width: 100,
-            height: 100,
-          ),
+      floatingActionButton: FloatingActionButton(
+        backgroundColor: Colors.transparent,
+        elevation: 6,
+        shape: const CircleBorder(),
+        onPressed: () {},
+        child: Image.asset(
+          'assets/images/home_button.png',
+          width: 100,
+          height: 100,
         ),
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
