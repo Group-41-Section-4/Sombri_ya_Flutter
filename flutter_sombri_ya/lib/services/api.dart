@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../models/gps_coord.dart';
-import '../models/rental.dart';
+import '../models/rental_model.dart';
 
 class Api {
   static const String baseUrl =
@@ -64,16 +64,13 @@ class Api {
     final response = await http.post(
       url,
       headers: headers,
-      body: jsonEncode({
-        'user_id': userId,
-        'station_end_id': stationEndId,
-      }),
+      body: jsonEncode({'user_id': userId, 'station_end_id': stationEndId}),
     );
 
     print("📡 endRental status=${response.statusCode}");
     print("📡 endRental body=${response.body}");
 
-    if (response.statusCode == 200|| response.statusCode == 201) {
+    if (response.statusCode == 200 || response.statusCode == 201) {
       final data = jsonDecode(response.body);
       return Rental.fromJson(data);
     } else {
@@ -121,7 +118,7 @@ class Api {
   String _safeMessage(String body) {
     try {
       final m = jsonDecode(body);
-    return m['message']?.toString() ?? body;
+      return m['message']?.toString() ?? body;
     } catch (_) {
       return body;
     }

@@ -1,18 +1,45 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:intl/intl.dart'; // Para formatear fechas y horas
+import 'service_adapters/rentals_service.dart';
+import 'models/rental_model.dart';
 
-class HistoryPage extends StatelessWidget {
+class HistoryPage extends StatefulWidget {
   const HistoryPage({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    final history = [
-      {"date": "Septiembre 15, 2025", "duration": "Duración: 5 minutos"},
-      {"date": "Agosto 31, 2025", "duration": "Duración: 12 horas"},
-      {"date": "Agosto 25, 2025", "duration": "Duración: 1 hora"},
-      {"date": "Agosto 17, 2025", "duration": "Duración: 1 hora"},
-    ];
+  State<HistoryPage> createState() => _HistoryPageState();
+}
 
+class _HistoryPageState extends State<HistoryPage> {
+  final RentalsService _rentalsService = RentalsService();
+  late Future<List<Rental>> _historyFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadHistory();
+  }
+
+  void _loadHistory() {
+    setState(() {
+      _historyFuture = _rentalsService.getCompletedRentals(
+        '5e1a88f1-55c5-44d0-87bb-44919f9f4202',
+      );
+    });
+  }
+
+  String _formatDuration(int? minutes) {
+    if (minutes == null) return 'Duración: N/A';
+    if (minutes < 60) return 'Duración: $minutes minutos';
+    if (minutes == 60) return 'Duración: 1 hora';
+
+    final hours = minutes / 60;
+    return 'Duración: ${hours.toStringAsFixed(1)} horas';
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         backgroundColor: const Color(0xFF90E0EF),
@@ -26,7 +53,7 @@ class HistoryPage extends StatelessWidget {
           ),
         ),
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
+          icon: const Icon(Icons.arrow_back, color: Colors.black),
           onPressed: () => Navigator.pop(context),
         ),
       ),
@@ -34,60 +61,71 @@ class HistoryPage extends StatelessWidget {
       body: Column(
         children: [
           Expanded(
-            child: ListView.builder(
-              padding: const EdgeInsets.all(16),
-              itemCount: history.length,
-              itemBuilder: (context, index) {
-                final item = history[index];
-                return Container(
-                  margin: const EdgeInsets.only(bottom: 12),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFB1E6F3),
-                    borderRadius: BorderRadius.circular(16),
-                    boxShadow: const [
-                      BoxShadow(
-                        color: Colors.black26,
-                        blurRadius: 4,
-                        offset: Offset(2, 2),
+            child: FutureBuilder<List<Rental>>(
+              future: _historyFuture,
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+                if (snapshot.hasError) {
+                  return Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(20.0),
+                      child: Text(
+                        'Error al cargar el historial.\nPor favor, inténtalo de nuevo más tarde.',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(color: Colors.red[700]),
                       ),
-                    ],
-                  ),
-                  child: ListTile(
-                    leading: const Icon(Icons.umbrella, color: Colors.black54),
-                    title: Text(
-                      item["date"]!,
-                      style: const TextStyle(fontWeight: FontWeight.bold),
                     ),
-                    subtitle: Text(item["duration"]!),
-                    trailing: Text(
-                      "9:41 AM",
-                      style: const TextStyle(fontSize: 12),
-                    ),
-                  ),
+                  );
+                }
+                final history = snapshot.data ?? [];
+
+                if (history.isEmpty) {
+                  return const Center(
+                    child: Text('No tienes alquileres en tu historial.'),
+                  );
+                }
+                return ListView.builder(
+                  padding: const EdgeInsets.all(16),
+                  itemCount: history.length,
+                  itemBuilder: (context, index) {
+                    final item = history[index];
+                    return Container(
+                      margin: const EdgeInsets.only(bottom: 12),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFB1E6F3),
+                        borderRadius: BorderRadius.circular(16),
+                        boxShadow: const [
+                          BoxShadow(
+                            color: Colors.black26,
+                            blurRadius: 4,
+                            offset: Offset(2, 2),
+                          ),
+                        ],
+                      ),
+                      child: ListTile(
+                        leading: const Icon(
+                          Icons.umbrella,
+                          color: Colors.black54,
+                        ),
+                        title: Text(
+                          DateFormat(
+                            'd \'de\' MMMM, yyyy',
+                            'es_ES',
+                          ).format(item.startTime),
+                          style: const TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                        subtitle: Text(_formatDuration(item.durationMinutes)),
+                        trailing: Text(
+                          DateFormat('hh:mm a').format(item.startTime),
+                          style: const TextStyle(fontSize: 12),
+                        ),
+                      ),
+                    );
+                  },
                 );
               },
-            ),
-          ),
-
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFFFC5152),
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(30),
-                  ),
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                ),
-                onPressed: () {},
-                child: const Text(
-                  "Borrar Historial",
-                  style: TextStyle(fontSize: 16),
-                ),
-              ),
             ),
           ),
         ],
