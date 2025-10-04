@@ -185,7 +185,7 @@ class _RentPageState extends State<RentPage> {
         ],
       ),
 
-      endDrawer: const AppDrawer(),
+      endDrawer:  AppDrawer(),
 
       body: Stack(
         children: [

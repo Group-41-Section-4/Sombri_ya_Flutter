@@ -209,7 +209,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
         ],
       ),
 
-      endDrawer: const AppDrawer(),
+      endDrawer:  AppDrawer(),
 
       body: Stack(
         children: [

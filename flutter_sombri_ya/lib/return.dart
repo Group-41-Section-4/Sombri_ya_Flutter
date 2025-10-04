@@ -114,7 +114,7 @@ class _ReturnPageState extends State<ReturnPage> {
         ],
       ),
 
-      endDrawer: const AppDrawer(),
+      endDrawer:  AppDrawer(),
 
       body: Stack(
         children: [
