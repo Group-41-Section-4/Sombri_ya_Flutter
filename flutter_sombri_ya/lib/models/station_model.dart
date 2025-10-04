@@ -20,15 +20,21 @@ class Station {
   });
 
   factory Station.fromJson(Map<String, dynamic> json) {
+    num parseNum(dynamic value) {
+      if (value is num) return value;
+      if (value is String) return num.tryParse(value) ?? 0;
+      return 0;
+    }
+
     return Station(
-      id: json['id'],
-      placeName: json['placeName'],
-      description: json['description'],
-      latitude: (json['latitude'] as num).toDouble(),
-      longitude: (json['longitude'] as num).toDouble(),
-      distanceMeters: json['distanceMeters'],
-      availableUmbrellas: json['availableUmbrellas'],
-      totalUmbrellas: json['totalUmbrellas'],
+      id: json['id'] ?? '',
+      placeName: json['placeName'] ?? 'Nombre no disponible',
+      description: json['description'] ?? '',
+      latitude: parseNum(json['latitude']).toDouble(),
+      longitude: parseNum(json['longitude']).toDouble(),
+      distanceMeters: parseNum(json['distanceMeters']).toInt(),
+      availableUmbrellas: parseNum(json['availableUmbrellas']).toInt(),
+      totalUmbrellas: parseNum(json['totalUmbrellas']).toInt(),
     );
   }
 }
