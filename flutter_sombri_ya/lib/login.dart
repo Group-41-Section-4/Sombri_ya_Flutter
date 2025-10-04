@@ -1,14 +1,101 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_sombri_ya/signin.dart';
 import 'package:flutter_sombri_ya/forgot_password.dart';
-// import 'package:local_auth/local_auth.dart';
+import 'package:local_auth/local_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'home.dart';
 import "signin.dart";
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
-class LoginPage extends StatelessWidget {
-  // final LocalAuthentication auth = LocalAuthentication();
+class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
+
+  @override
+  State<LoginPage> createState() => _LoginPageState();
+}
+
+class _LoginPageState extends State<LoginPage> {
+
+  final storage = const FlutterSecureStorage();
+  final LocalAuthentication auth = LocalAuthentication();
+
+  Future<void> login(BuildContext context) async {
+    final email = emailController.text;
+    final password = passwordController.text;
+
+    final url = Uri.parse("https://sombri-ya-back-4def07fa1804.herokuapp.com/auth/login/password");
+    final response = await http.post(
+      url,
+      headers: {"Content-Type": "application/json"},
+      body: jsonEncode({
+        "email": email,
+        "password": password,
+      }),
+    );
+
+    if (response.statusCode == 200 || response.statusCode == 201) {
+      final data = jsonDecode(response.body);
+      final token = data["access_token"];
+      await storage.write(key: "auth_token", value: token);
+
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const HomePage()),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Correo o contraseña incorrectos")),
+      );
+    }
+  }
+
+  Future<void> loginWithGoogle(BuildContext context) async {
+    try {
+      final GoogleSignInAccount? googleUser = await GoogleSignIn().signIn();
+
+      if (googleUser == null) {
+        return;
+      }
+
+      final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
+
+      final idToken = googleAuth.idToken;
+
+      final url = Uri.parse("https://sombri-ya-back-4def07fa1804.herokuapp.com/auth/login/google");
+      final response = await http.post(
+        url,
+        headers: {"Content-Type": "application/json"},
+        body: jsonEncode({"idToken": idToken}),
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        final token = data["access_token"];
+        await storage.write(key: "auth_token", value: token);
+
+
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const HomePage()),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Error al iniciar con Google")),
+        );
+      }
+    } catch (e) {
+      print("Error en login con Google: $e");
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Error al iniciar con Google")),
+      );
+    }
+  }
+
+
+  final TextEditingController emailController = TextEditingController();
+  final TextEditingController passwordController = TextEditingController();
 
   @override
   Widget build(BuildContext context) {
@@ -54,6 +141,7 @@ class LoginPage extends StatelessWidget {
                     ),
                     const SizedBox(height: 15),
                     TextFormField(
+                      controller: emailController,
                       decoration: InputDecoration(
                         labelText: "Correo electrónico",
                         hintText: "correo@ejemplo.com",
@@ -77,6 +165,7 @@ class LoginPage extends StatelessWidget {
                     const SizedBox(height: 15),
                     TextFormField(
                       obscureText: true,
+                      controller: passwordController,
                       decoration: InputDecoration(
                         labelText: "Contraseña",
                         hintText: "Contraseña",
@@ -144,14 +233,7 @@ class LoginPage extends StatelessWidget {
                     SizedBox(
                       width: double.infinity,
                       child: ElevatedButton(
-                        onPressed: () {
-                          Navigator.pushReplacement(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => const HomePage(),
-                            ),
-                          );
-                        },
+                        onPressed: () => login(context),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFF001242),
                           shape: RoundedRectangleBorder(
@@ -165,6 +247,30 @@ class LoginPage extends StatelessWidget {
                             fontSize: 16,
                             color: Color(0xFFFFFDFD),
                           ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+
+                    SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton.icon(
+                        onPressed: () => loginWithGoogle(context), // Login con Google
+                        icon: SizedBox(
+                          width: 10,
+                          height: 10, //
+                          child: Image.asset(
+                            'assets/images/google_logo2.png',
+                            fit: BoxFit.contain,
+                          ),
+                        ),
+                        label: const Text(
+                          "Iniciar sesión con Google",
+                          style: TextStyle(fontSize: 16, color: Colors.black87),
+                        ),
+                        style: OutlinedButton.styleFrom(
+                          side: const BorderSide(color: Colors.grey),
+                          padding: const EdgeInsets.symmetric(vertical: 14),
                         ),
                       ),
                     ),

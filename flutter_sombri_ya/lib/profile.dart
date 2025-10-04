@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'theme.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 import 'profile_dialogs.dart';
 import 'login.dart';
+import 'main.dart';
 
 //Temporal class. We should remove it when connecting to backend.
 class _User {
@@ -34,6 +36,16 @@ class _ProfilePageState extends State<ProfilePage> {
     password: 'password123',
     minutesDry: 1245,
   );
+  final storage = FlutterSecureStorage();
+
+  void _logout() async {
+    await storage.delete(key: 'accessToken');
+
+    Navigator.of(context).pushAndRemoveUntil(
+      MaterialPageRoute(builder: (context) => const MyApp()),
+          (Route<dynamic> route) => false,
+    );
+  }
 
   void _editName() async {
     final newName = await showEditFieldDialog(
@@ -188,6 +200,13 @@ class _ProfilePageState extends State<ProfilePage> {
               Colors.grey[400]!,
               Colors.black,
               _deactivateAccount,
+            ),
+            const SizedBox(height: 20),
+            buildActionButton(
+              'Cerrar Sesión',
+              Colors.redAccent,
+              Colors.white,
+              _logout,
             ),
           ],
         ),
