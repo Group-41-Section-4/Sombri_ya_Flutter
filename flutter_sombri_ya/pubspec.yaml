@@ -57,6 +57,7 @@ dependencies:
   geolocator: ^14.0.2
   percent_indicator: ^4.2.5
   intl: ^0.20.2
+  firebase_core: ^4.1.1
 
 
 
