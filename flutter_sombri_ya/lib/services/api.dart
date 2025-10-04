@@ -20,10 +20,9 @@ class Api {
   }
 
   /// Inicia una renta
-  Future<Rental> startRental({
+   Future<Rental> startRental({
     required String userId,
     required String stationStartId,
-    required GpsCoord startGps,
     required String authType,
   }) async {
     final url = Uri.parse("$baseUrl/rentals/start");
@@ -35,7 +34,6 @@ class Api {
       body: jsonEncode({
         "user_id": userId,
         "station_start_id": stationStartId,
-        "start_gps": startGps.toJson(),
         "auth_type": authType,
       }),
     );
@@ -48,15 +46,20 @@ class Api {
       return Rental.fromJson(data);
     } else {
       final msg = _safeMessage(response.body);
+
+      // 🧩 Caso especial: el usuario ya tiene una renta activa
+      if (msg.contains("already has an active rental")) {
+        throw Exception("Ya tienes una sombrilla activa ☂️");
+      }
+
       throw Exception("Error al iniciar renta: $msg");
     }
   }
 
   /// Finaliza una renta
-  Future<Rental> endRental({
+  Future<void> endRental({
     required String userId,
     required String stationEndId,
-    required GpsCoord endGps,
   }) async {
     final url = Uri.parse("$baseUrl/rentals/end");
     final headers = await _getHeaders();
@@ -71,13 +74,20 @@ class Api {
     print("📡 endRental body=${response.body}");
 
     if (response.statusCode == 200 || response.statusCode == 201) {
-      final data = jsonDecode(response.body);
-      return Rental.fromJson(data);
+      // ✅ Éxito: no necesitamos devolver nada
+      return;
     } else {
       final msg = _safeMessage(response.body);
+
+      // 🧩 Caso especial: no hay renta activa para devolver
+      if (msg.contains("No active rental found")) {
+        throw Exception("No tienes ninguna sombrilla activa ☂️");
+      }
+
       throw Exception("Error al finalizar renta: $msg");
     }
   }
+
 
   /// Consultar las estaciones cercanas
   Future<List<dynamic>> getStationsNearby() async {
