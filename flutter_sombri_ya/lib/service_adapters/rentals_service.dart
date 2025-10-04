@@ -1,6 +1,6 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import '../models/rental_model.dart';
+import '../models/rental.dart';
 
 class RentalsService {
   final String _baseUrl = 'https://sombri-ya-back-4def07fa1804.herokuapp.com';

@@ -38,38 +38,38 @@ class _ReturnPageState extends State<ReturnPage> {
       final stationId = data["station_id"];
 
       final userId = await storage.read(key: "user_id");
-      final token = await storage.read(key: "auth_token");
 
-      final rentalId = await storage.read(key: "rental_id");
-
-      if(rentalId == null) {
+      if (userId == null) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("❌ No tienes una renta activa")),
+          const SnackBar(content: Text("❌ Usuario no encontrado")),
         );
         return;
       }
 
-      print("🧩 rentalId=$rentalId | stationId=$stationId");
+      print("🧩 userId=$userId | stationId=$stationId");
 
-      await api.endRental( 
-        rentalId: rentalId!, 
+      await api.endRental(
+        userId: userId,
         stationEndId: stationId,
-        endGps: widget.userPosition,
+        endGps: widget.userPosition, // tu back todavía no usa endGps
       );
 
-      await storage.delete(key: "rental_id"); 
+      // limpiar la renta activa en local (aunque ya no uses rental_id en el back)
+      await storage.delete(key: "rental_id");
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("🌞 Sombrilla devuelta exitosamente")),
       );
 
-      Navigator.pop(context); // volver a rent.dart o home
+      Navigator.pop(context); // volver a la pantalla anterior
     } catch (e) {
+      print("❌ Error en _processQrCode: $e");
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("❌ Error al procesar devolución")),
+        SnackBar(content: Text("❌ Error al procesar devolución: $e")),
       );
     }
   }
+
 
   @override
   Widget build(BuildContext context) {
@@ -129,7 +129,7 @@ class _ReturnPageState extends State<ReturnPage> {
                   : null;
               if (raw == null) return;
 
-              if (raw == _lastCode) return;
+              //if (raw == _lastCode) return;
 
               _isProcessing = true;
               _lastCode = raw;

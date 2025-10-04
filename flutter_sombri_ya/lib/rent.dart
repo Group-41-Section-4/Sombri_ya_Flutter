@@ -194,29 +194,26 @@ class _RentPageState extends State<RentPage> {
           MobileScanner(
             controller: _scannerController,
             fit: BoxFit.cover,
-            onDetect: (capture) async {
-              if (_isProcessing) return;
+              onDetect: (capture) async {
+                final raw = capture.barcodes.isNotEmpty
+                    ? capture.barcodes.first.rawValue
+                    : null;
+                if (raw == null) return;
 
-              final raw = capture.barcodes.isNotEmpty
-                  ? capture.barcodes.first.rawValue
-                  : null;
-              if (raw == null) return;
+                // Bloquear mientras procesas una devolución
+                if (_isProcessing) return;
+                _isProcessing = true;
 
-              if (raw == _lastCode) return;
+                await _scannerController.stop();
 
-              _isProcessing = true;
-              _lastCode = raw;
+                await _processQrCode(raw);
 
-              await _scannerController.stop();
-
-              await _processQrCode(raw);
-
-              Future.delayed(const Duration(seconds: 3), () async {
+                // 🔁 Permitir nueva devolución del mismo código tras 2 segundos
+                await Future.delayed(const Duration(seconds: 2));
                 _isProcessing = false;
-                _lastCode = null;
                 await _scannerController.start();
-              });
-            },
+              }
+
           ),
         
 

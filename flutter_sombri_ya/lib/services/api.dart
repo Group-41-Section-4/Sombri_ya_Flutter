@@ -54,7 +54,7 @@ class Api {
 
   /// Finaliza una renta
   Future<Rental> endRental({
-    required String rentalId,
+    required String userId,
     required String stationEndId,
     required GpsCoord endGps,
   }) async {
@@ -65,16 +65,15 @@ class Api {
       url,
       headers: headers,
       body: jsonEncode({
-        "rental_id": rentalId,
-        "station_end_id": stationEndId,
-        "end_gps": endGps.toJson(),
+        'user_id': userId,
+        'station_end_id': stationEndId,
       }),
     );
 
     print("📡 endRental status=${response.statusCode}");
     print("📡 endRental body=${response.body}");
 
-    if (response.statusCode == 200) {
+    if (response.statusCode == 200|| response.statusCode == 201) {
       final data = jsonDecode(response.body);
       return Rental.fromJson(data);
     } else {
