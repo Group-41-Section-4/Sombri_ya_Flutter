@@ -238,7 +238,7 @@ class _LoginPageState extends State<LoginPage> {
                         },
                         child: const Text(
                           "¿No tienes una cuenta? Regístrate",
-                          style: TextStyle(color: Colors.grey, fontSize: 12),
+                          style: TextStyle(color: Colors.grey, fontSize: 12, decoration: TextDecoration.underline,),
                         ),
                       ),
                     ),
