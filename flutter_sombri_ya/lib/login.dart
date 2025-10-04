@@ -245,7 +245,7 @@ class _LoginPageState extends State<LoginPage> {
                           "Iniciar sesión",
                           style: TextStyle(
                             fontSize: 16,
-                            color: const Color(0xFFFFFDFD),
+                            color: Color(0xFFFFFDFD),
                           ),
                         ),
                       ),
