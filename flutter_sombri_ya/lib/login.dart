@@ -20,6 +20,11 @@ class _LoginPageState extends State<LoginPage> {
 
   final storage = const FlutterSecureStorage();
   final LocalAuthentication auth = LocalAuthentication();
+  final GoogleSignIn _googleSignIn = GoogleSignIn(
+    scopes: ['email'],
+    serverClientId: "751256331187-i160vbb6d96fo4bnnqhglrha2es9hla0.apps.googleusercontent.com",
+  );
+
 
   Future<void> login(BuildContext context) async {
     final email = emailController.text;
@@ -51,17 +56,26 @@ class _LoginPageState extends State<LoginPage> {
     }
   }
 
+
   Future<void> loginWithGoogle(BuildContext context) async {
     try {
-      final GoogleSignInAccount? googleUser = await GoogleSignIn().signIn();
+      final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
 
       if (googleUser == null) {
-        return;
+        return; // usuario canceló
       }
 
       final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
 
       final idToken = googleAuth.idToken;
+      print("ID Token: $idToken");
+
+      if (idToken == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("No se obtuvo ID Token")),
+        );
+        return;
+      }
 
       final url = Uri.parse("https://sombri-ya-back-4def07fa1804.herokuapp.com/auth/login/google");
       final response = await http.post(
@@ -70,19 +84,19 @@ class _LoginPageState extends State<LoginPage> {
         body: jsonEncode({"idToken": idToken}),
       );
 
-      if (response.statusCode == 200) {
+      if (response.statusCode == 200|| response.statusCode == 201) {
         final data = jsonDecode(response.body);
-        final token = data["access_token"];
+        final token = data["accessToken"]; // ojo: tu backend devuelve "accessToken"
         await storage.write(key: "auth_token", value: token);
-
 
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (context) => const HomePage()),
         );
       } else {
+        print("Error Google login: ${response.statusCode}, body: ${response.body}");
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Error al iniciar con Google")),
+          SnackBar(content: Text("Error al iniciar con Google (${response.statusCode})")),
         );
       }
     } catch (e) {
@@ -92,6 +106,7 @@ class _LoginPageState extends State<LoginPage> {
       );
     }
   }
+
 
 
   final TextEditingController emailController = TextEditingController();
@@ -257,8 +272,8 @@ class _LoginPageState extends State<LoginPage> {
                       child: OutlinedButton.icon(
                         onPressed: () => loginWithGoogle(context), // Login con Google
                         icon: SizedBox(
-                          width: 10,
-                          height: 10, //
+                          width: 20,
+                          height: 20,
                           child: Image.asset(
                             'assets/images/google_logo2.png',
                             fit: BoxFit.contain,

@@ -1,0 +1,38 @@
+{
+  "project_info": {
+    "project_number": "751256331187",
+    "project_id": "lithe-saga-473914-b3",
+    "storage_bucket": "lithe-saga-473914-b3.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:751256331187:android:f2edbf86fb54cd1b6821c6",
+        "android_client_info": {
+          "package_name": "com.example.flutter_sombri_ya"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "751256331187-j1930kqdmq2cgam89dp8mvo50kmejfj1.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.flutter_sombri_ya",
+            "certificate_hash": "4371160ff2f0e598e20dbc821397ea212cc02c35"
+          }
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAyi6RD22k20waqUi6CnJFYJ7ZuyHw0uZw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
