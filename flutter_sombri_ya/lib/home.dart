@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_sombri_ya/models/gps_coord.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:geolocator/geolocator.dart';
 import 'location_service.dart' hide LocationServiceDisabledException;
@@ -18,6 +19,7 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
+  LatLng? _userPosition;
   final LocationService _locationService = LocationService();
   final StationsService _stationsService = StationsService();
 
@@ -69,6 +71,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
       }
 
       setState(() {
+        _userPosition = userPosition;
         _initialPosition = userPosition;
         _isLoading = false;
         _updateMarkers(userPosition, []);
@@ -276,7 +279,10 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
           onPressed: () {
             Navigator.push(
               context,
-              MaterialPageRoute(builder: (context) => const RentPage()),
+              MaterialPageRoute(
+                builder: (context) => RentPage(
+                  userPosition: GpsCoord(latitude: _userPosition!.latitude, longitude: _userPosition!.longitude),),
+              ),
             );
           },
           child: Image.asset(

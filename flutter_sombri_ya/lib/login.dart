@@ -8,6 +8,7 @@ import "signin.dart";
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:jwt_decoder/jwt_decoder.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -37,8 +38,15 @@ class _LoginPageState extends State<LoginPage> {
 
     if (response.statusCode == 200 || response.statusCode == 201) {
       final data = jsonDecode(response.body);
-      final token = data["access_token"];
+      debugPrint("Respuesta loing: $data");
+
+      final token = data["accessToken"] as String;
+
+      Map<String, dynamic> decodedToken = JwtDecoder.decode(token);
+      final userId = decodedToken["sub"] as String;
+
       await storage.write(key: "auth_token", value: token);
+      await storage.write(key: "user_id", value: userId);
 
       Navigator.pushReplacement(
         context,
