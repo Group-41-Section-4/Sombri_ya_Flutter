@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 import 'history.dart';
 import 'payment_methods.dart';
+import 'nfc_registration.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 class AppDrawer extends StatelessWidget {
-  const AppDrawer({super.key});
+  AppDrawer({super.key});
+  final storage = FlutterSecureStorage();
 
   @override
   Widget build(BuildContext context) {
@@ -70,6 +73,29 @@ class AppDrawer extends StatelessWidget {
             title: const Text("Ayuda"),
             onTap: () {
               // TODO: add functionality to navigate to "ayuda" view
+            },
+          ),
+          ListTile(
+            leading: const Icon(Icons.payment),
+            title: const Text("Registrar NFC"),
+            onTap: () async  {
+              Navigator.pop(context);
+              final storage = FlutterSecureStorage();
+              final token = await storage.read(key: "auth_token");
+
+              if (token == null) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text("No se encontró el token de autenticación")),
+                );
+                return;
+              }
+
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) =>  RegisterNfcStationPage(authToken: token),
+                ),
+              );
             },
           ),
         ],

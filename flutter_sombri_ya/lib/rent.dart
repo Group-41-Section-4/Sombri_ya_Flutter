@@ -16,15 +16,12 @@ import '../strategies/rent_strategy.dart';
 
 import '../services/api.dart';
 import '../models/gps_coord.dart';
-import '../models/rental.dart';
+import 'models/rental_model.dart';
 
 class RentPage extends StatefulWidget {
   final GpsCoord userPosition;
 
-  const RentPage({
-    super.key,
-    required this.userPosition,
-  });
+  const RentPage({super.key, required this.userPosition});
 
   @override
   State<RentPage> createState() => _RentPageState();
@@ -131,7 +128,9 @@ class _RentPageState extends State<RentPage> {
       if (rentalIdToSave == null) {
         final active = await api.getActiveRental(userId);
         rentalIdToSave = active?.id;
-        print("🔁 Fallback getActiveRental -> id='${rentalIdToSave ?? '(null)'}'");
+        print(
+          "🔁 Fallback getActiveRental -> id='${rentalIdToSave ?? '(null)'}'",
+        );
       }
 
       if (rentalIdToSave == null || rentalIdToSave.isEmpty) {
@@ -229,7 +228,7 @@ class _RentPageState extends State<RentPage> {
         ],
       ),
 
-      endDrawer: const AppDrawer(),
+      endDrawer:  AppDrawer(),
 
       body: Stack(
         children: [
