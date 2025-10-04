@@ -20,6 +20,10 @@
             "package_name": "com.example.flutter_sombri_ya",
             "certificate_hash": "4371160ff2f0e598e20dbc821397ea212cc02c35"
           }
+        },
+        {
+          "client_id": "751256331187-i160vbb6d96fo4bnnqhglrha2es9hla0.apps.googleusercontent.com",
+          "client_type": 3
         }
       ],
       "api_key": [
@@ -29,7 +33,12 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "751256331187-i160vbb6d96fo4bnnqhglrha2es9hla0.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     }

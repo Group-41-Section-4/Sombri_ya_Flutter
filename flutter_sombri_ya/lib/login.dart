@@ -61,15 +61,15 @@ class _LoginPageState extends State<LoginPage> {
 
   Future<void> loginWithGoogle(BuildContext context) async {
     try {
-      final GoogleSignInAccount? googleUser = await GoogleSignIn().signIn();
+      final GoogleSignIn googleSignIn = GoogleSignIn();
+      final GoogleSignInAccount? googleUser = await googleSignIn.signIn();
 
-      if (googleUser == null) {
-        return;
-      }
+      if (googleUser == null) return;
 
       final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
-
       final idToken = googleAuth.idToken;
+
+      print("🟢 idToken obtenido: $idToken");
 
       final url = Uri.parse("https://sombri-ya-back-4def07fa1804.herokuapp.com/auth/login/google");
       final response = await http.post(
@@ -78,11 +78,18 @@ class _LoginPageState extends State<LoginPage> {
         body: jsonEncode({"idToken": idToken}),
       );
 
-      if (response.statusCode == 200) {
+      print("📡 status=${response.statusCode}");
+      print("📡 body=${response.body}");
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
         final data = jsonDecode(response.body);
-        final token = data["access_token"];
+        final token = data["accessToken"];
+
         await storage.write(key: "auth_token", value: token);
 
+        // Decodifica JWT para obtener user_id
+        final Map<String, dynamic> decoded = JwtDecoder.decode(token);
+        await storage.write(key: "user_id", value: decoded["sub"]);
 
         Navigator.pushReplacement(
           context,
@@ -90,16 +97,17 @@ class _LoginPageState extends State<LoginPage> {
         );
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Error al iniciar con Google")),
+          SnackBar(content: Text("Error al iniciar con Google (${response.statusCode})")),
         );
       }
     } catch (e) {
-      print("Error en login con Google: $e");
+      print("❌ Error en login con Google: $e");
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Error al iniciar con Google")),
       );
     }
   }
+
 
 
   final TextEditingController emailController = TextEditingController();
