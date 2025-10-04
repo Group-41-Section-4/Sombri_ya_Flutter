@@ -8,6 +8,7 @@ import "signin.dart";
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:jwt_decoder/jwt_decoder.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -20,11 +21,6 @@ class _LoginPageState extends State<LoginPage> {
 
   final storage = const FlutterSecureStorage();
   final LocalAuthentication auth = LocalAuthentication();
-  final GoogleSignIn _googleSignIn = GoogleSignIn(
-    scopes: ['email'],
-    serverClientId: "751256331187-i160vbb6d96fo4bnnqhglrha2es9hla0.apps.googleusercontent.com",
-  );
-
 
   Future<void> login(BuildContext context) async {
     final email = emailController.text;
@@ -42,8 +38,15 @@ class _LoginPageState extends State<LoginPage> {
 
     if (response.statusCode == 200 || response.statusCode == 201) {
       final data = jsonDecode(response.body);
-      final token = data["access_token"];
+      debugPrint("Respuesta loing: $data");
+
+      final token = data["accessToken"] as String;
+
+      Map<String, dynamic> decodedToken = JwtDecoder.decode(token);
+      final userId = decodedToken["sub"] as String;
+
       await storage.write(key: "auth_token", value: token);
+      await storage.write(key: "user_id", value: userId);
 
       Navigator.pushReplacement(
         context,
@@ -56,26 +59,17 @@ class _LoginPageState extends State<LoginPage> {
     }
   }
 
-
   Future<void> loginWithGoogle(BuildContext context) async {
     try {
-      final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
+      final GoogleSignInAccount? googleUser = await GoogleSignIn().signIn();
 
       if (googleUser == null) {
-        return; // usuario canceló
+        return;
       }
 
       final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
 
       final idToken = googleAuth.idToken;
-      print("ID Token: $idToken");
-
-      if (idToken == null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("No se obtuvo ID Token")),
-        );
-        return;
-      }
 
       final url = Uri.parse("https://sombri-ya-back-4def07fa1804.herokuapp.com/auth/login/google");
       final response = await http.post(
@@ -84,19 +78,19 @@ class _LoginPageState extends State<LoginPage> {
         body: jsonEncode({"idToken": idToken}),
       );
 
-      if (response.statusCode == 200|| response.statusCode == 201) {
+      if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        final token = data["accessToken"]; // ojo: tu backend devuelve "accessToken"
+        final token = data["access_token"];
         await storage.write(key: "auth_token", value: token);
+
 
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (context) => const HomePage()),
         );
       } else {
-        print("Error Google login: ${response.statusCode}, body: ${response.body}");
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Error al iniciar con Google (${response.statusCode})")),
+          const SnackBar(content: Text("Error al iniciar con Google")),
         );
       }
     } catch (e) {
@@ -106,7 +100,6 @@ class _LoginPageState extends State<LoginPage> {
       );
     }
   }
-
 
 
   final TextEditingController emailController = TextEditingController();
@@ -238,7 +231,7 @@ class _LoginPageState extends State<LoginPage> {
                         },
                         child: const Text(
                           "¿No tienes una cuenta? Regístrate",
-                          style: TextStyle(color: Colors.grey, fontSize: 12, decoration: TextDecoration.underline,),
+                          style: TextStyle(color: Colors.grey, fontSize: 12),
                         ),
                       ),
                     ),
@@ -272,8 +265,8 @@ class _LoginPageState extends State<LoginPage> {
                       child: OutlinedButton.icon(
                         onPressed: () => loginWithGoogle(context), // Login con Google
                         icon: SizedBox(
-                          width: 20,
-                          height: 20,
+                          width: 10,
+                          height: 10, //
                           child: Image.asset(
                             'assets/images/google_logo2.png',
                             fit: BoxFit.contain,
