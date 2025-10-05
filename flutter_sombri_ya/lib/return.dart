@@ -7,7 +7,6 @@ import 'notifications.dart';
 import 'profile.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-
 import '../services/api.dart';
 import '../models/gps_coord.dart';
 
@@ -26,8 +25,8 @@ class ReturnPage extends StatefulWidget {
 class _ReturnPageState extends State<ReturnPage> {
   final Api api = Api();
   final storage = const FlutterSecureStorage();
-
   final MobileScannerController _scannerController = MobileScannerController();
+
   bool _isProcessing = false;
   bool _endedSuccessfully = false;
   String? rentalIdDebug;
@@ -42,53 +41,68 @@ class _ReturnPageState extends State<ReturnPage> {
     final rentalId = await storage.read(key: "rental_id");
     if (!mounted) return;
     setState(() => rentalIdDebug = rentalId);
+    print("🔍 [DEBUG] rental_id en storage: ${rentalId ?? '(ninguno)'}");
   }
 
-  /// Limpia la renta, muestra mensaje y detiene el escáner
+  /// Finaliza correctamente y regresa al home
   Future<void> _finishAndExit(String message, Color color) async {
-    await storage.delete(key: "rental_id");
-    await _scannerController.stop();
-    setState(() {
-      _endedSuccessfully = true;
-      rentalIdDebug = null;
-    });
+  // Primero borra la renta y espera confirmación
+  await storage.delete(key: "rental_id");
+  await Future.delayed(const Duration(milliseconds: 200));
 
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message), backgroundColor: color),
-    );
+  // Detiene el escáner y actualiza estado
+  await _scannerController.stop();
+  setState(() {
+    _endedSuccessfully = true;
+    rentalIdDebug = null;
+  });
 
-    Navigator.pop(context);
-  }
+  if (!mounted) return;
+  ScaffoldMessenger.of(context).showSnackBar(
+    SnackBar(
+      content: Text(message),
+      backgroundColor: color,
+      duration: const Duration(seconds: 1),
+    ),
+  );
+
+  // Espera un momento antes de cerrar para evitar el rebote del storage
+  await Future.delayed(const Duration(milliseconds: 300));
+  Navigator.pop(context, "returned"); 
+}
 
   Future<void> _processQrCode(String code) async {
     try {
+      print("🎯 [SCAN] QR detectado: $code");
       final data = jsonDecode(code);
       final stationId = data["station_id"]?.toString();
 
       if (stationId == null || stationId.isEmpty) {
+        print("⚠️ [WARN] QR inválido — falta station_id");
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text("⚠️ QR inválido: falta station_id"),
             backgroundColor: Colors.orange,
+            duration: Duration(seconds: 1),
           ),
         );
         return;
       }
 
       final userId = await storage.read(key: "user_id");
-      if (userId == null) {
+      if (userId == null || userId.isEmpty) {
+        print("❌ [ERROR] Usuario no encontrado en storage");
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text("❌ Usuario no encontrado"),
             backgroundColor: Colors.red,
+            duration: Duration(seconds: 1),
           ),
         );
         return;
       }
 
-      print("🧭 stationId leído del QR: $stationId");
-      print("🧩 userId=$userId | stationId=$stationId");
+      print("🧭 [API CALL] user_id=$userId | station_end_id=$stationId");
 
       await api.endRental(
         userId: userId,
@@ -98,7 +112,7 @@ class _ReturnPageState extends State<ReturnPage> {
       await _finishAndExit("🌞 Sombrilla devuelta exitosamente", Colors.green);
     } catch (e) {
       final msg = e.toString();
-      print("❌ Error en _processQrCode: $msg");
+      print("❌ [ERROR] Falló endRental: $msg");
 
       if (msg.contains("No active rental found")) {
         await _finishAndExit("☂️ No tenías ninguna sombrilla activa", Colors.orange);
@@ -109,6 +123,7 @@ class _ReturnPageState extends State<ReturnPage> {
         SnackBar(
           content: Text("❌ Error al procesar devolución: $e"),
           backgroundColor: Colors.red,
+          duration: const Duration(seconds: 1),
         ),
       );
     }
@@ -157,7 +172,7 @@ class _ReturnPageState extends State<ReturnPage> {
         ],
       ),
 
-      endDrawer:  AppDrawer(),
+      endDrawer: AppDrawer(),
 
       body: Stack(
         children: [
@@ -166,18 +181,18 @@ class _ReturnPageState extends State<ReturnPage> {
             fit: BoxFit.cover,
             onDetect: (capture) async {
               if (_isProcessing || _endedSuccessfully) return;
+
               final raw = capture.barcodes.isNotEmpty
                   ? capture.barcodes.first.rawValue
                   : null;
+
               if (raw == null) return;
 
               _isProcessing = true;
-              print("🎯 QR detectado: $raw");
-
               await _scannerController.stop();
+
               await _processQrCode(raw);
 
-              // Si falló, se reactiva
               if (!_endedSuccessfully) {
                 await Future.delayed(const Duration(seconds: 3));
                 _isProcessing = false;
@@ -186,7 +201,7 @@ class _ReturnPageState extends State<ReturnPage> {
             },
           ),
 
-          // Debug del rental_id actual
+          // Debug del estado
           Positioned(
             top: 16,
             left: 16,
@@ -194,7 +209,7 @@ class _ReturnPageState extends State<ReturnPage> {
               padding: const EdgeInsets.all(8),
               color: Colors.black54,
               child: Text(
-                "rental_id en storage: ${rentalIdDebug ?? '(null)'}",
+                "🔹 rental_id: ${rentalIdDebug ?? '(null)'}",
                 style: const TextStyle(color: Colors.white, fontSize: 14),
               ),
             ),
@@ -213,7 +228,7 @@ class _ReturnPageState extends State<ReturnPage> {
             ),
           ),
 
-          // Botón guía
+          // Botón para guiar al usuario
           Positioned(
             bottom: 130,
             left: 0,
@@ -239,8 +254,9 @@ class _ReturnPageState extends State<ReturnPage> {
                 onPressed: () {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
-                      content: Text("Escanea el QR de la estación para devolver"),
+                      content: Text("📷 Escanea el QR de la estación para devolver"),
                       backgroundColor: Colors.orange,
+                      duration: Duration(seconds: 1),
                     ),
                   );
                 },
