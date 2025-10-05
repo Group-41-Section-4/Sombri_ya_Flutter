@@ -86,6 +86,7 @@ class _RentPageState extends State<RentPage> {
       const SnackBar(
         content: Text("Renta por NFC ejecutada ✅"),
         backgroundColor: Colors.green,
+        duration: const Duration(seconds:1)
       ),
     );
   }
@@ -101,6 +102,7 @@ class _RentPageState extends State<RentPage> {
           const SnackBar(
             content: Text("⚠️ Ya tienes una sombrilla rentada"),
             backgroundColor: Colors.orange,
+            duration: const Duration(seconds:1)
           ),
         );
         return;
@@ -109,7 +111,9 @@ class _RentPageState extends State<RentPage> {
       final userId = await storage.read(key: "user_id");
       if (userId == null) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("❌ Usuario no encontrado")),
+          const SnackBar(content: Text("❌ Usuario no encontrado"),
+          duration: const Duration(seconds:1)),
+          
         );
         return;
       }
@@ -138,6 +142,7 @@ class _RentPageState extends State<RentPage> {
           const SnackBar(
             content: Text("⚠️ No pude obtener el ID de la renta 😕"),
             backgroundColor: Colors.orange,
+            duration: const Duration(seconds:1)
           ),
         );
         return;
@@ -154,6 +159,7 @@ class _RentPageState extends State<RentPage> {
         SnackBar(
           content: Text("🌂 Sombrilla rentada con éxito\nID: $rentalIdToSave"),
           backgroundColor: Colors.green,
+          duration: const Duration(seconds:1)
         ),
       );
     } catch (e) {
@@ -165,6 +171,7 @@ class _RentPageState extends State<RentPage> {
           const SnackBar(
             content: Text("⚠️ Ya tienes una sombrilla activa ☂️"),
             backgroundColor: Colors.orange,
+            duration: const Duration(seconds:1)
           ),
         );
       } else if (message.contains("No active rental found")) {
@@ -172,6 +179,7 @@ class _RentPageState extends State<RentPage> {
           const SnackBar(
             content: Text("❌ No tienes una renta activa"),
             backgroundColor: Colors.red,
+            duration: const Duration(seconds:1)
           ),
         );
       } else {
@@ -179,6 +187,7 @@ class _RentPageState extends State<RentPage> {
           SnackBar(
             content: Text("❌ Error al iniciar la renta: $message"),
             backgroundColor: Colors.red,
+            duration: const Duration(seconds:1)
           ),
         );
       }
@@ -325,19 +334,30 @@ class _RentPageState extends State<RentPage> {
                         const EdgeInsets.symmetric(horizontal: 32, vertical: 14),
                   ),
                   onPressed: () async {
-                    await Navigator.push(
+                    final result = await Navigator.push(
                       context,
                       MaterialPageRoute(
                         builder: (context) =>
                             ReturnPage(userPosition: widget.userPosition),
                       ),
                     );
-                    ScaffoldMessenger.of(context).clearSnackBars();
+                    if (result == "returned") {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text("🌞 Sombrilla devuelta exitosamente"),
+                          backgroundColor: Colors.green,
+                          duration: Duration(seconds: 1),
+                        ),
+                      );
+                    }
+
+                    await Future.delayed(const Duration(milliseconds: 300));
+                    await _checkActiveRental();
+
                     setState(() {
                       _qrResult= null;
                       _isProcessing = false;
                     });
-                    await _checkActiveRental();
                   },
                 ),
                 

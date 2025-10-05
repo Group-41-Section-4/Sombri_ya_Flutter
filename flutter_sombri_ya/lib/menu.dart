@@ -90,12 +90,12 @@ class AppDrawer extends StatelessWidget {
                 return;
               }
 
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) =>  RegisterNfcStationPage(authToken: token),
-                ),
-              );
+              // Navigator.push(
+              //   context,
+              //   MaterialPageRoute(
+              //     builder: (context) =>  RegisterNfcStationPage(authToken: token),
+              //   ),
+              // );
             },
           ),
         ],
