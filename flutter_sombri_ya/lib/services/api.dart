@@ -50,7 +50,7 @@ class Api {
 
 
       if (msg.contains("already has an active rental")) {
-        throw Exception("Ya tienes una sombrilla activa ☂️");
+        throw Exception("Ya tienes una sombrilla activa ");
       }
 
       throw Exception("Error al iniciar renta: $msg");
@@ -82,7 +82,7 @@ class Api {
 
 
       if (msg.contains("No active rental found")) {
-        throw Exception("No tienes ninguna sombrilla activa ☂️");
+        throw Exception("No tienes ninguna sombrilla activa");
       }
 
       throw Exception("Error al finalizar renta: $msg");
@@ -140,14 +140,14 @@ class Api {
         final data = jsonDecode(response.body);
         return Station.fromJson(data);
       } else if (response.statusCode == 404) {
-        print('⚠️ Tag no asociado a ninguna estación');
+        print('Tag no asociado a ninguna estación');
         return null;
       } else {
-        print('❌ Error ${response.statusCode}: ${response.body}');
+        print('Error ${response.statusCode}: ${response.body}');
         return null;
       }
     } catch (e) {
-      print('❌ Excepción en getStationByTag: $e');
+      print('Excepción en getStationByTag: $e');
       return null;
     }
   }

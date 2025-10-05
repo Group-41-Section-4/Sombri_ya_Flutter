@@ -61,14 +61,14 @@ class _RegisterNfcStationPageState extends State<RegisterNfcStationPage> {
 
     setState(() {
       _isScanning = true;
-      _status = "📡 Acerca la tarjeta NFC...";
+      _status = "Acerca la tarjeta NFC...";
     });
 
     await NfcManager.instance.startSession(
       pollingOptions: {NfcPollingOption.iso14443},
       onDiscovered: (NfcTag tag) async {
         try {
-          print("📡 Tag detectado: ${tag.data.runtimeType}");
+          print("Tag detectado: ${tag.data.runtimeType}");
 
           final tagData = tag.data;
           Uint8List? id;
@@ -120,7 +120,7 @@ class _RegisterNfcStationPageState extends State<RegisterNfcStationPage> {
 
 
           if (id == null) {
-            _showSnack("⚠️ No se pudo detectar UID del tag", Colors.orange);
+            _showSnack("No se pudo detectar UID del tag", Colors.orange);
             await NfcManager.instance.stopSession();
             return;
           }
@@ -262,7 +262,7 @@ class _RegisterNfcStationPageState extends State<RegisterNfcStationPage> {
 
       if (resp.statusCode == 200 || resp.statusCode == 201) {
         setState(() => _status =
-        "✅ Tag asociado correctamente a la estación seleccionada.");
+        "Tag asociado correctamente a la estación seleccionada.");
       } else {
         setState(() => _status =
         "Error al asociar (${resp.statusCode}): ${resp.body}");

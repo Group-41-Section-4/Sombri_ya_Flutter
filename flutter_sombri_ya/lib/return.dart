@@ -162,7 +162,7 @@ class _ReturnPageState extends State<ReturnPage> {
 
 
       if (msg.contains("No active rental found")) {
-        await _finishAndExit("☂️ No tenías ninguna sombrilla activa", Colors.orange);
+        await _finishAndExit("No tenías ninguna sombrilla activa", Colors.orange);
         return;
       }
 
@@ -289,7 +289,7 @@ class _ReturnPageState extends State<ReturnPage> {
                   ElevatedButton.icon(
                     icon: const Icon(Icons.assignment_return, size: 32),
                     label: const Text(
-                      '✅ Escanea para devolver',
+                      'Escanea para devolver',
                       style: TextStyle(fontWeight: FontWeight.w700, fontSize: 20),
                     ),
                     style: ElevatedButton.styleFrom(
@@ -306,7 +306,7 @@ class _ReturnPageState extends State<ReturnPage> {
                     onPressed: () {
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
-                          content: Text("📷 Escanea el QR de la estación para devolver"),
+                          content: Text("Escanea el QR de la estación para devolver"),
                           backgroundColor: Colors.orange,
                           duration: Duration(seconds: 1),
                         ),
@@ -319,7 +319,7 @@ class _ReturnPageState extends State<ReturnPage> {
                   ElevatedButton.icon(
                     icon: const Icon(Icons.nfc, size: 32),
                     label: const Text(
-                      '📡 Devolver con NFC',
+                      'Devolver con NFC',
                       style: TextStyle(fontWeight: FontWeight.w700, fontSize: 20),
                     ),
                     style: ElevatedButton.styleFrom(

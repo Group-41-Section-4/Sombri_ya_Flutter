@@ -77,8 +77,6 @@ class _LoginPageState extends State<LoginPage> {
         body: jsonEncode({"idToken": idToken}),
       );
 
-      print("📡 status=${response.statusCode}");
-      print("📡 body=${response.body}");
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         final data = jsonDecode(response.body);

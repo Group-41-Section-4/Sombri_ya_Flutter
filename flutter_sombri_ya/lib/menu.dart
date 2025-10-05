@@ -52,7 +52,6 @@ class AppDrawer extends StatelessWidget {
               );
             },
           ),
-          /*
           ListTile(
             leading: const Icon(Icons.payment),
             title: const Text("Métodos de Pago"),
@@ -66,6 +65,7 @@ class AppDrawer extends StatelessWidget {
               );
             },
           ),
+          /*
           ListTile(
             leading: const Icon(Icons.check_box_outlined),
             title: const Text("Subscripción"),
