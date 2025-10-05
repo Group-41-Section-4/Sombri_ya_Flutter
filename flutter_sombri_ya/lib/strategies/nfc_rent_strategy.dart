@@ -12,10 +12,10 @@ class NfcRentStrategy implements RentStrategy {
       await FlutterNfcKit.finish();
     }
     catch (e) {
-      print("❌ Error NFC: $e");
+      print("Error NFC: $e");
     }
-    debugPrint("📡 Activando NFC para rentar sombrilla...");
+
     await Future.delayed(const Duration(seconds: 2));
-    debugPrint("✅ Sombrilla rentada con NFC");
+
   }
 }
