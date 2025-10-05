@@ -10,12 +10,9 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:nfc_manager/nfc_manager.dart';
 
 import '../return.dart';
-
-// Strategy Imports
 import '../strategies/nfc_rent_strategy.dart';
 import '../strategies/qr_rent_strategy.dart';
 import '../strategies/rent_strategy.dart';
-
 import '../services/api.dart';
 import '../models/gps_coord.dart';
 import 'models/rental_model.dart';
@@ -37,7 +34,6 @@ class _RentPageState extends State<RentPage> {
 
   final MobileScannerController _scannerController = MobileScannerController();
   bool _isProcessing = false;
-  String? _lastCode;
   bool hasRental = false;
   String? rentalIdDebug;
 
@@ -78,6 +74,7 @@ class _RentPageState extends State<RentPage> {
     });
   }
 
+  /// 🔹 Inicia lectura NFC
   Future<void> _startNfcRental() async {
     print("🛰️ Iniciando lectura NFC...");
     bool available = await NfcManager.instance.isAvailable();
@@ -88,25 +85,47 @@ class _RentPageState extends State<RentPage> {
 
     _showSnack("📡 Acerca tu celular al tag NFC...", Colors.blue);
 
-    NfcManager.instance.startSession(onDiscovered: (NfcTag tag) async {
-      try {
-        final tech = tag.data.keys.first;
-        final idBytes = tag.data[tech]?['identifier'] as List<dynamic>?;
-        final uid = idBytes!
-            .map((b) => b.toRadixString(16).padLeft(2, '0'))
-            .join(':')
-            .toUpperCase();
+    try {
+      NfcManager.instance.startSession(onDiscovered: (NfcTag tag) async {
+        try {
+          print("✅ Tag detectado: ${tag.data}");
 
-        await NfcManager.instance.stopSession();
+          Uint8List? id;
+          if (tag.data.containsKey('nfca')) {
+            id = tag.data['nfca']?['identifier'];
+          } else if (tag.data.containsKey('mifareclassic')) {
+            id = tag.data['mifareclassic']?['identifier'];
+          } else {
+            for (var value in tag.data.values) {
+              if (value is Map && value.containsKey('identifier')) {
+                id = value['identifier'];
+                break;
+              }
+            }
+          }
 
-        await _processNfcTag(uid, "NFC-A");
-      } catch (e) {
-        await NfcManager.instance.stopSession(errorMessage: "Error leyendo NFC");
-        _showSnack("❌ Error leyendo NFC: $e", Colors.red);
-      }
-    });
+          if (id == null) {
+            _showSnack("⚠️ No se pudo leer el UID del tag", Colors.orange);
+            await NfcManager.instance.stopSession(errorMessage: "UID no detectado");
+            return;
+          }
+
+          final uid = id.map((b) => b.toRadixString(16).padLeft(2, '0')).join(':').toUpperCase();
+          print("🔑 UID detectado: $uid");
+
+          await NfcManager.instance.stopSession();
+          await _processNfcTag(uid, "NFC-A");
+        } catch (e) {
+          await NfcManager.instance.stopSession(errorMessage: "Error leyendo NFC");
+          _showSnack("❌ Error leyendo NFC: $e", Colors.red);
+        }
+      });
+    } catch (e) {
+      _showSnack("❌ Error iniciando sesión NFC: $e", Colors.red);
+    }
   }
 
+  /// 🔹 Procesa el QR detectado
   Future<void> _processQrCode(String code) async {
     try {
       final data = jsonDecode(code);
@@ -149,10 +168,12 @@ class _RentPageState extends State<RentPage> {
 
       _showSnack("🌂 Sombrilla rentada con éxito (QR)", Colors.green);
     } catch (e) {
+      print("❌ Error en _processQrCode: $e");
       _showSnack("❌ Error al iniciar la renta: $e", Colors.red);
     }
   }
 
+  /// 🔹 Procesa la renta por NFC
   Future<void> _processNfcTag(String tagUid, String tagType) async {
     try {
       final existingRental = await storage.read(key: "rental_id");
@@ -208,6 +229,7 @@ class _RentPageState extends State<RentPage> {
         content: Text(message),
         backgroundColor: color,
         behavior: SnackBarBehavior.floating,
+        duration: const Duration(seconds: 2),
       ),
     );
   }
@@ -232,9 +254,7 @@ class _RentPageState extends State<RentPage> {
           onPressed: () {
             Navigator.push(
               context,
-              MaterialPageRoute(
-                builder: (context) => const NotificationsPage(),
-              ),
+              MaterialPageRoute(builder: (context) => const NotificationsPage()),
             );
           },
         ),
@@ -254,32 +274,23 @@ class _RentPageState extends State<RentPage> {
           ),
         ],
       ),
-
       endDrawer: AppDrawer(),
-
       body: Stack(
         children: [
           MobileScanner(
             controller: _scannerController,
             fit: BoxFit.cover,
             onDetect: (capture) async {
-              final raw = capture.barcodes.isNotEmpty
-                  ? capture.barcodes.first.rawValue
-                  : null;
-              if (raw == null) return;
-
-              if (_isProcessing) return;
+              final raw = capture.barcodes.isNotEmpty ? capture.barcodes.first.rawValue : null;
+              if (raw == null || _isProcessing) return;
               _isProcessing = true;
-
               await _scannerController.stop();
               await _processQrCode(raw);
-
               await Future.delayed(const Duration(seconds: 2));
               _isProcessing = false;
               await _scannerController.start();
             },
           ),
-
           Positioned(
             top: 16,
             left: 16,
@@ -292,7 +303,6 @@ class _RentPageState extends State<RentPage> {
               ),
             ),
           ),
-
           Align(
             alignment: Alignment.center,
             child: Container(
@@ -302,17 +312,10 @@ class _RentPageState extends State<RentPage> {
                 color: Colors.transparent,
                 borderRadius: BorderRadius.circular(8),
                 border: Border.all(color: const Color(0xFF28BCEF), width: 3),
-                boxShadow: const [
-                  BoxShadow(
-                    color: Colors.black26,
-                    blurRadius: 8,
-                    spreadRadius: 1,
-                  ),
-                ],
+                boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 8, spreadRadius: 1)],
               ),
             ),
           ),
-
           if (_qrResult != null)
             Positioned(
               top: MediaQuery.of(context).size.height * 0.22,
@@ -330,7 +333,6 @@ class _RentPageState extends State<RentPage> {
                 ),
               ),
             ),
-
           Positioned(
             bottom: 130,
             left: 0,
@@ -347,19 +349,19 @@ class _RentPageState extends State<RentPage> {
                     padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 14),
                   ),
                   onPressed: () async {
-                    await Navigator.push(
+                    final result = await Navigator.push(
                       context,
-                      MaterialPageRoute(
-                        builder: (context) =>
-                            ReturnPage(userPosition: widget.userPosition),
-                      ),
+                      MaterialPageRoute(builder: (context) => ReturnPage(userPosition: widget.userPosition)),
                     );
-                    ScaffoldMessenger.of(context).clearSnackBars();
+                    if (result == "returned") {
+                      _showSnack("🌞 Sombrilla devuelta exitosamente", Colors.green);
+                    }
+                    await Future.delayed(const Duration(milliseconds: 300));
+                    await _checkActiveRental();
                     setState(() {
                       _qrResult = null;
                       _isProcessing = false;
                     });
-                    await _checkActiveRental();
                   },
                 ),
                 const SizedBox(height: 12),
@@ -378,7 +380,6 @@ class _RentPageState extends State<RentPage> {
           ),
         ],
       ),
-
       bottomNavigationBar: BottomAppBar(
         shape: const CircularNotchedRectangle(),
         color: const Color(0xFF90E0EF),
@@ -390,10 +391,7 @@ class _RentPageState extends State<RentPage> {
               child: IconButton(
                 icon: const Icon(Icons.home, color: Colors.black),
                 onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => const HomePage()),
-                  );
+                  Navigator.push(context, MaterialPageRoute(builder: (context) => const HomePage()));
                 },
               ),
             ),
@@ -403,16 +401,13 @@ class _RentPageState extends State<RentPage> {
               child: Builder(
                 builder: (context) => IconButton(
                   icon: const Icon(Icons.menu, color: Colors.black),
-                  onPressed: () {
-                    Scaffold.of(context).openEndDrawer();
-                  },
+                  onPressed: () => Scaffold.of(context).openEndDrawer(),
                 ),
               ),
             ),
           ],
         ),
       ),
-
       floatingActionButton: SizedBox(
         width: 76,
         height: 76,

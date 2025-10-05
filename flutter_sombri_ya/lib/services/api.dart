@@ -68,14 +68,15 @@ class Api {
     final response = await http.post(
       url,
       headers: headers,
-      body: jsonEncode({'user_id': userId, 'station_end_id': stationEndId}),
+      body: jsonEncode({'user_id': userId, 'station_end_id': stationEndId,
+      }),
     );
 
     print("📡 endRental status=${response.statusCode}");
     print("📡 endRental body=${response.body}");
 
     if (response.statusCode == 200 || response.statusCode == 201) {
-      // ✅ Éxito: no necesitamos devolver nada
+      print("✅ Renta finalizada correctamente");
       return;
     } else {
       final msg = _safeMessage(response.body);
