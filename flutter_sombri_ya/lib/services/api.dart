@@ -3,6 +3,7 @@ import 'package:http/http.dart' as http;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../models/gps_coord.dart';
 import '../models/rental_model.dart';
+import '../models/station_model.dart';
 
 class Api {
   static const String baseUrl =
@@ -122,6 +123,34 @@ class Api {
       return Rental.fromJson(data.first);
     } else {
       throw Exception("Error al obtener renta activa: ${response.body}");
+    }
+  }
+  Future<Station?> getStationByTag(String tagUid) async {
+    try {
+      final token = await storage.read(key: 'token'); // lee token si usas autenticación
+      final url = Uri.parse('$baseUrl/tags/$tagUid/station');
+
+      final response = await http.get(
+        url,
+        headers: {
+          'Content-Type': 'application/json',
+          if (token != null) 'Authorization': 'Bearer $token',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        return Station.fromJson(data);
+      } else if (response.statusCode == 404) {
+        print('⚠️ Tag no asociado a ninguna estación');
+        return null;
+      } else {
+        print('❌ Error ${response.statusCode}: ${response.body}');
+        return null;
+      }
+    } catch (e) {
+      print('❌ Excepción en getStationByTag: $e');
+      return null;
     }
   }
 

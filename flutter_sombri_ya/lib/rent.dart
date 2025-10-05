@@ -78,18 +78,33 @@ class _RentPageState extends State<RentPage> {
     });
   }
 
-  Future<void> _switchToNfc() async {
-    setState(() {
-      _rentContext.strategy = NfcRentStrategy();
-    });
-    await _rentContext.rent();
+  Future<void> _startNfcRental() async {
+    print("🛰️ Iniciando lectura NFC...");
+    bool available = await NfcManager.instance.isAvailable();
+    if (!available) {
+      _showSnack("❌ NFC no disponible en este dispositivo", Colors.red);
+      return;
+    }
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text("Renta por NFC ejecutada ✅"),
-        backgroundColor: Colors.green,
-      ),
-    );
+    _showSnack("📡 Acerca tu celular al tag NFC...", Colors.blue);
+
+    NfcManager.instance.startSession(onDiscovered: (NfcTag tag) async {
+      try {
+        final tech = tag.data.keys.first;
+        final idBytes = tag.data[tech]?['identifier'] as List<dynamic>?;
+        final uid = idBytes!
+            .map((b) => b.toRadixString(16).padLeft(2, '0'))
+            .join(':')
+            .toUpperCase();
+
+        await NfcManager.instance.stopSession();
+
+        await _processNfcTag(uid, "NFC-A");
+      } catch (e) {
+        await NfcManager.instance.stopSession(errorMessage: "Error leyendo NFC");
+        _showSnack("❌ Error leyendo NFC: $e", Colors.red);
+      }
+    });
   }
 
   Future<void> _processQrCode(String code) async {
@@ -99,20 +114,13 @@ class _RentPageState extends State<RentPage> {
 
       final existingRental = await storage.read(key: "rental_id");
       if (existingRental != null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text("⚠️ Ya tienes una sombrilla rentada"),
-            backgroundColor: Colors.orange,
-          ),
-        );
+        _showSnack("⚠️ Ya tienes una sombrilla rentada", Colors.orange);
         return;
       }
 
       final userId = await storage.read(key: "user_id");
       if (userId == null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("❌ Usuario no encontrado")),
-        );
+        _showSnack("❌ Usuario no encontrado", Colors.red);
         return;
       }
 
@@ -122,179 +130,87 @@ class _RentPageState extends State<RentPage> {
         authType: "qr",
       );
 
-      // Debug
-      print("📦 startRental -> rental.id='${rental.id}'");
-
-      // Fallback si rental.id no llega
       String? rentalIdToSave = rental.id.isNotEmpty ? rental.id : null;
       if (rentalIdToSave == null) {
         final active = await api.getActiveRental(userId);
         rentalIdToSave = active?.id;
-        print(
-          "🔁 Fallback getActiveRental -> id='${rentalIdToSave ?? '(null)'}'",
-        );
       }
 
       if (rentalIdToSave == null || rentalIdToSave.isEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text("⚠️ No pude obtener el ID de la renta 😕"),
-            backgroundColor: Colors.orange,
-          ),
-        );
+        _showSnack("⚠️ No pude obtener el ID de la renta", Colors.orange);
         return;
       }
 
-      // Guardar y actualizar UI
       await storage.write(key: "rental_id", value: rentalIdToSave);
       setState(() {
         hasRental = true;
         rentalIdDebug = rentalIdToSave;
       });
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text("🌂 Sombrilla rentada con éxito\nID: $rentalIdToSave"),
-          backgroundColor: Colors.green,
-        ),
-      );
+      _showSnack("🌂 Sombrilla rentada con éxito (QR)", Colors.green);
     } catch (e) {
-      print("❌ Error en _processQrCode: $e");
-
-      String message = e.toString();
-      if (message.contains("User already has an active rental")) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text("⚠️ Ya tienes una sombrilla activa ☂️"),
-            backgroundColor: Colors.orange,
-          ),
-        );
-      } else if (message.contains("No active rental found")) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text("❌ No tienes una renta activa"),
-            backgroundColor: Colors.red,
-          ),
-        );
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text("❌ Error al iniciar la renta: $message"),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
+      _showSnack("❌ Error al iniciar la renta: $e", Colors.red);
     }
   }
-/*
+
   Future<void> _processNfcTag(String tagUid, String tagType) async {
     try {
-      // 🚫 Verificar si ya hay una sombrilla rentada
       final existingRental = await storage.read(key: "rental_id");
       if (existingRental != null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text("⚠️ Ya tienes una sombrilla rentada"),
-            backgroundColor: Colors.orange,
-          ),
-        );
+        _showSnack("⚠️ Ya tienes una sombrilla rentada", Colors.orange);
         return;
       }
 
-      // 🧍 Obtener el usuario actual
       final userId = await storage.read(key: "user_id");
       if (userId == null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("❌ Usuario no encontrado")),
-        );
+        _showSnack("❌ Usuario no encontrado", Colors.red);
         return;
       }
 
-      // 🛰️ Obtener estación asociada al tag NFC (consulta al backend)
       final station = await api.getStationByTag(tagUid);
       if (station == null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text("❌ Estación no encontrada para esta tarjeta NFC"),
-            backgroundColor: Colors.red,
-          ),
-        );
+        _showSnack("❌ Estación no encontrada para este tag NFC", Colors.red);
         return;
       }
 
-      final stationId = station.id;
-
-      // 🚀 Iniciar renta
       final rental = await api.startRental(
         userId: userId,
-        stationStartId: stationId,
+        stationStartId: station.id,
         authType: "nfc",
       );
 
-      print("📦 startRental(NFC) -> rental.id='${rental.id}'");
-
-      // 🧩 Fallback si no llega el ID
       String? rentalIdToSave = rental.id.isNotEmpty ? rental.id : null;
       if (rentalIdToSave == null) {
         final active = await api.getActiveRental(userId);
         rentalIdToSave = active?.id;
-        print("🔁 Fallback getActiveRental -> id='${rentalIdToSave ?? '(null)'}'");
       }
 
       if (rentalIdToSave == null || rentalIdToSave.isEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text("⚠️ No pude obtener el ID de la renta 😕"),
-            backgroundColor: Colors.orange,
-          ),
-        );
+        _showSnack("⚠️ No pude obtener el ID de la renta", Colors.orange);
         return;
       }
 
-      // 💾 Guardar en almacenamiento local
       await storage.write(key: "rental_id", value: rentalIdToSave);
       setState(() {
         hasRental = true;
         rentalIdDebug = rentalIdToSave;
       });
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text("🌂 Sombrilla rentada con NFC con éxito\nID: $rentalIdToSave"),
-          backgroundColor: Colors.green,
-        ),
-      );
+      _showSnack("🌂 Sombrilla rentada con NFC en ${station.placeName ?? station.id}", Colors.green);
     } catch (e) {
-      print("❌ Error en _processNfcTag: $e");
-      final message = e.toString();
-
-      if (message.contains("User already has an active rental")) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text("⚠️ Ya tienes una sombrilla activa ☂️"),
-            backgroundColor: Colors.orange,
-          ),
-        );
-      } else if (message.contains("No active rental found")) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text("❌ No tienes una renta activa"),
-            backgroundColor: Colors.red,
-          ),
-        );
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text("❌ Error al iniciar la renta: $message"),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
+      _showSnack("❌ Error en renta NFC: $e", Colors.red);
     }
   }
 
- */
-
+  void _showSnack(String message, Color color) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: color,
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -339,7 +255,7 @@ class _RentPageState extends State<RentPage> {
         ],
       ),
 
-      endDrawer:  AppDrawer(),
+      endDrawer: AppDrawer(),
 
       body: Stack(
         children: [
@@ -364,7 +280,6 @@ class _RentPageState extends State<RentPage> {
             },
           ),
 
-          // Debug info
           Positioned(
             top: 16,
             left: 16,
@@ -378,7 +293,6 @@ class _RentPageState extends State<RentPage> {
             ),
           ),
 
-          // Scanner square
           Align(
             alignment: Alignment.center,
             child: Container(
@@ -399,7 +313,6 @@ class _RentPageState extends State<RentPage> {
             ),
           ),
 
-          // QR detectado
           if (_qrResult != null)
             Positioned(
               top: MediaQuery.of(context).size.height * 0.22,
@@ -418,7 +331,6 @@ class _RentPageState extends State<RentPage> {
               ),
             ),
 
-          // Botones
           Positioned(
             bottom: 130,
             left: 0,
@@ -432,8 +344,7 @@ class _RentPageState extends State<RentPage> {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.white,
                     foregroundColor: const Color(0xFF004D63),
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 32, vertical: 14),
+                    padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 14),
                   ),
                   onPressed: () async {
                     await Navigator.push(
@@ -445,13 +356,12 @@ class _RentPageState extends State<RentPage> {
                     );
                     ScaffoldMessenger.of(context).clearSnackBars();
                     setState(() {
-                      _qrResult= null;
+                      _qrResult = null;
                       _isProcessing = false;
                     });
                     await _checkActiveRental();
                   },
                 ),
-                
                 const SizedBox(height: 12),
                 ElevatedButton.icon(
                   icon: const Icon(Icons.nfc, size: 28),
@@ -459,10 +369,9 @@ class _RentPageState extends State<RentPage> {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.white,
                     foregroundColor: const Color(0xFF004D63),
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 32, vertical: 14),
+                    padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 14),
                   ),
-                  onPressed: _switchToNfc,
+                  onPressed: _startNfcRental,
                 ),
               ],
             ),
