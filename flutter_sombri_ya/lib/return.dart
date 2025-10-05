@@ -9,6 +9,10 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../services/api.dart';
 import '../models/gps_coord.dart';
+import 'package:nfc_manager/nfc_manager.dart';
+import 'package:nfc_manager/platform_tags.dart';
+import 'dart:typed_data';
+
 
 class ReturnPage extends StatefulWidget {
   final GpsCoord userPosition;
@@ -41,7 +45,7 @@ class _ReturnPageState extends State<ReturnPage> {
     final rentalId = await storage.read(key: "rental_id");
     if (!mounted) return;
     setState(() => rentalIdDebug = rentalId);
-    print("🔍 [DEBUG] rental_id en storage: ${rentalId ?? '(ninguno)'}");
+
   }
 
   /// Finaliza correctamente y regresa al home
@@ -66,22 +70,66 @@ class _ReturnPageState extends State<ReturnPage> {
     ),
   );
 
-  // Espera un momento antes de cerrar para evitar el rebote del storage
   await Future.delayed(const Duration(milliseconds: 300));
   Navigator.pop(context, "returned"); 
 }
 
+  Future<void> _startNfcReturn() async {
+    await _scannerController.stop();
+
+
+    await NfcManager.instance.stopSession();
+    await Future.delayed(const Duration(milliseconds: 200));
+
+    NfcManager.instance.startSession(
+      pollingOptions: {NfcPollingOption.iso14443},
+      onDiscovered: (NfcTag tag) async {
+        //  UID fijo (no leído del tag)
+        const uid = "08:F8:93:B2";
+
+        // ID de estación fija (la misma que usas en rent)
+        const fixedStationId = "acadc4ef-f5b3-4ab8-9ab5-58f1161f0799";
+
+        // Obtiene usuario actual
+        final userId = await storage.read(key: "user_id");
+        final api = Api();
+
+
+
+        //  Llama directamente al backend
+        await api.endRental(
+          userId: userId!,
+          stationEndId: fixedStationId,
+        );
+
+        // Limpia el rental guardado
+        await storage.delete(key: "rental_id");
+
+        setState(() {
+          rentalIdDebug = null;
+        });
+
+
+
+        await NfcManager.instance.stopSession();
+
+        if (mounted) {
+          Navigator.pop(context, "returned");
+        }
+      },
+    );
+  }
+
+
   Future<void> _processQrCode(String code) async {
     try {
-      print("🎯 [SCAN] QR detectado: $code");
       final data = jsonDecode(code);
       final stationId = data["station_id"]?.toString();
 
       if (stationId == null || stationId.isEmpty) {
-        print("⚠️ [WARN] QR inválido — falta station_id");
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text("⚠️ QR inválido: falta station_id"),
+            content: Text("QR inválido: falta station_id"),
             backgroundColor: Colors.orange,
             duration: Duration(seconds: 1),
           ),
@@ -91,10 +139,10 @@ class _ReturnPageState extends State<ReturnPage> {
 
       final userId = await storage.read(key: "user_id");
       if (userId == null || userId.isEmpty) {
-        print("❌ [ERROR] Usuario no encontrado en storage");
+        print("[ERROR] Usuario no encontrado en storage");
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text("❌ Usuario no encontrado"),
+            content: Text("Usuario no encontrado"),
             backgroundColor: Colors.red,
             duration: Duration(seconds: 1),
           ),
@@ -102,26 +150,27 @@ class _ReturnPageState extends State<ReturnPage> {
         return;
       }
 
-      print("🧭 [API CALL] user_id=$userId | station_end_id=$stationId");
 
       await api.endRental(
         userId: userId,
         stationEndId: stationId,
       );
 
-      await _finishAndExit("🌞 Sombrilla devuelta exitosamente", Colors.green);
+      await _finishAndExit("Sombrilla devuelta exitosamente", Colors.green);
     } catch (e) {
       final msg = e.toString();
-      print("❌ [ERROR] Falló endRental: $msg");
+
 
       if (msg.contains("No active rental found")) {
         await _finishAndExit("☂️ No tenías ninguna sombrilla activa", Colors.orange);
         return;
       }
 
+
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text("❌ Error al procesar devolución: $e"),
+          content: Text("Error al procesar devolución: $e"),
           backgroundColor: Colors.red,
           duration: const Duration(seconds: 1),
         ),
@@ -234,35 +283,63 @@ class _ReturnPageState extends State<ReturnPage> {
             left: 0,
             right: 0,
             child: Center(
-              child: ElevatedButton.icon(
-                icon: const Icon(Icons.assignment_return, size: 32),
-                label: const Text(
-                  '✅ Escanea para devolver',
-                  style: TextStyle(fontWeight: FontWeight.w700, fontSize: 20),
-                ),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.white,
-                  foregroundColor: const Color(0xFF004D63),
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 32,
-                    vertical: 16,
-                  ),
-                  shape: const StadiumBorder(),
-                  elevation: 8,
-                  shadowColor: Colors.black26,
-                ),
-                onPressed: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text("📷 Escanea el QR de la estación para devolver"),
-                      backgroundColor: Colors.orange,
-                      duration: Duration(seconds: 1),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  ElevatedButton.icon(
+                    icon: const Icon(Icons.assignment_return, size: 32),
+                    label: const Text(
+                      '✅ Escanea para devolver',
+                      style: TextStyle(fontWeight: FontWeight.w700, fontSize: 20),
                     ),
-                  );
-                },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.white,
+                      foregroundColor: const Color(0xFF004D63),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 32,
+                        vertical: 16,
+                      ),
+                      shape: const StadiumBorder(),
+                      elevation: 8,
+                      shadowColor: Colors.black26,
+                    ),
+                    onPressed: () {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text("📷 Escanea el QR de la estación para devolver"),
+                          backgroundColor: Colors.orange,
+                          duration: Duration(seconds: 1),
+                        ),
+                      );
+                    },
+                  ),
+
+                  const SizedBox(height: 16),
+
+                  ElevatedButton.icon(
+                    icon: const Icon(Icons.nfc, size: 32),
+                    label: const Text(
+                      '📡 Devolver con NFC',
+                      style: TextStyle(fontWeight: FontWeight.w700, fontSize: 20),
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.white,
+                      foregroundColor: const Color(0xFF004D63),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 32,
+                        vertical: 16,
+                      ),
+                      shape: const StadiumBorder(),
+                      elevation: 8,
+                      shadowColor: Colors.black26,
+                    ),
+                    onPressed: _startNfcReturn,
+                  ),
+                ],
               ),
             ),
           ),
+
         ],
       ),
 

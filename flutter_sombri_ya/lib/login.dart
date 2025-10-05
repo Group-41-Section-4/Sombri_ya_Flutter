@@ -69,7 +69,6 @@ class _LoginPageState extends State<LoginPage> {
       final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
       final idToken = googleAuth.idToken;
 
-      print("🟢 idToken obtenido: $idToken");
 
       final url = Uri.parse("https://sombri-ya-back-4def07fa1804.herokuapp.com/auth/login/google");
       final response = await http.post(
@@ -101,7 +100,7 @@ class _LoginPageState extends State<LoginPage> {
         );
       }
     } catch (e) {
-      print("❌ Error en login con Google: $e");
+      print("Error en login con Google: $e");
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Error al iniciar con Google")),
       );

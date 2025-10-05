@@ -31,6 +31,7 @@ class AppDrawer extends StatelessWidget {
               ),
             ),
           ),
+          /*
           ListTile(
             leading: const Icon(Icons.settings),
             title: const Text("Configuración"),
@@ -38,7 +39,8 @@ class AppDrawer extends StatelessWidget {
               // TODO: add functionality to navigate to "configuraciones" view
               Navigator.pop(context);
             },
-          ),
+            */
+
           ListTile(
             leading: const Icon(Icons.bookmark_border),
             title: const Text("Historial de Reservas"),
@@ -50,6 +52,7 @@ class AppDrawer extends StatelessWidget {
               );
             },
           ),
+          /*
           ListTile(
             leading: const Icon(Icons.payment),
             title: const Text("Métodos de Pago"),
@@ -75,6 +78,7 @@ class AppDrawer extends StatelessWidget {
               // TODO: add functionality to navigate to "ayuda" view
             },
           ),
+
           ListTile(
             leading: const Icon(Icons.payment),
             title: const Text("Registrar NFC"),
@@ -90,14 +94,15 @@ class AppDrawer extends StatelessWidget {
                 return;
               }
 
-              // Navigator.push(
-              //   context,
-              //   MaterialPageRoute(
-              //     builder: (context) =>  RegisterNfcStationPage(authToken: token),
-              //   ),
-              // );
+              Navigator.push(
+               context,
+                MaterialPageRoute(
+                 builder: (context) =>  RegisterNfcStationPage(authToken: token),
+                ),
+               );
             },
           ),
+          */
         ],
       ),
     );

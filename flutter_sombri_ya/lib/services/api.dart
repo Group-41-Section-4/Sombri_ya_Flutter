@@ -48,7 +48,7 @@ class Api {
     } else {
       final msg = _safeMessage(response.body);
 
-      // 🧩 Caso especial: el usuario ya tiene una renta activa
+
       if (msg.contains("already has an active rental")) {
         throw Exception("Ya tienes una sombrilla activa ☂️");
       }
@@ -72,16 +72,15 @@ class Api {
       }),
     );
 
-    print("📡 endRental status=${response.statusCode}");
-    print("📡 endRental body=${response.body}");
+
 
     if (response.statusCode == 200 || response.statusCode == 201) {
-      print("✅ Renta finalizada correctamente");
+      print("Renta finalizada correctamente");
       return;
     } else {
       final msg = _safeMessage(response.body);
 
-      // 🧩 Caso especial: no hay renta activa para devolver
+
       if (msg.contains("No active rental found")) {
         throw Exception("No tienes ninguna sombrilla activa ☂️");
       }
@@ -98,8 +97,7 @@ class Api {
 
     final response = await http.get(url, headers: headers);
 
-    print("📡 getStationsNearby status=${response.statusCode}");
-    print("📡 getStationsNearby body=${response.body}");
+
 
     if (response.statusCode == 200) {
       return jsonDecode(response.body);
@@ -115,8 +113,7 @@ class Api {
 
     final response = await http.get(url, headers: headers);
 
-    print("📡 getActiveRental status=${response.statusCode}");
-    print("📡 getActiveRental body=${response.body}");
+
 
     if (response.statusCode == 200) {
       final data = jsonDecode(response.body);

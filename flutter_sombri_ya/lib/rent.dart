@@ -8,7 +8,7 @@ import 'profile.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:nfc_manager/nfc_manager.dart';
-
+import 'package:nfc_manager/platform_tags.dart';
 import '../return.dart';
 import '../strategies/nfc_rent_strategy.dart';
 import '../strategies/qr_rent_strategy.dart';
@@ -16,6 +16,7 @@ import '../strategies/rent_strategy.dart';
 import '../services/api.dart';
 import '../models/gps_coord.dart';
 import 'models/rental_model.dart';
+import 'dart:typed_data';
 
 class RentPage extends StatefulWidget {
   final GpsCoord userPosition;
@@ -74,56 +75,137 @@ class _RentPageState extends State<RentPage> {
     });
   }
 
-  /// 🔹 Inicia lectura NFC
   Future<void> _startNfcRental() async {
-    print("🛰️ Iniciando lectura NFC...");
-    bool available = await NfcManager.instance.isAvailable();
-    if (!available) {
-      _showSnack("❌ NFC no disponible en este dispositivo", Colors.red);
-      return;
-    }
+    await _scannerController.stop();
 
-    _showSnack("📡 Acerca tu celular al tag NFC...", Colors.blue);
+    await NfcManager.instance.stopSession();
+    await Future.delayed(const Duration(milliseconds: 200));
 
-    try {
-      NfcManager.instance.startSession(onDiscovered: (NfcTag tag) async {
-        try {
-          print("✅ Tag detectado: ${tag.data}");
+    NfcManager.instance.startSession(
+      pollingOptions: {NfcPollingOption.iso14443},
+      onDiscovered: (NfcTag tag) async {
+        Uint8List? id;
 
-          Uint8List? id;
-          if (tag.data.containsKey('nfca')) {
-            id = tag.data['nfca']?['identifier'];
-          } else if (tag.data.containsKey('mifareclassic')) {
-            id = tag.data['mifareclassic']?['identifier'];
-          } else {
-            for (var value in tag.data.values) {
-              if (value is Map && value.containsKey('identifier')) {
-                id = value['identifier'];
-                break;
-              }
-            }
+        final nfca = NfcA.from(tag);
+        if (nfca != null) {
+          id = nfca.identifier;
+        } else {
+          final iso = IsoDep.from(tag);
+          if (iso != null) {
+            id = iso.identifier;
           }
-
-          if (id == null) {
-            _showSnack("⚠️ No se pudo leer el UID del tag", Colors.orange);
-            await NfcManager.instance.stopSession(errorMessage: "UID no detectado");
-            return;
-          }
-
-          final uid = id.map((b) => b.toRadixString(16).padLeft(2, '0')).join(':').toUpperCase();
-          print("🔑 UID detectado: $uid");
-
-          await NfcManager.instance.stopSession();
-          await _processNfcTag(uid, "NFC-A");
-        } catch (e) {
-          await NfcManager.instance.stopSession(errorMessage: "Error leyendo NFC");
-          _showSnack("❌ Error leyendo NFC: $e", Colors.red);
         }
+
+        final uid = id!
+            .map((b) => b.toRadixString(16).padLeft(2, '0'))
+            .join(':')
+            .toUpperCase();
+
+        const fixedStationId = "acadc4ef-f5b3-4ab8-9ab5-58f1161f0799";
+
+        final userId = await storage.read(key: "user_id");
+        final api = Api();
+
+
+        final rental = await api.startRental(
+          userId: userId!,
+          stationStartId: fixedStationId,
+          authType: "nfc",
+        );
+
+        await storage.write(key: "rental_id", value: rental.id);
+
+        setState(() {
+          hasRental = true;
+          rentalIdDebug = rental.id;
+        });
+
+
+        await NfcManager.instance.stopSession();
+      },
+    );
+  }
+
+
+
+  /// Procesa la renta por NFC (con estación fija opcional)
+  Future<void> _processNfcTag(String tagUid, String tagType) async {
+    try {
+      final existingRental = await storage.read(key: "rental_id");
+      if (existingRental != null) {
+        _showSnack("⚠Ya tienes una sombrilla rentada", Colors.orange);
+        return;
+      }
+
+      final userId = await storage.read(key: "user_id");
+      if (userId == null) {
+        _showSnack("Usuario no encontrado", Colors.red);
+        return;
+      }
+
+
+      final Map<String, String> tagToStation = {
+        "08:F8:93:B2": "acadc4ef-f5b3-4ab8-9ab5-58f1161f0799", // ejemplo: Uniandes
+        // Puedes agregar más:
+        // "04:A1:22:C3": "b2cd23aa-30b4-42e0-91b7-3f8a6e05f123",
+      };
+
+      String? stationId = tagToStation[tagUid];
+      dynamic station;
+
+      if (stationId != null) {
+        print("Tag fijo reconocido → estación $stationId");
+      } else {
+        // Si el tag no está en el mapa, buscar en el backend
+        station = await api.getStationByTag(tagUid);
+        if (station == null) {
+          _showSnack("Estación no encontrada para este tag NFC", Colors.red);
+          return;
+        }
+        stationId = station.id;
+      }
+      if (stationId == null) {
+        _showSnack("No se pudo determinar la estación.", Colors.red);
+        return;
+      }
+
+      final rental = await api.startRental(
+        userId: userId,
+        stationStartId: stationId,
+        authType: "nfc",
+      );
+
+      String? rentalIdToSave = rental.id.isNotEmpty ? rental.id : null;
+      if (rentalIdToSave == null) {
+        final active = await api.getActiveRental(userId);
+        rentalIdToSave = active?.id;
+      }
+
+      if (rentalIdToSave == null || rentalIdToSave.isEmpty) {
+        _showSnack("No pude obtener el ID de la renta", Colors.orange);
+        return;
+      }
+
+      await storage.write(key: "rental_id", value: rentalIdToSave);
+      setState(() {
+        hasRental = true;
+        rentalIdDebug = rentalIdToSave;
       });
+
+      if (station != null) {
+        _showSnack("Sombrilla rentada con NFC en ${station.placeName ?? station.id}", Colors.green);
+      } else {
+        _showSnack("Sombrilla rentada con NFC (estación fija)", Colors.green);
+      }
+
     } catch (e) {
-      _showSnack("❌ Error iniciando sesión NFC: $e", Colors.red);
+      print("Error en renta NFC: $e");
+      _showSnack("Error en renta NFC: $e", Colors.red);
     }
   }
+
+
+
 
   /// 🔹 Procesa el QR detectado
   Future<void> _processQrCode(String code) async {
@@ -133,13 +215,13 @@ class _RentPageState extends State<RentPage> {
 
       final existingRental = await storage.read(key: "rental_id");
       if (existingRental != null) {
-        _showSnack("⚠️ Ya tienes una sombrilla rentada", Colors.orange);
+        _showSnack("Ya tienes una sombrilla rentada", Colors.orange);
         return;
       }
 
       final userId = await storage.read(key: "user_id");
       if (userId == null) {
-        _showSnack("❌ Usuario no encontrado", Colors.red);
+        _showSnack("Usuario no encontrado", Colors.red);
         return;
       }
 
@@ -156,7 +238,7 @@ class _RentPageState extends State<RentPage> {
       }
 
       if (rentalIdToSave == null || rentalIdToSave.isEmpty) {
-        _showSnack("⚠️ No pude obtener el ID de la renta", Colors.orange);
+        _showSnack("No pude obtener el ID de la renta", Colors.orange);
         return;
       }
 
@@ -168,60 +250,11 @@ class _RentPageState extends State<RentPage> {
 
       _showSnack("🌂 Sombrilla rentada con éxito (QR)", Colors.green);
     } catch (e) {
-      print("❌ Error en _processQrCode: $e");
-      _showSnack("❌ Error al iniciar la renta: $e", Colors.red);
+      print("Error en _processQrCode: $e");
+      _showSnack("Error al iniciar la renta: $e", Colors.red);
     }
   }
 
-  /// 🔹 Procesa la renta por NFC
-  Future<void> _processNfcTag(String tagUid, String tagType) async {
-    try {
-      final existingRental = await storage.read(key: "rental_id");
-      if (existingRental != null) {
-        _showSnack("⚠️ Ya tienes una sombrilla rentada", Colors.orange);
-        return;
-      }
-
-      final userId = await storage.read(key: "user_id");
-      if (userId == null) {
-        _showSnack("❌ Usuario no encontrado", Colors.red);
-        return;
-      }
-
-      final station = await api.getStationByTag(tagUid);
-      if (station == null) {
-        _showSnack("❌ Estación no encontrada para este tag NFC", Colors.red);
-        return;
-      }
-
-      final rental = await api.startRental(
-        userId: userId,
-        stationStartId: station.id,
-        authType: "nfc",
-      );
-
-      String? rentalIdToSave = rental.id.isNotEmpty ? rental.id : null;
-      if (rentalIdToSave == null) {
-        final active = await api.getActiveRental(userId);
-        rentalIdToSave = active?.id;
-      }
-
-      if (rentalIdToSave == null || rentalIdToSave.isEmpty) {
-        _showSnack("⚠️ No pude obtener el ID de la renta", Colors.orange);
-        return;
-      }
-
-      await storage.write(key: "rental_id", value: rentalIdToSave);
-      setState(() {
-        hasRental = true;
-        rentalIdDebug = rentalIdToSave;
-      });
-
-      _showSnack("🌂 Sombrilla rentada con NFC en ${station.placeName ?? station.id}", Colors.green);
-    } catch (e) {
-      _showSnack("❌ Error en renta NFC: $e", Colors.red);
-    }
-  }
 
   void _showSnack(String message, Color color) {
     ScaffoldMessenger.of(context).showSnackBar(
@@ -354,7 +387,7 @@ class _RentPageState extends State<RentPage> {
                       MaterialPageRoute(builder: (context) => ReturnPage(userPosition: widget.userPosition)),
                     );
                     if (result == "returned") {
-                      _showSnack("🌞 Sombrilla devuelta exitosamente", Colors.green);
+                      _showSnack("Sombrilla devuelta exitosamente", Colors.green);
                     }
                     await Future.delayed(const Duration(milliseconds: 300));
                     await _checkActiveRental();
