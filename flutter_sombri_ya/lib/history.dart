@@ -3,6 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart'; // Para formatear fechas y horas
 import 'service_adapters/rentals_service.dart';
 import 'models/rental_model.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 class HistoryPage extends StatefulWidget {
   const HistoryPage({super.key});
@@ -13,21 +14,38 @@ class HistoryPage extends StatefulWidget {
 
 class _HistoryPageState extends State<HistoryPage> {
   final RentalsService _rentalsService = RentalsService();
-  late Future<List<Rental>> _historyFuture;
+  Future<List<Rental>>? _historyFuture;
+  String? token;
+  final storage = const FlutterSecureStorage();
 
   @override
   void initState() {
     super.initState();
-    _loadHistory();
+    _initPage();
   }
 
-  void _loadHistory() {
+  Future<void> _initPage() async{
+
+    final storedToken = await storage.read(key: "user_id");
+    if(storedToken == null) return;
+
+    setState(() {
+      token = storedToken;
+      _loadHistory(token);
+    });
+  }
+
+
+  void _loadHistory(token) {
     setState(() {
       _historyFuture = _rentalsService.getCompletedRentals(
-        '5e1a88f1-55c5-44d0-87bb-44919f9f4202',
+      token,
       );
     });
   }
+
+
+
 
   String _formatDuration(int? minutes) {
     if (minutes == null) return 'Duración: N/A';

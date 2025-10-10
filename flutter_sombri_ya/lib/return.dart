@@ -84,23 +84,48 @@ class _ReturnPageState extends State<ReturnPage> {
     NfcManager.instance.startSession(
       pollingOptions: {NfcPollingOption.iso14443},
       onDiscovered: (NfcTag tag) async {
-        //  UID fijo (no leído del tag)
-        const uid = "08:F8:93:B2";
+        try {
+          Uint8List? id;
 
-        // ID de estación fija (la misma que usas en rent)
-        const fixedStationId = "acadc4ef-f5b3-4ab8-9ab5-58f1161f0799";
+          final nfca = NfcA.from(tag);
+          if (nfca != null) {
+            id = nfca.identifier;
+          } else {
+            final iso = IsoDep.from(tag);
+            if (iso != null) {
+              id = iso.identifier;
+            }
+          }
+          if (id == null) {
+            _showSnack("No se pudo leer el ID del tag NFC", Colors.red);
+            await NfcManager.instance.stopSession();
+            return;
+          }
+          final uid = id!
+              .map((b) => b.toRadixString(16).padLeft(2, '0'))
+              .join(':')
+              .toUpperCase();
 
-        // Obtiene usuario actual
-        final userId = await storage.read(key: "user_id");
+          final userId = await storage.read(key: "user_id");
+
+          if (userId == null) {
+            _showSnack("Usuario no encontrado", Colors.red);
+            await NfcManager.instance.stopSession();
+            return;
+          }
+
         final api = Api();
+          final station = await api.getStationByTag(uid);
+          if(station == null){
+            _showSnack("Estación no encontrada para este tag", Colors.red);
+            await NfcManager.instance.stopSession();
+            return;
+          }
+          final rental = await api.endRental(
+            userId: userId,
+            stationEndId: station.id,
+          );
 
-
-
-        //  Llama directamente al backend
-        await api.endRental(
-          userId: userId!,
-          stationEndId: fixedStationId,
-        );
 
         // Limpia el rental guardado
         await storage.delete(key: "rental_id");
@@ -115,6 +140,10 @@ class _ReturnPageState extends State<ReturnPage> {
 
         if (mounted) {
           Navigator.pop(context, "returned");
+        }
+        } catch (e) {
+          print("Error en devolución NFC: $e");
+          _showSnack("Error en devolución NFC: $e", Colors.red);
         }
       },
     );
@@ -177,6 +206,16 @@ class _ReturnPageState extends State<ReturnPage> {
       );
     }
   }
+    void _showSnack(String message, Color color) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(message),
+          backgroundColor: color,
+          behavior: SnackBarBehavior.floating,
+          duration: const Duration(seconds: 2),
+        ),
+      );
+    }
 
   @override
   Widget build(BuildContext context) {
@@ -250,7 +289,9 @@ class _ReturnPageState extends State<ReturnPage> {
             },
           ),
 
+
           // Debug del estado
+          /*
           Positioned(
             top: 16,
             left: 16,
@@ -263,6 +304,8 @@ class _ReturnPageState extends State<ReturnPage> {
               ),
             ),
           ),
+
+           */
 
           // Cuadro del escáner
           Align(
@@ -277,9 +320,11 @@ class _ReturnPageState extends State<ReturnPage> {
             ),
           ),
 
+          const SizedBox(height: 50),
+
           // Botón para guiar al usuario
           Positioned(
-            bottom: 130,
+            bottom: 70,
             left: 0,
             right: 0,
             child: Center(
@@ -287,17 +332,17 @@ class _ReturnPageState extends State<ReturnPage> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   ElevatedButton.icon(
-                    icon: const Icon(Icons.assignment_return, size: 32),
+                    icon: const Icon(Icons.assignment_return, size: 20),
                     label: const Text(
                       'Escanea para devolver',
-                      style: TextStyle(fontWeight: FontWeight.w700, fontSize: 20),
+                      style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15),
                     ),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.white,
                       foregroundColor: const Color(0xFF004D63),
                       padding: const EdgeInsets.symmetric(
-                        horizontal: 32,
-                        vertical: 16,
+                        horizontal: 30,
+                        vertical: 15,
                       ),
                       shape: const StadiumBorder(),
                       elevation: 8,
@@ -314,20 +359,20 @@ class _ReturnPageState extends State<ReturnPage> {
                     },
                   ),
 
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 10),
 
                   ElevatedButton.icon(
-                    icon: const Icon(Icons.nfc, size: 32),
+                    icon: const Icon(Icons.nfc, size: 20),
                     label: const Text(
                       'Devolver con NFC',
-                      style: TextStyle(fontWeight: FontWeight.w700, fontSize: 20),
+                      style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15),
                     ),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.white,
                       foregroundColor: const Color(0xFF004D63),
                       padding: const EdgeInsets.symmetric(
-                        horizontal: 32,
-                        vertical: 16,
+                        horizontal: 30,
+                        vertical: 15,
                       ),
                       shape: const StadiumBorder(),
                       elevation: 8,

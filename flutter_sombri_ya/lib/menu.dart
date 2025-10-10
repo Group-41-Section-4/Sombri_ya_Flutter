@@ -79,6 +79,8 @@ class AppDrawer extends StatelessWidget {
             },
           ),
 
+           */
+
           ListTile(
             leading: const Icon(Icons.payment),
             title: const Text("Registrar NFC"),
@@ -102,7 +104,7 @@ class AppDrawer extends StatelessWidget {
                );
             },
           ),
-          */
+
         ],
       ),
     );

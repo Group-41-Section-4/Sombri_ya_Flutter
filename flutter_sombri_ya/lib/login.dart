@@ -82,6 +82,7 @@ class _LoginPageState extends State<LoginPage> {
         final data = jsonDecode(response.body);
         final token = data["accessToken"];
 
+
         await storage.write(key: "auth_token", value: token);
 
         // Decodifica JWT para obtener user_id

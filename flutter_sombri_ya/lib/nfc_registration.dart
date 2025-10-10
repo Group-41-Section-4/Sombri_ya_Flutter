@@ -154,15 +154,16 @@ class _RegisterNfcStationPageState extends State<RegisterNfcStationPage> {
 
   Future<void> _checkStationAssociation(String uid) async {
     try {
-      final url = Uri.parse("$baseUrl/stations/by-tag/$uid");
+      final url = Uri.parse("$baseUrl/tags/$uid/station");
       final resp = await http.get(url, headers: {
         'Authorization': 'Bearer ${widget.authToken}',
       });
 
       if (resp.statusCode == 200) {
         final station = jsonDecode(resp.body);
+        print(station);
         setState(() => _status =
-        "Este tag pertenece a la estación: ${station['name']}");
+        "Este tag pertenece a la estación: ${station['place_name']}");
       } else if (resp.statusCode == 404) {
         setState(() =>
         _status = "Este tag no está asociado. Selecciona una estación.");
@@ -289,13 +290,14 @@ class _RegisterNfcStationPageState extends State<RegisterNfcStationPage> {
     return Scaffold(
       appBar: AppBar(
         title: const Text("Registrar NFC de estación"),
-        backgroundColor: const Color(0xFFFCE55F),
+        backgroundColor: const Color(0xFF90E0EF),
         foregroundColor: Colors.black,
       ),
       body: Padding(
         padding: const EdgeInsets.all(20),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             Text(
               _status,
@@ -308,7 +310,7 @@ class _RegisterNfcStationPageState extends State<RegisterNfcStationPage> {
               icon: const Icon(Icons.nfc),
               label: Text(_isScanning ? "Escaneando..." : "Escanear NFC"),
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFFCE55F),
+                backgroundColor: const Color(0xFF90E0EF),
                 foregroundColor: Colors.black,
                 padding:
                 const EdgeInsets.symmetric(horizontal: 32, vertical: 14),

@@ -46,7 +46,7 @@ class _ProfilePageState extends State<ProfilePage> {
   UserProfile? _user;
   bool _loading = true;
   double? _totalDistanceKm;
-  final double goalKm = 10.0;
+  final double goalKm = 5.0;
 
 
   @override
@@ -103,7 +103,7 @@ class _ProfilePageState extends State<ProfilePage> {
         setState(() {
           _totalDistanceKm = (data['totalDistanceKm'] as num).toDouble();
         });
-        final double goalKm = 10.0;
+        final double goalKm = 5.0;
         final double progress = (_totalDistanceKm ?? 0) / goalKm;
       } else {
         print("Error al obtener distancia: ${response.statusCode}");
@@ -274,7 +274,7 @@ class _ProfilePageState extends State<ProfilePage> {
       );
     }
 
-    final double goalKm = 10.0;
+    final double goalKm = 5.0;
     final double dryProgress = (_totalDistanceKm ?? 0) / goalKm;
 
     return Scaffold(
@@ -311,7 +311,7 @@ class _ProfilePageState extends State<ProfilePage> {
             const SizedBox(height: 10),
             CircularPercentIndicator(
               radius: 80.0,
-              lineWidth: 10.0,
+              lineWidth: 5.0,
               percent: dryProgress.clamp(0, 1),
               center: const Icon(
                   Icons.sunny, size: 50, color: Color(0xFFFCE55F)),

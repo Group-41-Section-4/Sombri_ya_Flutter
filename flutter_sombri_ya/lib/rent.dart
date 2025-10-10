@@ -33,6 +33,7 @@ class _RentPageState extends State<RentPage> {
   final Api api = Api();
   final storage = const FlutterSecureStorage();
 
+
   final MobileScannerController _scannerController = MobileScannerController();
   bool _isProcessing = false;
   bool hasRental = false;
@@ -46,7 +47,7 @@ class _RentPageState extends State<RentPage> {
       QrRentStrategy(
         onCodeScanned: (code) {
           setState(() {
-            _qrResult = code;
+            _qrResult =code;
           });
           debugPrint("Procesando renta con QR: $code");
         },
@@ -76,6 +77,7 @@ class _RentPageState extends State<RentPage> {
   }
 
   Future<void> _startNfcRental() async {
+    // Revisar logica rentals.
     await _scannerController.stop();
 
     await NfcManager.instance.stopSession();
@@ -84,32 +86,49 @@ class _RentPageState extends State<RentPage> {
     NfcManager.instance.startSession(
       pollingOptions: {NfcPollingOption.iso14443},
       onDiscovered: (NfcTag tag) async {
-        Uint8List? id;
+        try {
+          Uint8List? id;
 
-        final nfca = NfcA.from(tag);
-        if (nfca != null) {
-          id = nfca.identifier;
-        } else {
-          final iso = IsoDep.from(tag);
-          if (iso != null) {
-            id = iso.identifier;
+          final nfca = NfcA.from(tag);
+          if (nfca != null) {
+            id = nfca.identifier;
+          } else {
+            final iso = IsoDep.from(tag);
+            if (iso != null) {
+              id = iso.identifier;
+            }
           }
-        }
+          if (id == null) {
+            _showSnack("No se pudo leer el ID del tag NFC", Colors.red);
+            await NfcManager.instance.stopSession();
+            return;
+          }
 
-        final uid = id!
-            .map((b) => b.toRadixString(16).padLeft(2, '0'))
-            .join(':')
-            .toUpperCase();
+          final uid = id!
+              .map((b) => b.toRadixString(16).padLeft(2, '0'))
+              .join(':')
+              .toUpperCase();
 
-        const fixedStationId = "acadc4ef-f5b3-4ab8-9ab5-58f1161f0799";
 
-        final userId = await storage.read(key: "user_id");
+          final userId = await storage.read(key: "user_id");
+
+          if (userId == null) {
+            _showSnack("Usuario no encontrado", Colors.red);
+            await NfcManager.instance.stopSession();
+            return;
+          }
+
         final api = Api();
 
-
-        final rental = await api.startRental(
-          userId: userId!,
-          stationStartId: fixedStationId,
+          final station = await api.getStationByTag(uid);
+        if(station == null){
+          _showSnack("Estación no encontrada para este tag", Colors.red);
+          await NfcManager.instance.stopSession();
+          return;
+        }
+          final rental = await api.startRental(
+          userId: userId,
+          stationStartId: station.id,
           authType: "nfc",
         );
 
@@ -120,14 +139,22 @@ class _RentPageState extends State<RentPage> {
           rentalIdDebug = rental.id;
         });
 
+        _showSnack("Sombrilla rentada en ${station.placeName ?? station.id}", Colors.green);
+
 
         await NfcManager.instance.stopSession();
+        } catch (e) {
+          print("Error en renta NFC: $e");
+          _showSnack("Error en renta NFC: $e", Colors.red);
+        } finally {
+          await NfcManager.instance.stopSession();
+        }
       },
     );
   }
 
 
-
+  /*
   /// Procesa la renta por NFC (con estación fija opcional)
   Future<void> _processNfcTag(String tagUid, String tagType) async {
     try {
@@ -204,6 +231,8 @@ class _RentPageState extends State<RentPage> {
     }
   }
 
+   */
+
 
 
 
@@ -256,6 +285,13 @@ class _RentPageState extends State<RentPage> {
   }
 
 
+  void _resetPageState(){
+    setState(() {
+      _qrResult = null;
+      _isProcessing = false;
+      hasRental = false;
+    });
+  }
   void _showSnack(String message, Color color) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -324,6 +360,7 @@ class _RentPageState extends State<RentPage> {
               await _scannerController.start();
             },
           ),
+          /*
           Positioned(
             top: 16,
             left: 16,
@@ -336,6 +373,8 @@ class _RentPageState extends State<RentPage> {
               ),
             ),
           ),
+
+           */
           Align(
             alignment: Alignment.center,
             child: Container(
@@ -349,7 +388,7 @@ class _RentPageState extends State<RentPage> {
               ),
             ),
           ),
-          if (_qrResult != null)
+          if (_qrResult!= null)
             Positioned(
               top: MediaQuery.of(context).size.height * 0.22,
               left: 0,
@@ -367,47 +406,54 @@ class _RentPageState extends State<RentPage> {
               ),
             ),
           Positioned(
-            bottom: 130,
+            bottom: 120,
             left: 0,
             right: 0,
-            child: Column(
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
               mainAxisSize: MainAxisSize.min,
               children: [
-                ElevatedButton.icon(
-                  icon: const Icon(Icons.assignment_return, size: 28),
-                  label: const Text("Ir a devolución"),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.white,
-                    foregroundColor: const Color(0xFF004D63),
-                    padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 14),
+                if (hasRental)
+                  ElevatedButton.icon(
+                    icon: const Icon(Icons.assignment_return, size: 30),
+                    label: const Text("Ir a devolución"),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.white60,
+                      foregroundColor: const Color(0xFF004D63),
+                      padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 15),
+                    ),
+                    onPressed: () async {
+                      final reset= await Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => ReturnPage(userPosition: widget.userPosition))
+                      );
+                      if (reset== "returned") {
+                        _showSnack("Sombrilla devuelta exitosamente", Colors.green);
+                        Navigator.pushReplacement(context,
+                        MaterialPageRoute(builder: (context) => RentPage(userPosition: widget.userPosition),
+                        )
+                      );
+                      }
+                      await Future.delayed(const Duration(milliseconds: 300));
+                      await _checkActiveRental();
+                      setState(() {
+                        _qrResult= null;
+                        _isProcessing = false;
+                      });
+                    },
                   ),
-                  onPressed: () async {
-                    final result = await Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => ReturnPage(userPosition: widget.userPosition)),
-                    );
-                    if (result == "returned") {
-                      _showSnack("Sombrilla devuelta exitosamente", Colors.green);
-                    }
-                    await Future.delayed(const Duration(milliseconds: 300));
-                    await _checkActiveRental();
-                    setState(() {
-                      _qrResult = null;
-                      _isProcessing = false;
-                    });
-                  },
-                ),
-                const SizedBox(height: 12),
-                ElevatedButton.icon(
-                  icon: const Icon(Icons.nfc, size: 28),
-                  label: const Text("Rentar con NFC"),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.white,
-                    foregroundColor: const Color(0xFF004D63),
-                    padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 14),
+                const SizedBox(height: 5),
+                if(!hasRental)
+                  ElevatedButton.icon(
+                    icon: const Icon(Icons.nfc, size: 30),
+                    label: const Text("Rentar con NFC"),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.white,
+                      foregroundColor: const Color(0xFF004D63),
+                      padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 15),
+                    ),
+                    onPressed: _startNfcRental,
                   ),
-                  onPressed: _startNfcRental,
-                ),
               ],
             ),
           ),
