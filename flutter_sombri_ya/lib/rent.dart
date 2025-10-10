@@ -277,7 +277,7 @@ class _RentPageState extends State<RentPage> {
         rentalIdDebug = rentalIdToSave;
       });
 
-      _showSnack("🌂 Sombrilla rentada con éxito (QR)", Colors.green);
+      _showSnack("Sombrilla rentada con éxito (QR)", Colors.green);
     } catch (e) {
       print("Error en _processQrCode: $e");
       _showSnack("Error al iniciar la renta: $e", Colors.red);

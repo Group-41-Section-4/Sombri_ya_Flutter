@@ -39,8 +39,8 @@ class Api {
       }),
     );
 
-    print("📡 startRental status=${response.statusCode}");
-    print("📡 startRental body=${response.body}");
+    print("startRental status=${response.statusCode}");
+    print("startRental body=${response.body}");
 
     if (response.statusCode == 200 || response.statusCode == 201) {
       final data = jsonDecode(response.body);
