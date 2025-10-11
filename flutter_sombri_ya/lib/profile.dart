@@ -2,9 +2,12 @@ import 'package:flutter/material.dart';
 import 'theme.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:local_auth_android/local_auth_android.dart';
+import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:percent_indicator/circular_percent_indicator.dart';
+import 'package:local_auth/local_auth.dart';
 
 import 'profile_dialogs.dart';
 import 'login.dart';
@@ -47,6 +50,8 @@ class _ProfilePageState extends State<ProfilePage> {
   bool _loading = true;
   double? _totalDistanceKm;
   final double goalKm = 5.0;
+  final LocalAuthentication auth = LocalAuthentication();
+
 
 
   @override
@@ -113,6 +118,117 @@ class _ProfilePageState extends State<ProfilePage> {
     }
   }
 
+  Future<bool> _authenticateUser() async {
+    try {
+      final bool isSupported = await auth.isDeviceSupported();
+      final bool canCheck = await auth.canCheckBiometrics;
+      final biometrics = await auth.getAvailableBiometrics();
+
+      if (!isSupported && !canCheck) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("Tu dispositivo no admite autenticación biométrica o PIN."),
+            backgroundColor: Colors.redAccent,
+          ),
+        );
+        return false;
+      }
+
+
+      final bool didAuthenticate = await auth.authenticate(
+        localizedReason: 'Confirma tu identidad para continuar',
+        options: const AuthenticationOptions(
+          biometricOnly: false,
+          stickyAuth: true,
+          useErrorDialogs: true,
+        ),
+        authMessages: const <AuthMessages>[
+          AndroidAuthMessages(
+            signInTitle: 'Verificación requerida',
+            cancelButton: 'Cancelar',
+            biometricHint: 'Usa tu huella o PIN del dispositivo',
+            biometricNotRecognized: 'No reconocido. Intenta de nuevo.',
+            biometricSuccess: 'Autenticación exitosa',
+            biometricRequiredTitle: 'Autenticación necesaria',
+            deviceCredentialsRequiredTitle: 'Usa tu PIN o patrón',
+            deviceCredentialsSetupDescription: 'Configura un PIN o patrón en Ajustes',
+          ),
+        ],
+      );
+
+      return didAuthenticate;
+    } on PlatformException catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Error en autenticación: ${e.message}")),
+      );
+      return false;
+    } catch (e) {
+      print("Error en autenticación: $e");
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Error al verificar tu identidad."),
+          backgroundColor: Colors.redAccent,
+        ),
+      );
+      return false;
+    }
+  }
+
+  void _showVerificationPanel(VoidCallback onConfirm) {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
+      ),
+      backgroundColor: Colors.white,
+      builder: (context) {
+        return Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.lock_outline, size: 45, color: Colors.black54),
+              const SizedBox(height: 10),
+              const Text(
+                'Verifica tu identidad',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 10),
+              const Text(
+                'Confirma tu identidad para continuar.',
+                textAlign: TextAlign.center,
+                style: TextStyle(color: Colors.black54),
+              ),
+              const SizedBox(height: 25),
+              ElevatedButton.icon(
+                icon: const Icon(Icons.verified_user),
+                label: const Text('Verificar ahora'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF001242),
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  padding:
+                  const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
+                ),
+                onPressed: () async {
+                  Navigator.pop(context);
+                  final success = await _authenticateUser();
+                  if (success) {
+                    onConfirm();
+                  }
+                },
+              ),
+              const SizedBox(height: 10),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+
 
   Future<void> _loadUserProfile() async {
     final token = await storage.read(key: 'auth_token');
@@ -135,7 +251,6 @@ class _ProfilePageState extends State<ProfilePage> {
           "Authorization": "Bearer $token",
         },
       );
-      print("📡 Respuesta perfil: ${response.statusCode} -> ${response.body}");
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
@@ -168,40 +283,49 @@ class _ProfilePageState extends State<ProfilePage> {
 
   void _editName() async {
     if (_user == null) return;
-    final newName = await showEditFieldDialog(
-      context: context,
-      title: 'Nombre',
-      initialValue: _user!.name,
-    );
 
-    if (newName != null && newName.isNotEmpty) {
-      setState(() {
-        _user!.name = newName;
-      });
-      await _updateUserField("name", newName);
-    }
+    _showVerificationPanel(() async {
+      final newName = await showEditFieldDialog(
+        context: context,
+        title: 'Nombre',
+        initialValue: _user!.name,
+      );
+
+      if (newName != null && newName.isNotEmpty) {
+        setState(() {
+          _user!.name = newName;
+        });
+        await _updateUserField("name", newName);
+      }
+    });
   }
 
   void _editEmail() async {
     if (_user == null) return;
-    final newEmail = await showEditFieldDialog(
-      context: context,
-      title: 'Email',
-      initialValue: _user!.email,
-      keyboardType: TextInputType.emailAddress,
-    );
 
-    if (newEmail != null && newEmail.isNotEmpty) {
-      setState(() {
-        _user!.email = newEmail;
-      });
-      await _updateUserField("email", newEmail);
-    }
+    _showVerificationPanel(() async {
+      final newEmail = await showEditFieldDialog(
+        context: context,
+        title: 'Email',
+        initialValue: _user!.email,
+        keyboardType: TextInputType.emailAddress,
+      );
+
+      if (newEmail != null && newEmail.isNotEmpty) {
+        setState(() {
+          _user!.email = newEmail;
+        });
+        await _updateUserField("email", newEmail);
+      }
+    });
   }
 
-  void _editPassword() {
-    showChangePasswordDialog(context);
+  void _editPassword() async {
+    _showVerificationPanel(() {
+      showChangePasswordDialog(context);
+    });
   }
+
 
   void _deactivateAccount() {
     _showConfirmationDialog(
