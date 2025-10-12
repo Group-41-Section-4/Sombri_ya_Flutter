@@ -13,14 +13,10 @@ import 'package:nfc_manager/nfc_manager.dart';
 import 'package:nfc_manager/platform_tags.dart';
 import 'dart:typed_data';
 
-
 class ReturnPage extends StatefulWidget {
   final GpsCoord userPosition;
 
-  const ReturnPage({
-    super.key,
-    required this.userPosition,
-  });
+  const ReturnPage({super.key, required this.userPosition});
 
   @override
   State<ReturnPage> createState() => _ReturnPageState();
@@ -45,38 +41,36 @@ class _ReturnPageState extends State<ReturnPage> {
     final rentalId = await storage.read(key: "rental_id");
     if (!mounted) return;
     setState(() => rentalIdDebug = rentalId);
-
   }
 
   /// Finaliza correctamente y regresa al home
   Future<void> _finishAndExit(String message, Color color) async {
-  // Primero borra la renta y espera confirmación
-  await storage.delete(key: "rental_id");
-  await Future.delayed(const Duration(milliseconds: 200));
+    // Primero borra la renta y espera confirmación
+    await storage.delete(key: "rental_id");
+    await Future.delayed(const Duration(milliseconds: 200));
 
-  // Detiene el escáner y actualiza estado
-  await _scannerController.stop();
-  setState(() {
-    _endedSuccessfully = true;
-    rentalIdDebug = null;
-  });
+    // Detiene el escáner y actualiza estado
+    await _scannerController.stop();
+    setState(() {
+      _endedSuccessfully = true;
+      rentalIdDebug = null;
+    });
 
-  if (!mounted) return;
-  ScaffoldMessenger.of(context).showSnackBar(
-    SnackBar(
-      content: Text(message),
-      backgroundColor: color,
-      duration: const Duration(seconds: 1),
-    ),
-  );
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: color,
+        duration: const Duration(seconds: 1),
+      ),
+    );
 
-  await Future.delayed(const Duration(milliseconds: 300));
-  Navigator.pop(context, "returned"); 
-}
+    await Future.delayed(const Duration(milliseconds: 300));
+    Navigator.pop(context, "returned");
+  }
 
   Future<void> _startNfcReturn() async {
     await _scannerController.stop();
-
 
     await NfcManager.instance.stopSession();
     await Future.delayed(const Duration(milliseconds: 200));
@@ -101,7 +95,7 @@ class _ReturnPageState extends State<ReturnPage> {
             await NfcManager.instance.stopSession();
             return;
           }
-          final uid = id!
+          final uid = id
               .map((b) => b.toRadixString(16).padLeft(2, '0'))
               .join(':')
               .toUpperCase();
@@ -114,9 +108,9 @@ class _ReturnPageState extends State<ReturnPage> {
             return;
           }
 
-        final api = Api();
+          final api = Api();
           final station = await api.getStationByTag(uid);
-          if(station == null){
+          if (station == null) {
             _showSnack("Estación no encontrada para este tag", Colors.red);
             await NfcManager.instance.stopSession();
             return;
@@ -126,21 +120,18 @@ class _ReturnPageState extends State<ReturnPage> {
             stationEndId: station.id,
           );
 
+          // Limpia el rental guardado
+          await storage.delete(key: "rental_id");
 
-        // Limpia el rental guardado
-        await storage.delete(key: "rental_id");
+          setState(() {
+            rentalIdDebug = null;
+          });
 
-        setState(() {
-          rentalIdDebug = null;
-        });
+          await NfcManager.instance.stopSession();
 
-
-
-        await NfcManager.instance.stopSession();
-
-        if (mounted) {
-          Navigator.pop(context, "returned");
-        }
+          if (mounted) {
+            Navigator.pop(context, "returned");
+          }
         } catch (e) {
           print("Error en devolución NFC: $e");
           _showSnack("Error en devolución NFC: $e", Colors.red);
@@ -148,7 +139,6 @@ class _ReturnPageState extends State<ReturnPage> {
       },
     );
   }
-
 
   Future<void> _processQrCode(String code) async {
     try {
@@ -179,23 +169,19 @@ class _ReturnPageState extends State<ReturnPage> {
         return;
       }
 
-
-      await api.endRental(
-        userId: userId,
-        stationEndId: stationId,
-      );
+      await api.endRental(userId: userId, stationEndId: stationId);
 
       await _finishAndExit("Sombrilla devuelta exitosamente", Colors.green);
     } catch (e) {
       final msg = e.toString();
 
-
       if (msg.contains("No active rental found")) {
-        await _finishAndExit("No tenías ninguna sombrilla activa", Colors.orange);
+        await _finishAndExit(
+          "No tenías ninguna sombrilla activa",
+          Colors.orange,
+        );
         return;
       }
-
-
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -206,16 +192,17 @@ class _ReturnPageState extends State<ReturnPage> {
       );
     }
   }
-    void _showSnack(String message, Color color) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(message),
-          backgroundColor: color,
-          behavior: SnackBarBehavior.floating,
-          duration: const Duration(seconds: 2),
-        ),
-      );
-    }
+
+  void _showSnack(String message, Color color) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: color,
+        behavior: SnackBarBehavior.floating,
+        duration: const Duration(seconds: 2),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -289,7 +276,6 @@ class _ReturnPageState extends State<ReturnPage> {
             },
           ),
 
-
           // Debug del estado
           /*
           Positioned(
@@ -335,7 +321,10 @@ class _ReturnPageState extends State<ReturnPage> {
                     icon: const Icon(Icons.assignment_return, size: 20),
                     label: const Text(
                       'Escanea para devolver',
-                      style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15),
+                      style: TextStyle(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 15,
+                      ),
                     ),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.white,
@@ -351,7 +340,9 @@ class _ReturnPageState extends State<ReturnPage> {
                     onPressed: () {
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
-                          content: Text("Escanea el QR de la estación para devolver"),
+                          content: Text(
+                            "Escanea el QR de la estación para devolver",
+                          ),
                           backgroundColor: Colors.orange,
                           duration: Duration(seconds: 1),
                         ),
@@ -365,7 +356,10 @@ class _ReturnPageState extends State<ReturnPage> {
                     icon: const Icon(Icons.nfc, size: 20),
                     label: const Text(
                       'Devolver con NFC',
-                      style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15),
+                      style: TextStyle(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 15,
+                      ),
                     ),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.white,
@@ -384,7 +378,6 @@ class _ReturnPageState extends State<ReturnPage> {
               ),
             ),
           ),
-
         ],
       ),
 

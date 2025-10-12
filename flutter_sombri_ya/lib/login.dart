@@ -4,7 +4,6 @@ import 'package:flutter_sombri_ya/forgot_password.dart';
 import 'package:local_auth/local_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'home.dart';
-import "signin.dart";
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
@@ -18,7 +17,6 @@ class LoginPage extends StatefulWidget {
 }
 
 class _LoginPageState extends State<LoginPage> {
-
   final storage = const FlutterSecureStorage();
   final LocalAuthentication auth = LocalAuthentication();
 
@@ -26,14 +24,13 @@ class _LoginPageState extends State<LoginPage> {
     final email = emailController.text;
     final password = passwordController.text;
 
-    final url = Uri.parse("https://sombri-ya-back-4def07fa1804.herokuapp.com/auth/login/password");
+    final url = Uri.parse(
+      "https://sombri-ya-back-4def07fa1804.herokuapp.com/auth/login/password",
+    );
     final response = await http.post(
       url,
       headers: {"Content-Type": "application/json"},
-      body: jsonEncode({
-        "email": email,
-        "password": password,
-      }),
+      body: jsonEncode({"email": email, "password": password}),
     );
 
     if (response.statusCode == 200 || response.statusCode == 201) {
@@ -66,22 +63,22 @@ class _LoginPageState extends State<LoginPage> {
 
       if (googleUser == null) return;
 
-      final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
+      final GoogleSignInAuthentication googleAuth =
+          await googleUser.authentication;
       final idToken = googleAuth.idToken;
 
-
-      final url = Uri.parse("https://sombri-ya-back-4def07fa1804.herokuapp.com/auth/login/google");
+      final url = Uri.parse(
+        "https://sombri-ya-back-4def07fa1804.herokuapp.com/auth/login/google",
+      );
       final response = await http.post(
         url,
         headers: {"Content-Type": "application/json"},
         body: jsonEncode({"idToken": idToken}),
       );
 
-
       if (response.statusCode == 200 || response.statusCode == 201) {
         final data = jsonDecode(response.body);
         final token = data["accessToken"];
-
 
         await storage.write(key: "auth_token", value: token);
 
@@ -95,7 +92,11 @@ class _LoginPageState extends State<LoginPage> {
         );
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Error al iniciar con Google (${response.statusCode})")),
+          SnackBar(
+            content: Text(
+              "Error al iniciar con Google (${response.statusCode})",
+            ),
+          ),
         );
       }
     } catch (e) {
@@ -105,8 +106,6 @@ class _LoginPageState extends State<LoginPage> {
       );
     }
   }
-
-
 
   final TextEditingController emailController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
@@ -237,7 +236,11 @@ class _LoginPageState extends State<LoginPage> {
                         },
                         child: const Text(
                           "¿No tienes una cuenta? Regístrate",
-                          style: TextStyle(color: Colors.grey, fontSize: 12, decoration: TextDecoration.underline,),
+                          style: TextStyle(
+                            color: Colors.grey,
+                            fontSize: 12,
+                            decoration: TextDecoration.underline,
+                          ),
                         ),
                       ),
                     ),
@@ -269,7 +272,8 @@ class _LoginPageState extends State<LoginPage> {
                     SizedBox(
                       width: double.infinity,
                       child: OutlinedButton.icon(
-                        onPressed: () => loginWithGoogle(context), // Login con Google
+                        onPressed: () =>
+                            loginWithGoogle(context), // Login con Google
                         icon: SizedBox(
                           width: 10,
                           height: 10, //

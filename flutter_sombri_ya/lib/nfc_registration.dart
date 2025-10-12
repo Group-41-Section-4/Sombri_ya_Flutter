@@ -7,8 +7,10 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'models/station_model.dart';
 import 'service_adapters/stations_service.dart';
 
-String bytesToHex(Uint8List bytes) =>
-    bytes.map((b) => b.toRadixString(16).padLeft(2, '0')).join(':').toUpperCase();
+String bytesToHex(Uint8List bytes) => bytes
+    .map((b) => b.toRadixString(16).padLeft(2, '0'))
+    .join(':')
+    .toUpperCase();
 
 class RegisterNfcStationPage extends StatefulWidget {
   final String authToken;
@@ -73,51 +75,45 @@ class _RegisterNfcStationPageState extends State<RegisterNfcStationPage> {
           final tagData = tag.data;
           Uint8List? id;
 
-          if (tagData is Map) {
-
-            if (tagData.containsKey('nfca')) {
-              final nfca = tagData['nfca'];
-              if (nfca is Map && nfca['identifier'] != null) {
-                final raw = nfca['identifier'];
-                if (raw is Uint8List) {
-                  id = raw;
-                } else if (raw is List) {
-                  id = Uint8List.fromList(raw.cast<int>());
-                }
-              }
-            }
-
-
-            if (id == null && tagData.containsKey('mifareclassic')) {
-              final mifare = tagData['mifareclassic'];
-              if (mifare is Map && mifare['identifier'] != null) {
-                final raw = mifare['identifier'];
-                if (raw is Uint8List) {
-                  id = raw;
-                } else if (raw is List) {
-                  id = Uint8List.fromList(raw.cast<int>());
-                }
-              }
-            }
-
-
-            if (id == null) {
-              for (final entry in tagData.entries) {
-                final value = entry.value;
-                if (value is Map && value['identifier'] != null) {
-                  final raw = value['identifier'];
-                  if (raw is Uint8List) {
-                    id = raw;
-                    break;
-                  } else if (raw is List) {
-                    id = Uint8List.fromList(raw.cast<int>());
-                    break;
-                  }
-                }
+          if (tagData.containsKey('nfca')) {
+            final nfca = tagData['nfca'];
+            if (nfca is Map && nfca['identifier'] != null) {
+              final raw = nfca['identifier'];
+              if (raw is Uint8List) {
+                id = raw;
+              } else if (raw is List) {
+                id = Uint8List.fromList(raw.cast<int>());
               }
             }
           }
 
+          if (id == null && tagData.containsKey('mifareclassic')) {
+            final mifare = tagData['mifareclassic'];
+            if (mifare is Map && mifare['identifier'] != null) {
+              final raw = mifare['identifier'];
+              if (raw is Uint8List) {
+                id = raw;
+              } else if (raw is List) {
+                id = Uint8List.fromList(raw.cast<int>());
+              }
+            }
+          }
+
+          if (id == null) {
+            for (final entry in tagData.entries) {
+              final value = entry.value;
+              if (value is Map && value['identifier'] != null) {
+                final raw = value['identifier'];
+                if (raw is Uint8List) {
+                  id = raw;
+                  break;
+                } else if (raw is List) {
+                  id = Uint8List.fromList(raw.cast<int>());
+                  break;
+                }
+              }
+            }
+          }
 
           if (id == null) {
             _showSnack("No se pudo detectar UID del tag", Colors.orange);
@@ -125,12 +121,12 @@ class _RegisterNfcStationPageState extends State<RegisterNfcStationPage> {
             return;
           }
 
-
-          final uid = id.map((b) => b.toRadixString(16).padLeft(2, '0')).join(':').toUpperCase();
-
+          final uid = id
+              .map((b) => b.toRadixString(16).padLeft(2, '0'))
+              .join(':')
+              .toUpperCase();
 
           setState(() => _status = "Tag detectado: $uid");
-
 
           await Future.delayed(const Duration(milliseconds: 1500));
 
@@ -149,28 +145,33 @@ class _RegisterNfcStationPageState extends State<RegisterNfcStationPage> {
         }
       },
     );
-
   }
 
   Future<void> _checkStationAssociation(String uid) async {
     try {
       final url = Uri.parse("$baseUrl/tags/$uid/station");
-      final resp = await http.get(url, headers: {
-        'Authorization': 'Bearer ${widget.authToken}',
-      });
+      final resp = await http.get(
+        url,
+        headers: {'Authorization': 'Bearer ${widget.authToken}'},
+      );
 
       if (resp.statusCode == 200) {
         final station = jsonDecode(resp.body);
         print(station);
-        setState(() => _status =
-        "Este tag pertenece a la estación: ${station['place_name']}");
+        setState(
+          () => _status =
+              "Este tag pertenece a la estación: ${station['place_name']}",
+        );
       } else if (resp.statusCode == 404) {
-        setState(() =>
-        _status = "Este tag no está asociado. Selecciona una estación.");
+        setState(
+          () => _status = "Este tag no está asociado. Selecciona una estación.",
+        );
         await _showAssignDialog(uid);
       } else {
-        setState(() => _status =
-        "Error consultando el tag (${resp.statusCode}): ${resp.body}");
+        setState(
+          () => _status =
+              "Error consultando el tag (${resp.statusCode}): ${resp.body}",
+        );
       }
     } catch (e) {
       setState(() => _status = "Error al consultar: $e");
@@ -208,14 +209,12 @@ class _RegisterNfcStationPageState extends State<RegisterNfcStationPage> {
                     });
                   },
                   items: _stations.map((station) {
-                    final label = station.placeName ??
+                    final label =
+                        station.placeName ??
                         (station.toString().contains('Instance')
                             ? station.id
                             : station.toString());
-                    return DropdownMenuItem(
-                      value: station,
-                      child: Text(label),
-                    );
+                    return DropdownMenuItem(value: station, child: Text(label));
                   }).toList(),
                 ),
               ],
@@ -229,10 +228,10 @@ class _RegisterNfcStationPageState extends State<RegisterNfcStationPage> {
                 onPressed: tempSelected == null
                     ? null
                     : () async {
-                  Navigator.pop(context);
-                  setState(() => _selectedStation = tempSelected);
-                  await _assignTagToStation(uid, tempSelected!.id);
-                },
+                        Navigator.pop(context);
+                        setState(() => _selectedStation = tempSelected);
+                        await _assignTagToStation(uid, tempSelected!.id);
+                      },
                 child: const Text("Asignar"),
               ),
             ],
@@ -251,7 +250,6 @@ class _RegisterNfcStationPageState extends State<RegisterNfcStationPage> {
         'meta': {'registered_from': 'app'},
       });
 
-
       final resp = await http.post(
         url,
         headers: {
@@ -262,11 +260,14 @@ class _RegisterNfcStationPageState extends State<RegisterNfcStationPage> {
       );
 
       if (resp.statusCode == 200 || resp.statusCode == 201) {
-        setState(() => _status =
-        "Tag asociado correctamente a la estación seleccionada.");
+        setState(
+          () => _status =
+              "Tag asociado correctamente a la estación seleccionada.",
+        );
       } else {
-        setState(() => _status =
-        "Error al asociar (${resp.statusCode}): ${resp.body}");
+        setState(
+          () => _status = "Error al asociar (${resp.statusCode}): ${resp.body}",
+        );
       }
     } catch (e) {
       setState(() => _status = "Error enviando datos: $e");
@@ -283,7 +284,6 @@ class _RegisterNfcStationPageState extends State<RegisterNfcStationPage> {
       ),
     );
   }
-
 
   @override
   Widget build(BuildContext context) {
@@ -312,10 +312,13 @@ class _RegisterNfcStationPageState extends State<RegisterNfcStationPage> {
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF90E0EF),
                 foregroundColor: Colors.black,
-                padding:
-                const EdgeInsets.symmetric(horizontal: 32, vertical: 14),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 32,
+                  vertical: 14,
+                ),
                 shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12)),
+                  borderRadius: BorderRadius.circular(12),
+                ),
               ),
             ),
             const SizedBox(height: 12),
