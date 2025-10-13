@@ -18,7 +18,6 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'Sombri-Ya',
       debugShowCheckedModeBanner: false,
-
       theme: ThemeData(
         useMaterial3: true,
         colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF28BCEF)),
@@ -35,39 +34,61 @@ class SplashScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFF90E0EF),
-      body: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          Align(
-            alignment: Alignment.center,
-            child: Image.asset(
-              'assets/images/logo_no_bg.png',
-              fit: BoxFit.contain,
-              width: MediaQuery.of(context).size.width * 0.8,
+      body: SafeArea(
+        child: SingleChildScrollView(
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              minHeight: MediaQuery.of(context).size.height,
             ),
-          ),
+            child: IntrinsicHeight(
+              child: Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    const Spacer(flex: 2),
 
-          const SizedBox(height: 40),
+                    Align(
+                      alignment: Alignment.center,
+                      child: Image.asset(
+                        'assets/images/logo_no_bg.png',
+                        fit: BoxFit.contain,
+                        width: MediaQuery.of(context).size.width * 0.7,
+                      ),
+                    ),
 
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF001242),
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(30),
+                    const SizedBox(height: 40),
+
+                    ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF001242),
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(30),
+                        ),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 70, vertical: 15),
+                      ),
+                      onPressed: () {
+                        Navigator.pushReplacement(
+                          context,
+                          MaterialPageRoute(
+                              builder: (context) => const LoginPage()),
+                        );
+                      },
+                      child: const Text(
+                        "Iniciar Sesión",
+                        style: TextStyle(fontSize: 20),
+                      ),
+                    ),
+
+                    const Spacer(flex: 3),
+                  ],
+                ),
               ),
-              padding: const EdgeInsets.symmetric(horizontal: 70, vertical: 15),
             ),
-            onPressed: () {
-              Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(builder: (context) => const LoginPage()),
-              );
-            },
-            child: const Text("Iniciar Sesión", style: TextStyle(fontSize: 20)),
           ),
-        ],
+        ),
       ),
     );
   }
