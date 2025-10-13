@@ -1,7 +1,6 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import '../models/gps_coord.dart';
 import '../models/rental_model.dart';
 import '../models/station_model.dart';
 
@@ -21,7 +20,7 @@ class Api {
   }
 
   /// Inicia una renta
-   Future<Rental> startRental({
+  Future<Rental> startRental({
     required String userId,
     required String stationStartId,
     required String authType,
@@ -48,7 +47,6 @@ class Api {
     } else {
       final msg = _safeMessage(response.body);
 
-
       if (msg.contains("already has an active rental")) {
         throw Exception("Ya tienes una sombrilla activa ");
       }
@@ -68,18 +66,14 @@ class Api {
     final response = await http.post(
       url,
       headers: headers,
-      body: jsonEncode({'user_id': userId, 'station_end_id': stationEndId,
-      }),
+      body: jsonEncode({'user_id': userId, 'station_end_id': stationEndId}),
     );
-
-
 
     if (response.statusCode == 200 || response.statusCode == 201) {
       print("Renta finalizada correctamente");
       return;
     } else {
       final msg = _safeMessage(response.body);
-
 
       if (msg.contains("No active rental found")) {
         throw Exception("No tienes ninguna sombrilla activa");
@@ -89,15 +83,12 @@ class Api {
     }
   }
 
-
   /// Consultar las estaciones cercanas
   Future<List<dynamic>> getStationsNearby() async {
     final url = Uri.parse("$baseUrl/stations/nearby");
     final headers = await _getHeaders();
 
     final response = await http.get(url, headers: headers);
-
-
 
     if (response.statusCode == 200) {
       return jsonDecode(response.body);
@@ -113,8 +104,6 @@ class Api {
 
     final response = await http.get(url, headers: headers);
 
-
-
     if (response.statusCode == 200) {
       final data = jsonDecode(response.body);
       if (data.isEmpty) return null;
@@ -123,9 +112,12 @@ class Api {
       throw Exception("Error al obtener renta activa: ${response.body}");
     }
   }
+
   Future<Station?> getStationByTag(String tagUid) async {
     try {
-      final token = await storage.read(key: 'token'); // lee token si usas autenticación
+      final token = await storage.read(
+        key: 'token',
+      ); // lee token si usas autenticación
       final url = Uri.parse('$baseUrl/tags/$tagUid/station');
 
       final response = await http.get(

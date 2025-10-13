@@ -3,8 +3,6 @@ import 'package:http/http.dart' as http;
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import '../models/station_model.dart';
 
-import '../service_adapters/stations_service.dart';
-
 class StationsService {
   final String _baseUrl = 'https://sombri-ya-back-4def07fa1804.herokuapp.com';
 

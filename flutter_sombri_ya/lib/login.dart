@@ -33,14 +33,12 @@ class _LoginPageState extends State<LoginPage> {
     final password = passwordController.text;
 
     final url = Uri.parse(
-        "https://sombri-ya-back-4def07fa1804.herokuapp.com/auth/login/password");
+      "https://sombri-ya-back-4def07fa1804.herokuapp.com/auth/login/password",
+    );
     final response = await http.post(
       url,
       headers: {"Content-Type": "application/json"},
-      body: jsonEncode({
-        "email": email,
-        "password": password,
-      }),
+      body: jsonEncode({"email": email, "password": password}),
     );
 
     if (response.statusCode == 200 || response.statusCode == 201) {
@@ -82,11 +80,12 @@ class _LoginPageState extends State<LoginPage> {
       if (googleUser == null) return;
 
       final GoogleSignInAuthentication googleAuth =
-      await googleUser.authentication;
+          await googleUser.authentication;
       final idToken = googleAuth.idToken;
 
       final url = Uri.parse(
-          "https://sombri-ya-back-4def07fa1804.herokuapp.com/auth/login/google");
+        "https://sombri-ya-back-4def07fa1804.herokuapp.com/auth/login/google",
+      );
       final response = await http.post(
         url,
         headers: {"Content-Type": "application/json"},
@@ -109,9 +108,9 @@ class _LoginPageState extends State<LoginPage> {
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content:
-            Text("Error al iniciar con Google (${response.statusCode})"),
-            backgroundColor: Colors.red,
+            content: Text(
+              "Error al iniciar con Google (${response.statusCode})",
+            ),
           ),
         );
       }
@@ -121,6 +120,9 @@ class _LoginPageState extends State<LoginPage> {
       );
     }
   }
+
+  final TextEditingController emailController = TextEditingController();
+  final TextEditingController passwordController = TextEditingController();
 
   @override
   Widget build(BuildContext context) {

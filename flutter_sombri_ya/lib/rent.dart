@@ -10,12 +10,10 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:nfc_manager/nfc_manager.dart';
 import 'package:nfc_manager/platform_tags.dart';
 import '../return.dart';
-import '../strategies/nfc_rent_strategy.dart';
 import '../strategies/qr_rent_strategy.dart';
 import '../strategies/rent_strategy.dart';
 import '../services/api.dart';
 import '../models/gps_coord.dart';
-import 'models/rental_model.dart';
 import 'dart:typed_data';
 
 class RentPage extends StatefulWidget {
@@ -33,7 +31,6 @@ class _RentPageState extends State<RentPage> {
   final Api api = Api();
   final storage = const FlutterSecureStorage();
 
-
   final MobileScannerController _scannerController = MobileScannerController();
   bool _isProcessing = false;
   bool hasRental = false;
@@ -48,7 +45,7 @@ class _RentPageState extends State<RentPage> {
       QrRentStrategy(
         onCodeScanned: (code) {
           setState(() {
-            _qrResult =code;
+            _qrResult = code;
           });
           debugPrint("Procesando renta con QR: $code");
         },
@@ -234,14 +231,14 @@ class _RentPageState extends State<RentPage> {
     }
   }
 
-
-  void _resetPageState(){
+  void _resetPageState() {
     setState(() {
       _qrResult = null;
       _isProcessing = false;
       hasRental = false;
     });
   }
+
   void _showSnack(String message, Color color) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -273,7 +270,9 @@ class _RentPageState extends State<RentPage> {
           onPressed: () {
             Navigator.push(
               context,
-              MaterialPageRoute(builder: (context) => const NotificationsPage()),
+              MaterialPageRoute(
+                builder: (context) => const NotificationsPage(),
+              ),
             );
           },
         ),
@@ -300,7 +299,9 @@ class _RentPageState extends State<RentPage> {
             controller: _scannerController,
             fit: BoxFit.cover,
             onDetect: (capture) async {
-              final raw = capture.barcodes.isNotEmpty ? capture.barcodes.first.rawValue : null;
+              final raw = capture.barcodes.isNotEmpty
+                  ? capture.barcodes.first.rawValue
+                  : null;
               if (raw == null || _isProcessing) return;
               _isProcessing = true;
               await _scannerController.stop();
@@ -334,11 +335,17 @@ class _RentPageState extends State<RentPage> {
                 color: Colors.transparent,
                 borderRadius: BorderRadius.circular(8),
                 border: Border.all(color: const Color(0xFF28BCEF), width: 3),
-                boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 8, spreadRadius: 1)],
+                boxShadow: const [
+                  BoxShadow(
+                    color: Colors.black26,
+                    blurRadius: 8,
+                    spreadRadius: 1,
+                  ),
+                ],
               ),
             ),
           ),
-          if (_qrResult!= null)
+          if (_qrResult != null)
             Positioned(
               top: MediaQuery.of(context).size.height * 0.22,
               left: 0,
@@ -370,37 +377,52 @@ class _RentPageState extends State<RentPage> {
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.white60,
                       foregroundColor: const Color(0xFF004D63),
-                      padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 15),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 30,
+                        vertical: 15,
+                      ),
                     ),
                     onPressed: () async {
-                      final reset= await Navigator.push(
+                      final reset = await Navigator.push(
                         context,
-                        MaterialPageRoute(builder: (context) => ReturnPage(userPosition: widget.userPosition))
+                        MaterialPageRoute(
+                          builder: (context) =>
+                              ReturnPage(userPosition: widget.userPosition),
+                        ),
                       );
-                      if (reset== "returned") {
-                        _showSnack("Sombrilla devuelta exitosamente", Colors.green);
-                        Navigator.pushReplacement(context,
-                        MaterialPageRoute(builder: (context) => RentPage(userPosition: widget.userPosition),
-                        )
-                      );
+                      if (reset == "returned") {
+                        _showSnack(
+                          "Sombrilla devuelta exitosamente",
+                          Colors.green,
+                        );
+                        Navigator.pushReplacement(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) =>
+                                RentPage(userPosition: widget.userPosition),
+                          ),
+                        );
                       }
                       await Future.delayed(const Duration(milliseconds: 300));
                       await _checkActiveRental();
                       setState(() {
-                        _qrResult= null;
+                        _qrResult = null;
                         _isProcessing = false;
                       });
                     },
                   ),
                 const SizedBox(height: 5),
-                if(!hasRental)
+                if (!hasRental)
                   ElevatedButton.icon(
                     icon: const Icon(Icons.nfc, size: 30),
                     label: const Text("Rentar con NFC"),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.white,
                       foregroundColor: const Color(0xFF004D63),
-                      padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 15),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 30,
+                        vertical: 15,
+                      ),
                     ),
                     onPressed: _startNfcRental,
                   ),
@@ -420,7 +442,10 @@ class _RentPageState extends State<RentPage> {
               child: IconButton(
                 icon: const Icon(Icons.home, color: Colors.black),
                 onPressed: () {
-                  Navigator.push(context, MaterialPageRoute(builder: (context) => const HomePage()));
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => const HomePage()),
+                  );
                 },
               ),
             ),
