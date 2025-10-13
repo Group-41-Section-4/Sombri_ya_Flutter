@@ -1,6 +1,10 @@
 plugins {
+    // Core Gradle plugins (do not apply here yet)
     id("com.android.application") apply false
-    id("org.jetbrains.kotlin.android") version "1.9.23" apply false
+    id("org.jetbrains.kotlin.android") apply false
+
+    // Add this line 👇
+    id("dev.flutter.flutter-gradle-plugin")apply false
 }
 
 allprojects {
@@ -17,8 +21,6 @@ rootProject.layout.buildDirectory.value(newBuildDir)
 subprojects {
     val newSubprojectBuildDir: Directory = newBuildDir.dir(project.name)
     project.layout.buildDirectory.value(newSubprojectBuildDir)
-}
-subprojects {
     project.evaluationDependsOn(":app")
 }
 
