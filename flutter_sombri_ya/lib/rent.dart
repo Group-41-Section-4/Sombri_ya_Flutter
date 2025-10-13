@@ -10,12 +10,10 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:nfc_manager/nfc_manager.dart';
 import 'package:nfc_manager/platform_tags.dart';
 import '../return.dart';
-import '../strategies/nfc_rent_strategy.dart';
 import '../strategies/qr_rent_strategy.dart';
 import '../strategies/rent_strategy.dart';
 import '../services/api.dart';
 import '../models/gps_coord.dart';
-import 'models/rental_model.dart';
 import 'dart:typed_data';
 
 class RentPage extends StatefulWidget {
