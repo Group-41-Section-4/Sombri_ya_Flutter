@@ -10,6 +10,8 @@ import 'notifications.dart';
 import 'profile.dart';
 import 'rent.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'return.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -276,14 +278,46 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
           backgroundColor: Colors.transparent,
           elevation: 6,
           shape: const CircleBorder(),
-          onPressed: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => RentPage(
-                  userPosition: GpsCoord(latitude: _userPosition!.latitude, longitude: _userPosition!.longitude),),
-              ),
-            );
+          onPressed: () async {
+            final storage = const FlutterSecureStorage();
+            final rentalId = await storage.read(key: 'rental_id');
+
+            if (_userPosition == null) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Esperando tu ubicación...'),
+                  backgroundColor: Colors.orange,
+                  duration: Duration(seconds: 2),
+                ),
+              );
+              return;
+            }
+
+            if (rentalId != null && rentalId.isNotEmpty) {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => ReturnPage(
+                    userPosition: GpsCoord(
+                      latitude: _userPosition!.latitude,
+                      longitude: _userPosition!.longitude
+                    ),
+                  ),
+                ),
+              );
+            } else {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => RentPage(
+                    userPosition: GpsCoord(
+                      latitude: _userPosition!.latitude, 
+                      longitude: _userPosition!.longitude,
+                    ),
+                  ),
+                ),
+              );
+            }
           },
           child: Image.asset(
             'assets/images/home_button.png',
