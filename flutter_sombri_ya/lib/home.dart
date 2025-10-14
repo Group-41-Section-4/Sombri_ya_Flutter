@@ -1,17 +1,25 @@
+//Package imports
 import 'package:flutter/material.dart';
-import 'package:flutter_sombri_ya/models/gps_coord.dart';
+import 'package:flutter_sombri_ya/data/models/gps_coord.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:geolocator/geolocator.dart';
-import 'location_service.dart' hide LocationServiceDisabledException;
-import 'service_adapters/stations_service.dart';
-import 'models/station_model.dart';
-import 'menu.dart';
-import 'notifications.dart';
-import 'profile.dart';
-import 'rent.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+
+import 'core/services/location_service.dart'
+    hide LocationServiceDisabledException;
+import 'data/repositories/station_repository.dart';
+import 'data/models/station_model.dart';
+import 'menu.dart';
+import 'profile.dart';
+import 'rent.dart';
 import 'return.dart';
+
+//Notifications
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'views/notifications/notifications_page.dart';
+import 'presentation/blocs/notifications/notifications_bloc.dart';
+import 'presentation/blocs/notifications/notifications_event.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -23,7 +31,7 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
   LatLng? _userPosition;
   final LocationService _locationService = LocationService();
-  final StationsService _stationsService = StationsService();
+  final StationRepository _stationRepository = StationRepository();
 
   GoogleMapController? _mapController;
   LatLng _initialPosition = const LatLng(4.603083745590484, -74.06513067239409);
@@ -94,7 +102,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
 
   Future<void> _fetchNearbyStations(LatLng location) async {
     try {
-      final stations = await _stationsService.findNearbyStations(location);
+      final stations = await _stationRepository.findNearbyStations(location);
       if (!mounted) {
         return;
       }
@@ -185,11 +193,23 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
         ),
         leading: IconButton(
           icon: const Icon(Icons.notifications_none),
-          onPressed: () {
+          onPressed: () async {
+            //final userId = await _loadUserId();  userId
+            if (!context.mounted) return;
+
             Navigator.push(
               context,
               MaterialPageRoute(
-                builder: (context) => const NotificationsPage(),
+                builder: (_) => BlocProvider(
+                  create: (_) => NotificationsBloc()
+                    ..add(
+                      StartRentalPolling(
+                        "5e1a88f1-55c5-44d0-87bb-44919f9f4202",
+                      ),
+                    )
+                    ..add(const CheckWeather()),
+                  child: const NotificationsPage(),
+                ),
               ),
             );
           },
@@ -211,7 +231,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
         ],
       ),
 
-      endDrawer:  AppDrawer(),
+      endDrawer: AppDrawer(),
 
       body: Stack(
         children: [
@@ -300,7 +320,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                   builder: (context) => ReturnPage(
                     userPosition: GpsCoord(
                       latitude: _userPosition!.latitude,
-                      longitude: _userPosition!.longitude
+                      longitude: _userPosition!.longitude,
                     ),
                   ),
                 ),
@@ -311,7 +331,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                 MaterialPageRoute(
                   builder: (context) => RentPage(
                     userPosition: GpsCoord(
-                      latitude: _userPosition!.latitude, 
+                      latitude: _userPosition!.latitude,
                       longitude: _userPosition!.longitude,
                     ),
                   ),

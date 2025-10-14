@@ -3,12 +3,12 @@ import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'menu.dart';
 import 'home.dart';
-import 'notifications.dart';
+import 'views/notifications/notifications_page.dart';
 import 'profile.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../services/api.dart';
-import '../models/gps_coord.dart';
+import 'data/models/gps_coord.dart';
 import 'package:nfc_manager/nfc_manager.dart';
 import 'package:nfc_manager/platform_tags.dart';
 import 'dart:typed_data';
@@ -125,10 +125,7 @@ class _ReturnPageState extends State<ReturnPage> {
             await NfcManager.instance.stopSession();
             return;
           }
-          await api.endRental(
-            userId: userId,
-            stationEndId: station.id,
-          );
+          await api.endRental(userId: userId, stationEndId: station.id);
 
           await storage.delete(key: "rental_id");
           await storage.deleteAll();
@@ -174,10 +171,7 @@ class _ReturnPageState extends State<ReturnPage> {
       final userId = await storage.read(key: "user_id");
       debugPrint("[DEBUG] user_id desde storage: $userId");
 
-      await api.endRental(
-        userId: userId!,
-        stationEndId: stationId,
-      );
+      await api.endRental(userId: userId!, stationEndId: stationId);
 
       debugPrint("[DEBUG] endRental called successfully");
 
@@ -187,40 +181,40 @@ class _ReturnPageState extends State<ReturnPage> {
       _showSnack("Error al procesar devolución: $e", Colors.red);
     }
   }
-    //   if (userId == null || userId.isEmpty) {
-    //     print("[ERROR] Usuario no encontrado en storage");
-    //     ScaffoldMessenger.of(context).showSnackBar(
-    //       const SnackBar(
-    //         content: Text("Usuario no encontrado"),
-    //         backgroundColor: Colors.red,
-    //         duration: Duration(seconds: 1),
-    //       ),
-    //     );
-    //     return;
-    //   }
+  //   if (userId == null || userId.isEmpty) {
+  //     print("[ERROR] Usuario no encontrado en storage");
+  //     ScaffoldMessenger.of(context).showSnackBar(
+  //       const SnackBar(
+  //         content: Text("Usuario no encontrado"),
+  //         backgroundColor: Colors.red,
+  //         duration: Duration(seconds: 1),
+  //       ),
+  //     );
+  //     return;
+  //   }
 
-    //   await api.endRental(userId: userId, stationEndId: stationId);
+  //   await api.endRental(userId: userId, stationEndId: stationId);
 
-    //   await _finishAndExit("Sombrilla devuelta exitosamente", Colors.green);
-    // } catch (e) {
-    //   final msg = e.toString();
+  //   await _finishAndExit("Sombrilla devuelta exitosamente", Colors.green);
+  // } catch (e) {
+  //   final msg = e.toString();
 
-    //   if (msg.contains("No active rental found")) {
-    //     await _finishAndExit(
-    //       "No tenías ninguna sombrilla activa",
-    //       Colors.orange,
-    //     );
-    //     return;
-    //   }
+  //   if (msg.contains("No active rental found")) {
+  //     await _finishAndExit(
+  //       "No tenías ninguna sombrilla activa",
+  //       Colors.orange,
+  //     );
+  //     return;
+  //   }
 
-    //   ScaffoldMessenger.of(context).showSnackBar(
-    //     SnackBar(
-    //       content: Text("Error al procesar devolución: $e"),
-    //       backgroundColor: Colors.red,
-    //       duration: const Duration(seconds: 1),
-    //     ),
-    //   );
-    // }
+  //   ScaffoldMessenger.of(context).showSnackBar(
+  //     SnackBar(
+  //       content: Text("Error al procesar devolución: $e"),
+  //       backgroundColor: Colors.red,
+  //       duration: const Duration(seconds: 1),
+  //     ),
+  //   );
+  // }
   //}
 
   void _showSnack(String message, Color color) {
@@ -344,37 +338,42 @@ class _ReturnPageState extends State<ReturnPage> {
             left: 0,
             right: 0,
             child: Center(
-              child: 
-                Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                      decoration: BoxDecoration(
-                        color: Colors.black54,
-                        borderRadius: BorderRadius.circular(25),
-                      ),
-                      child: const Text(
-                        'Apunta la cámara al QR para devolver',
-                        style: TextStyle(color: Colors.white, fontSize: 16),
-                      ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 20,
+                      vertical: 10,
                     ),
-                    const SizedBox(height: 15),
-                    ElevatedButton.icon(
-                      icon: const Icon(Icons.contactless, size: 20),
-                      label: const Text('Devolver con NFC'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.white,
-                        foregroundColor: const Color(0xFF004D63),
-                        padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 15),
-                        shape: const StadiumBorder(),
-                      ),
-                      onPressed: _startNfcReturn,
+                    decoration: BoxDecoration(
+                      color: Colors.black54,
+                      borderRadius: BorderRadius.circular(25),
                     ),
-                  ],
-                )
+                    child: const Text(
+                      'Apunta la cámara al QR para devolver',
+                      style: TextStyle(color: Colors.white, fontSize: 16),
+                    ),
+                  ),
+                  const SizedBox(height: 15),
+                  ElevatedButton.icon(
+                    icon: const Icon(Icons.contactless, size: 20),
+                    label: const Text('Devolver con NFC'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.white,
+                      foregroundColor: const Color(0xFF004D63),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 30,
+                        vertical: 15,
+                      ),
+                      shape: const StadiumBorder(),
+                    ),
+                    onPressed: _startNfcReturn,
+                  ),
+                ],
               ),
             ),
+          ),
         ],
       ),
 

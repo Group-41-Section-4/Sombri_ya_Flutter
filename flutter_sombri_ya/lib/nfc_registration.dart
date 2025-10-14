@@ -4,8 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:nfc_manager/nfc_manager.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
-import 'models/station_model.dart';
-import 'service_adapters/stations_service.dart';
+import 'data/models/station_model.dart';
+import 'data/repositories/station_repository.dart';
 
 String bytesToHex(Uint8List bytes) => bytes
     .map((b) => b.toRadixString(16).padLeft(2, '0'))
@@ -21,7 +21,7 @@ class RegisterNfcStationPage extends StatefulWidget {
 }
 
 class _RegisterNfcStationPageState extends State<RegisterNfcStationPage> {
-  final StationsService _stationsService = StationsService();
+  final StationRepository _stationRepository = StationRepository();
 
   String _status = "Presiona 'Escanear' y acerca la tarjeta NFC.";
   bool _isScanning = false;
@@ -44,7 +44,9 @@ class _RegisterNfcStationPageState extends State<RegisterNfcStationPage> {
 
       const dummyLocation = LatLng(4.6030837, -74.0651307);
 
-      final stations = await _stationsService.findNearbyStations(dummyLocation);
+      final stations = await _stationRepository.findNearbyStations(
+        dummyLocation,
+      );
 
       setState(() {
         _stations = stations;
@@ -209,11 +211,7 @@ class _RegisterNfcStationPageState extends State<RegisterNfcStationPage> {
                     });
                   },
                   items: _stations.map((station) {
-                    final label =
-                        station.placeName ??
-                        (station.toString().contains('Instance')
-                            ? station.id
-                            : station.toString());
+                    final label = station.placeName;
                     return DropdownMenuItem(value: station, child: Text(label));
                   }).toList(),
                 ),

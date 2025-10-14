@@ -1,8 +1,8 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import '../models/rental_model.dart';
-import '../models/station_model.dart';
+import '../data/models/rental_model.dart';
+import '../data/models/station_model.dart';
 
 class Api {
   static const String baseUrl =
