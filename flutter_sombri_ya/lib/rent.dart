@@ -1,8 +1,13 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'menu.dart';
-import 'home.dart';
+
+// Bloc imports for Home
+import 'views/home/home_page.dart';
+import '../../presentation/blocs/home/home_bloc.dart';
+
 import 'views/notifications/notifications_page.dart';
 import 'profile.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -467,7 +472,12 @@ class _RentPageState extends State<RentPage> {
                 onPressed: () {
                   Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (context) => const HomePage()),
+                    MaterialPageRoute(
+                      builder: (_) => BlocProvider(
+                        create: (_) => HomeBloc(),
+                        child: const HomePage(),
+                      ),
+                    ),
                   );
                 },
               ),

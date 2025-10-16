@@ -9,7 +9,7 @@ class StationRepository {
     final body = {
       'latitude': location.latitude,
       'longitude': location.longitude,
-      'radius_m': 5000,
+      'radius_m': 1000000,
     };
 
     final List<dynamic> data = await _apiProvider.getWithBody(

@@ -1,59 +1,73 @@
-//Package imports
+// home_page.dart
 import 'package:flutter/material.dart';
-import 'package:flutter_sombri_ya/data/models/gps_coord.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
-import 'core/services/location_service.dart'
-    hide LocationServiceDisabledException;
-import 'data/repositories/station_repository.dart';
-import 'data/models/station_model.dart';
-import 'menu.dart';
-import 'profile.dart';
-import 'rent.dart';
-import 'return.dart';
+// BLoC Home
+import '../../presentation/blocs/home/home_bloc.dart';
+import '../../presentation/blocs/home/home_event.dart';
+import '../../presentation/blocs/home/home_state.dart';
 
-//Notifications
-import 'package:flutter_bloc/flutter_bloc.dart';
-import 'views/notifications/notifications_page.dart';
-import 'presentation/blocs/notifications/notifications_bloc.dart';
-import 'presentation/blocs/notifications/notifications_event.dart';
+import '../../menu.dart';
+import '../../profile.dart';
+import '../../rent.dart';
+import '../../return.dart';
+import '../../data/models/gps_coord.dart';
+import '../../data/models/station_model.dart';
 
-class HomePage extends StatefulWidget {
+// BloC Notifications
+import '../notifications/notifications_page.dart';
+import '../../presentation/blocs/notifications/notifications_bloc.dart';
+import '../../presentation/blocs/notifications/notifications_event.dart';
+
+class HomePage extends StatelessWidget {
   const HomePage({super.key});
 
   @override
-  State<HomePage> createState() => _HomePageState();
+  Widget build(BuildContext context) {
+    return BlocProvider(
+      create: (context) => HomeBloc(),
+      child: const HomeView(),
+    );
+  }
 }
 
-class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
-  LatLng? _userPosition;
-  final LocationService _locationService = LocationService();
-  final StationRepository _stationRepository = StationRepository();
+class HomeView extends StatefulWidget {
+  const HomeView({super.key});
 
+  @override
+  State<HomeView> createState() => _HomeViewState();
+}
+
+class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
   GoogleMapController? _mapController;
-  LatLng _initialPosition = const LatLng(4.603083745590484, -74.06513067239409);
-  bool _isLoading = true;
-
-  Set<Marker> _markers = {};
-
-  List<Station> _nearbyStations = [];
   BitmapDescriptor? _stationIcon;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    _loadCustomMarkerIcon();
-    _initializeMap();
+    _loadCustomMarkerIcon().then((_) {
+      if (mounted) {
+        context.read<HomeBloc>().add(InitializeHome(stationIcon: _stationIcon));
+      }
+    });
   }
 
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      context.read<HomeBloc>().add(RefreshHome(stationIcon: _stationIcon));
+    }
   }
 
   Future<void> _loadCustomMarkerIcon() async {
@@ -63,86 +77,6 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
     );
     setState(() {
       _stationIcon = icon;
-    });
-  }
-
-  @override
-  void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed) {
-      _initializeMap();
-    }
-  }
-
-  Future<void> _initializeMap() async {
-    try {
-      final userPosition = await _locationService.getCurrentLocation();
-      if (!mounted) {
-        return;
-      }
-
-      setState(() {
-        _userPosition = userPosition;
-        _initialPosition = userPosition;
-        _isLoading = false;
-        _updateMarkers(userPosition, []);
-      });
-
-      _mapController?.animateCamera(
-        CameraUpdate.newLatLngZoom(_initialPosition, 16),
-      );
-
-      _fetchNearbyStations(userPosition);
-    } on LocationServiceDisabledException {
-      _showEnableLocationDialog();
-      setState(() => _isLoading = false);
-    } catch (e) {
-      setState(() => _isLoading = false);
-    }
-  }
-
-  Future<void> _fetchNearbyStations(LatLng location) async {
-    try {
-      final stations = await _stationRepository.findNearbyStations(location);
-      if (!mounted) {
-        return;
-      }
-
-      setState(() {
-        _nearbyStations = stations;
-      });
-      _updateMarkers(_initialPosition, stations);
-    } catch (e) {
-      print("Error: $e");
-    }
-  }
-
-  void _updateMarkers(LatLng userPosition, List<Station> stations) {
-    final Set<Marker> markers = {};
-    markers.add(
-      Marker(
-        markerId: const MarkerId('userLocation'),
-        position: userPosition,
-        icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueAzure),
-        infoWindow: const InfoWindow(title: 'Tu Ubicación'),
-      ),
-    );
-
-    for (final station in stations) {
-      markers.add(
-        Marker(
-          markerId: MarkerId(station.id),
-          position: LatLng(station.latitude, station.longitude),
-          icon: _stationIcon ?? BitmapDescriptor.defaultMarker,
-          infoWindow: InfoWindow(
-            title: station.placeName,
-            snippet: '${station.availableUmbrellas} sombrillas disponibles',
-          ),
-        ),
-      );
-    }
-
-    setState(() {
-      _markers = markers;
     });
   }
 
@@ -159,9 +93,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
           actions: <Widget>[
             TextButton(
               child: const Text('Cancelar'),
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
+              onPressed: () => Navigator.of(context).pop(),
             ),
             TextButton(
               child: const Text('Activar Ubicación'),
@@ -193,10 +125,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
         ),
         leading: IconButton(
           icon: const Icon(Icons.notifications_none),
-          onPressed: () async {
-            //final userId = await _loadUserId();  userId
-            if (!context.mounted) return;
-
+          onPressed: () {
             Navigator.push(
               context,
               MaterialPageRoute(
@@ -230,66 +159,82 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
           ),
         ],
       ),
-
       endDrawer: AppDrawer(),
-
-      body: Stack(
-        children: [
-          GoogleMap(
-            initialCameraPosition: CameraPosition(
-              target: _initialPosition,
-              zoom: 16,
-            ),
-            onMapCreated: (controller) {
-              _mapController = controller;
-            },
-            markers: _markers,
-            myLocationEnabled: true,
-            myLocationButtonEnabled: true,
-            mapToolbarEnabled: false,
-            zoomControlsEnabled: false,
-          ),
-
-          if (_isLoading) const Center(child: CircularProgressIndicator()),
-
-          Positioned(
-            top: 16,
-            left: 0,
-            right: 0,
-            child: Center(
-              child: ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF005E7C),
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 40,
-                    vertical: 12,
-                  ),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  elevation: 6,
+      body: BlocConsumer<HomeBloc, HomeState>(
+        listenWhen: (prev, current) =>
+            prev.locationError != current.locationError ||
+            (prev.cameraTarget != current.cameraTarget &&
+                current.cameraTarget != null),
+        listener: (context, state) {
+          if (state.locationError == 'disabled') {
+            _showEnableLocationDialog();
+          }
+          if (state.cameraTarget != null) {
+            _mapController?.animateCamera(
+              CameraUpdate.newLatLngZoom(state.cameraTarget!, state.cameraZoom),
+            );
+          }
+        },
+        builder: (context, state) {
+          return Stack(
+            children: [
+              GoogleMap(
+                initialCameraPosition: CameraPosition(
+                  target:
+                      state.cameraTarget ?? const LatLng(4.603083, -74.065130),
+                  zoom: state.cameraZoom,
                 ),
-                onPressed: () {
-                  showModalBottomSheet(
-                    context: context,
-                    isScrollControlled: true,
-                    backgroundColor: Colors.transparent,
-                    builder: (context) =>
-                        EstacionesSheet(stations: _nearbyStations),
-                  );
+                onMapCreated: (controller) {
+                  _mapController = controller;
                 },
-                child: Text(
-                  'ESTACIONES',
-                  style: GoogleFonts.robotoSlab(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
+                markers: state.markers,
+                myLocationEnabled: true,
+                myLocationButtonEnabled: true,
+                mapToolbarEnabled: false,
+                zoomControlsEnabled: false,
+              ),
+              if (state.isLoading)
+                const Center(child: CircularProgressIndicator()),
+              Positioned(
+                top: 16,
+                left: 0,
+                right: 0,
+                child: Center(
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF005E7C),
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 40,
+                        vertical: 12,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      elevation: 6,
+                    ),
+                    onPressed: () {
+                      showModalBottomSheet(
+                        context: context,
+                        isScrollControlled: true,
+                        backgroundColor: Colors.transparent,
+                        builder: (_) =>
+                            EstacionesSheet(stations: state.nearbyStations),
+                      );
+                    },
+                    child: Text(
+                      'ESTACIONES',
+                      style: GoogleFonts.robotoSlab(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
                   ),
                 ),
               ),
-            ),
-          ),
-        ],
+            ],
+          );
+        },
       ),
       floatingActionButton: SizedBox(
         width: 76,
@@ -299,19 +244,16 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
           elevation: 6,
           shape: const CircleBorder(),
           onPressed: () async {
-            final storage = const FlutterSecureStorage();
-            final rentalId = await storage.read(key: 'rental_id');
-
-            if (_userPosition == null) {
+            final userPosition = context.read<HomeBloc>().state.userPosition;
+            if (userPosition == null) {
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Esperando tu ubicación...'),
-                  backgroundColor: Colors.orange,
-                  duration: Duration(seconds: 2),
-                ),
+                const SnackBar(content: Text('Esperando tu ubicación...')),
               );
               return;
             }
+
+            final storage = const FlutterSecureStorage();
+            final rentalId = await storage.read(key: 'rental_id');
 
             if (rentalId != null && rentalId.isNotEmpty) {
               Navigator.push(
@@ -319,8 +261,8 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                 MaterialPageRoute(
                   builder: (context) => ReturnPage(
                     userPosition: GpsCoord(
-                      latitude: _userPosition!.latitude,
-                      longitude: _userPosition!.longitude,
+                      latitude: userPosition.latitude,
+                      longitude: userPosition.longitude,
                     ),
                   ),
                 ),
@@ -331,8 +273,8 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                 MaterialPageRoute(
                   builder: (context) => RentPage(
                     userPosition: GpsCoord(
-                      latitude: _userPosition!.latitude,
-                      longitude: _userPosition!.longitude,
+                      latitude: userPosition.latitude,
+                      longitude: userPosition.longitude,
                     ),
                   ),
                 ),
@@ -472,7 +414,6 @@ class EstacionesSheet extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 6),
-
                   Row(
                     children: [
                       Image.asset(
@@ -488,9 +429,7 @@ class EstacionesSheet extends StatelessWidget {
                           fontWeight: FontWeight.bold,
                         ),
                       ),
-
                       const SizedBox(width: 12),
-
                       Image.asset(
                         'assets/images/no_umbrella.png',
                         width: 20,
@@ -506,13 +445,11 @@ class EstacionesSheet extends StatelessWidget {
                       ),
                     ],
                   ),
-
                   const SizedBox(height: 6),
                   Text(direccion, style: const TextStyle(color: Colors.grey)),
                 ],
               ),
             ),
-            const SizedBox(width: 0),
             Column(
               mainAxisSize: MainAxisSize.min,
               children: [

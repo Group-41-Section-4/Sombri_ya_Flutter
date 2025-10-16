@@ -34,6 +34,7 @@ class ApiProvider {
       final streamedResponse = await request.send().timeout(
         const Duration(seconds: 15),
       );
+
       final response = await http.Response.fromStream(streamedResponse);
       return _handleResponse(response);
     } catch (e) {
