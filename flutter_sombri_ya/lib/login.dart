@@ -1,9 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_sombri_ya/signin.dart';
 import 'package:flutter_sombri_ya/forgot_password.dart';
 import 'package:local_auth/local_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
-import 'home.dart';
+
+//Bloc imports for Home
+import 'views/home/home_page.dart';
+import '../../presentation/blocs/home/home_bloc.dart';
+
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
@@ -20,8 +25,6 @@ class _LoginPageState extends State<LoginPage> {
   final storage = const FlutterSecureStorage();
   final LocalAuthentication auth = LocalAuthentication();
   final _formKey = GlobalKey<FormState>();
-
-  // Removed duplicate declaration of passwordController
 
   Future<void> login(BuildContext context) async {
     if (!_formKey.currentState!.validate()) {
@@ -59,7 +62,10 @@ class _LoginPageState extends State<LoginPage> {
 
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (context) => const HomePage()),
+        MaterialPageRoute(
+          builder: (_) =>
+              BlocProvider(create: (_) => HomeBloc(), child: const HomePage()),
+        ),
       );
     } else {
       ScaffoldMessenger.of(context).showSnackBar(

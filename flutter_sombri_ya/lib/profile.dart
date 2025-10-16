@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'theme.dart';
+import 'core/theme/app_theme.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:local_auth_android/local_auth_android.dart';
@@ -52,8 +52,6 @@ class _ProfilePageState extends State<ProfilePage> {
   final double goalKm = 5.0;
   final LocalAuthentication auth = LocalAuthentication();
 
-
-
   @override
   void initState() {
     super.initState();
@@ -66,7 +64,8 @@ class _ProfilePageState extends State<ProfilePage> {
     if (token == null) return;
 
     final url = Uri.parse(
-        "https://sombri-ya-back-4def07fa1804.herokuapp.com/users/${_user!.id}");
+      "https://sombri-ya-back-4def07fa1804.herokuapp.com/users/${_user!.id}",
+    );
 
     final response = await http.put(
       url,
@@ -90,8 +89,7 @@ class _ProfilePageState extends State<ProfilePage> {
     if (token == null) return;
 
     final url = Uri.parse(
-      "https://sombri-ya-back-4def07fa1804.herokuapp.com/users/${_user!
-          .id}/total-distance",
+      "https://sombri-ya-back-4def07fa1804.herokuapp.com/users/${_user!.id}/total-distance",
     );
 
     try {
@@ -127,13 +125,14 @@ class _ProfilePageState extends State<ProfilePage> {
       if (!isSupported && !canCheck) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text("Tu dispositivo no admite autenticación biométrica o PIN."),
+            content: Text(
+              "Tu dispositivo no admite autenticación biométrica o PIN.",
+            ),
             backgroundColor: Colors.redAccent,
           ),
         );
         return false;
       }
-
 
       final bool didAuthenticate = await auth.authenticate(
         localizedReason: 'Confirma tu identidad para continuar',
@@ -151,7 +150,8 @@ class _ProfilePageState extends State<ProfilePage> {
             biometricSuccess: 'Autenticación exitosa',
             biometricRequiredTitle: 'Autenticación necesaria',
             deviceCredentialsRequiredTitle: 'Usa tu PIN o patrón',
-            deviceCredentialsSetupDescription: 'Configura un PIN o patrón en Ajustes',
+            deviceCredentialsSetupDescription:
+                'Configura un PIN o patrón en Ajustes',
           ),
         ],
       );
@@ -209,8 +209,10 @@ class _ProfilePageState extends State<ProfilePage> {
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(20),
                   ),
-                  padding:
-                  const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 32,
+                    vertical: 12,
+                  ),
                 ),
                 onPressed: () async {
                   Navigator.pop(context);
@@ -228,8 +230,6 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
 
-
-
   Future<void> _loadUserProfile() async {
     final token = await storage.read(key: 'auth_token');
 
@@ -241,7 +241,8 @@ class _ProfilePageState extends State<ProfilePage> {
     }
 
     final url = Uri.parse(
-        "https://sombri-ya-back-4def07fa1804.herokuapp.com/auth/me");
+      "https://sombri-ya-back-4def07fa1804.herokuapp.com/auth/me",
+    );
 
     try {
       final response = await http.get(
@@ -277,7 +278,7 @@ class _ProfilePageState extends State<ProfilePage> {
 
     Navigator.of(context).pushAndRemoveUntil(
       MaterialPageRoute(builder: (context) => const MyApp()),
-          (Route<dynamic> route) => false,
+      (Route<dynamic> route) => false,
     );
   }
 
@@ -326,16 +327,15 @@ class _ProfilePageState extends State<ProfilePage> {
     });
   }
 
-
   void _deactivateAccount() {
     _showConfirmationDialog(
       title: 'Desactivar Cuenta',
       content:
-      'Al desactivar la cuenta, no recibirás más notificaciones y tus subscripciones se suspenderán al final del periodo de pago actual. ¿Estás seguro?',
+          'Al desactivar la cuenta, no recibirás más notificaciones y tus subscripciones se suspenderán al final del periodo de pago actual. ¿Estás seguro?',
       onConfirm: () {
         Navigator.of(context).pushAndRemoveUntil(
           MaterialPageRoute(builder: (context) => const LoginPage()),
-              (Route<dynamic> route) => false,
+          (Route<dynamic> route) => false,
         );
       },
     );
@@ -345,11 +345,11 @@ class _ProfilePageState extends State<ProfilePage> {
     _showConfirmationDialog(
       title: 'Borrar Cuenta',
       content:
-      'Esta acción es permanente y no se puede deshacer. Se borrarán todos tus datos, historial y subscripciones. ¿Estás seguro de que quieres continuar?',
+          'Esta acción es permanente y no se puede deshacer. Se borrarán todos tus datos, historial y subscripciones. ¿Estás seguro de que quieres continuar?',
       onConfirm: () {
         Navigator.of(context).pushAndRemoveUntil(
           MaterialPageRoute(builder: (context) => const LoginPage()),
-              (Route<dynamic> route) => false,
+          (Route<dynamic> route) => false,
         );
       },
     );
@@ -362,34 +362,31 @@ class _ProfilePageState extends State<ProfilePage> {
   }) {
     showDialog(
       context: context,
-      builder: (context) =>
-          AlertDialog(
-            title: Text(title),
-            content: Text(content),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(context).pop(),
-                child: const Text('Regresar'),
-              ),
-              ElevatedButton(
-                onPressed: onConfirm,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppThem.accent,
-                  foregroundColor: Colors.white,
-                ),
-                child: const Text('Confirmar'),
-              ),
-            ],
+      builder: (context) => AlertDialog(
+        title: Text(title),
+        content: Text(content),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Regresar'),
           ),
+          ElevatedButton(
+            onPressed: onConfirm,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppThem.accent,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Confirmar'),
+          ),
+        ],
+      ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
     if (_loading) {
-      return const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
-      );
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
     if (_user == null) {
@@ -438,7 +435,10 @@ class _ProfilePageState extends State<ProfilePage> {
               lineWidth: 5.0,
               percent: dryProgress.clamp(0, 1),
               center: const Icon(
-                  Icons.sunny, size: 50, color: Color(0xFFFCE55F)),
+                Icons.sunny,
+                size: 50,
+                color: Color(0xFFFCE55F),
+              ),
               progressColor: const Color(0xFF001242),
               backgroundColor: Colors.grey[300]!,
               animation: true,
@@ -446,8 +446,7 @@ class _ProfilePageState extends State<ProfilePage> {
             ),
             const SizedBox(height: 10),
             Text(
-              "${_totalDistanceKm?.toStringAsFixed(2) ?? '0'} km de ${goalKm
-                  .toStringAsFixed(0)} km",
+              "${_totalDistanceKm?.toStringAsFixed(2) ?? '0'} km de ${goalKm.toStringAsFixed(0)} km",
               style: const TextStyle(fontSize: 14, color: Colors.black54),
             ),
 
@@ -460,7 +459,11 @@ class _ProfilePageState extends State<ProfilePage> {
 
             const SizedBox(height: 50),
             buildActionButton(
-                'Cerrar Sesión', Colors.redAccent, Colors.white, _logout),
+              'Cerrar Sesión',
+              Colors.redAccent,
+              Colors.white,
+              _logout,
+            ),
           ],
         ),
       ),
@@ -482,10 +485,16 @@ class _ProfilePageState extends State<ProfilePage> {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(label, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+            Text(
+              label,
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            ),
             Row(
               children: [
-                Text(value, style: const TextStyle(fontSize: 16, color: Colors.grey)),
+                Text(
+                  value,
+                  style: const TextStyle(fontSize: 16, color: Colors.grey),
+                ),
                 const Icon(Icons.chevron_right, color: Colors.grey),
               ],
             ),
@@ -496,7 +505,11 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   Widget buildActionButton(
-      String text, Color backgroundColor, Color textColor, VoidCallback onPressed) {
+    String text,
+    Color backgroundColor,
+    Color textColor,
+    VoidCallback onPressed,
+  ) {
     return SizedBox(
       width: double.infinity,
       child: ElevatedButton(
@@ -504,7 +517,9 @@ class _ProfilePageState extends State<ProfilePage> {
         style: ElevatedButton.styleFrom(
           backgroundColor: backgroundColor,
           padding: const EdgeInsets.symmetric(vertical: 15),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(30),
+          ),
         ),
         child: Text(text, style: TextStyle(color: textColor, fontSize: 18)),
       ),
