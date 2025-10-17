@@ -1,7 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:nfc_manager/nfc_manager.dart';
-import 'login.dart';
+import 'views/auth/login_page.dart';
+
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'core/providers/api_provider.dart';
+import 'core/services/secure_storage_service.dart';
+import 'data/repositories/auth_repository.dart';
+import 'presentation/blocs/auth/auth_bloc.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -67,17 +73,34 @@ class SplashScreen extends StatelessWidget {
                           borderRadius: BorderRadius.circular(30),
                         ),
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 70, vertical: 15),
+                          horizontal: 70,
+                          vertical: 15,
+                        ),
                       ),
                       onPressed: () {
+                        const baseUrl =
+                            'https://sombri-ya-back-4def07fa1804.herokuapp.com';
+
                         Navigator.pushReplacement(
                           context,
                           MaterialPageRoute(
-                              builder: (context) => const LoginPage()),
+                            builder: (_) => RepositoryProvider(
+                              create: (_) => ApiProvider(baseUrl: baseUrl),
+                              child: BlocProvider(
+                                create: (ctx) => AuthBloc(
+                                  repo: AuthRepository(
+                                    api: ctx.read<ApiProvider>(),
+                                    storage: const SecureStorageService(),
+                                  ),
+                                ),
+                                child: const LoginPage(),
+                              ),
+                            ),
+                          ),
                         );
                       },
                       child: const Text(
-                        "Iniciar Sesión",
+                        'Iniciar Sesión',
                         style: TextStyle(fontSize: 20),
                       ),
                     ),
