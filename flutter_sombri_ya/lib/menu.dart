@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import 'history.dart';
 import 'payment_methods.dart';
 import 'nfc_registration.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:flutter_sombri_ya/views/history/history_page.dart';
 
 class AppDrawer extends StatelessWidget {
   AppDrawer({super.key});
@@ -48,7 +48,7 @@ class AppDrawer extends StatelessWidget {
               Navigator.pop(context);
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (context) => const HistoryPage()),
+                MaterialPageRoute(builder: (_) => const HistoryPage()),
               );
             },
           ),

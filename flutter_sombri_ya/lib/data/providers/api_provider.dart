@@ -4,6 +4,10 @@ import 'package:http/http.dart' as http;
 class ApiProvider {
   final String _baseUrl = 'https://sombri-ya-back-4def07fa1804.herokuapp.com';
 
+  String get baseUrl => _baseUrl;
+
+  dynamic decodeJson(String bdy) => json.decode(bdy);
+
   Future<dynamic> getWithParams(
     String endpoint,
     Map<String, String> params,
