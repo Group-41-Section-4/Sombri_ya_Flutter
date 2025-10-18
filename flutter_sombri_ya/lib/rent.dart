@@ -1,9 +1,14 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'menu.dart';
-import 'home.dart';
-import 'notifications.dart';
+
+// Bloc imports for Home
+import 'views/home/home_page.dart';
+import '../../presentation/blocs/home/home_bloc.dart';
+
+import 'views/notifications/notifications_page.dart';
 import 'profile.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
@@ -13,7 +18,7 @@ import '../return.dart';
 import '../strategies/qr_rent_strategy.dart';
 import '../strategies/rent_strategy.dart';
 import '../services/api.dart';
-import '../models/gps_coord.dart';
+import 'data/models/gps_coord.dart';
 import 'dart:typed_data';
 
 class RentPage extends StatefulWidget {
@@ -57,37 +62,49 @@ class _RentPageState extends State<RentPage> {
     try {
       final userId = await storage.read(key: "user_id");
       if (userId == null) {
+        print("[DEBUG] No se encontró user_id en storage");
         return;
       }
 
       final localRentalId = await storage.read(key: "rental_id");
+      print("[DEBUG] rental_id local actual: $localRentalId");
 
-      final activeRental = await api.getActiveRental(userId);
+      dynamic activeRental;
+      try {
+        activeRental = await api.getActiveRental(userId);
+        print(
+          "[DEBUG] Respuesta de getActiveRental: ${activeRental?.id ?? 'null'}",
+        );
+      } catch (e) {
+        print("[DEBUG] Error en getActiveRental(): $e");
+        if (e.toString().contains("404") ||
+            e.toString().contains("Not Found")) {
+          await storage.delete(key: "rental_id");
+          print(
+            "[DEBUG] Se eliminó rental_id local porque el back no tiene renta activa",
+          );
+          activeRental = null;
+        }
+      }
 
       if (activeRental != null) {
         await storage.write(key: "rental_id", value: activeRental.id);
         setState(() {
           hasRental = true;
-          rentalIdDebug = activeRental.id;
+          rentalIdDebug = activeRental?.id;
         });
-      } else if (localRentalId != null) {
-        await storage.delete(key: "rental_id");
-        setState(() {
-          hasRental = false;
-          rentalIdDebug = null;
-        });
+        print("[DEBUG] Se detectó renta activa: ${activeRental.id}");
       } else {
         setState(() {
           hasRental = false;
           rentalIdDebug = null;
         });
-
+        print("[DEBUG] No hay renta activa, se eliminó el rental_id local");
       }
     } catch (e) {
       debugPrint("Error al verificar renta activa: $e");
     }
   }
-
 
   void _switchToQr() {
     setState(() {
@@ -169,7 +186,10 @@ class _RentPageState extends State<RentPage> {
             rentalIdDebug = rental.id;
           });
 
-          _showSnack("Sombrilla rentada en ${station.placeName ?? station.id}", Colors.green);
+          _showSnack(
+            "Sombrilla rentada en ${station.placeName ?? station.id}",
+            Colors.green,
+          );
         } catch (e) {
           print("Error en renta NFC: $e");
           _showSnack("Error en renta NFC: $e", Colors.red);
@@ -182,7 +202,6 @@ class _RentPageState extends State<RentPage> {
       },
     );
   }
-
 
   Future<void> _processQrCode(String code) async {
     try {
@@ -383,6 +402,7 @@ class _RentPageState extends State<RentPage> {
                       ),
                     ),
                     onPressed: () async {
+                      await _scannerController.stop();
                       final reset = await Navigator.push(
                         context,
                         MaterialPageRoute(
@@ -395,6 +415,9 @@ class _RentPageState extends State<RentPage> {
                           "Sombrilla devuelta exitosamente",
                           Colors.green,
                         );
+
+                        await Future.delayed(const Duration(milliseconds: 800));
+
                         Navigator.pushReplacement(
                           context,
                           MaterialPageRoute(
@@ -402,19 +425,24 @@ class _RentPageState extends State<RentPage> {
                                 RentPage(userPosition: widget.userPosition),
                           ),
                         );
+
+                        await _checkActiveRental();
+
+                        setState(() {
+                          _qrResult = null;
+                          _isProcessing = false;
+                          hasRental = false;
+                          rentalIdDebug = null;
+                        });
+
+                        await _scannerController.start();
                       }
-                      await Future.delayed(const Duration(milliseconds: 300));
-                      await _checkActiveRental();
-                      setState(() {
-                        _qrResult = null;
-                        _isProcessing = false;
-                      });
                     },
                   ),
                 const SizedBox(height: 5),
                 if (!hasRental)
                   ElevatedButton.icon(
-                    icon: const Icon(Icons.nfc, size: 30),
+                    icon: const Icon(Icons.contactless, size: 30),
                     label: const Text("Rentar con NFC"),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.white,
@@ -444,7 +472,12 @@ class _RentPageState extends State<RentPage> {
                 onPressed: () {
                   Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (context) => const HomePage()),
+                    MaterialPageRoute(
+                      builder: (_) => BlocProvider(
+                        create: (_) => HomeBloc(),
+                        child: const HomePage(),
+                      ),
+                    ),
                   );
                 },
               ),
@@ -479,5 +512,11 @@ class _RentPageState extends State<RentPage> {
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
     );
+  }
+
+  @override
+  void dispose() {
+    _scannerController.dispose();
+    super.dispose();
   }
 }
