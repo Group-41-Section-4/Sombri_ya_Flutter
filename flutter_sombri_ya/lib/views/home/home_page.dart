@@ -12,7 +12,6 @@ import '../../presentation/blocs/home/home_event.dart';
 import '../../presentation/blocs/home/home_state.dart';
 
 import '../../menu.dart';
-import '../../profile.dart';
 import '../../rent.dart';
 import '../../return.dart';
 import '../../data/models/gps_coord.dart';
@@ -22,6 +21,9 @@ import '../../data/models/station_model.dart';
 import '../notifications/notifications_page.dart';
 import '../../presentation/blocs/notifications/notifications_bloc.dart';
 import '../../presentation/blocs/notifications/notifications_event.dart';
+
+// BloC Profile
+import 'package:flutter_sombri_ya/views/profile/profile_page.dart';
 
 class HomePage extends StatelessWidget {
   const HomePage({super.key});
