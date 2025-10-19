@@ -13,17 +13,22 @@ class LoadProfile extends ProfileEvent {
   List<Object?> get props => [userId];
 }
 
+class RefreshProfile extends ProfileEvent {
+  final String userId;
+  const RefreshProfile(this.userId);
+  @override
+  List<Object?> get props => [userId];
+}
+
 class UpdateProfileField extends ProfileEvent {
   final String userId;
-  final String fieldKey;  
+  final String fieldKey;
   final String newValue;
-
   const UpdateProfileField({
     required this.userId,
     required this.fieldKey,
     required this.newValue,
   });
-
   @override
   List<Object?> get props => [userId, fieldKey, newValue];
 }
@@ -31,21 +36,19 @@ class UpdateProfileField extends ProfileEvent {
 class ChangePassword extends ProfileEvent {
   final String userId;
   final String currentPassword;
-  final String newPassword;         
-
+  final String newPassword;
   const ChangePassword({
     required this.userId,
     required this.currentPassword,
-    required this.newPassword,      
+    required this.newPassword,
   });
-
   @override
   List<Object?> get props => [userId, currentPassword, newPassword];
 }
 
-class RefreshProfile extends ProfileEvent {
+class LoadTotalDistance extends ProfileEvent {
   final String userId;
-  const RefreshProfile(this.userId);
+  const LoadTotalDistance(this.userId);
   @override
   List<Object?> get props => [userId];
 }
