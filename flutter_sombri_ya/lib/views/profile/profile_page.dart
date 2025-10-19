@@ -3,35 +3,43 @@ import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:local_auth/local_auth.dart';
+import 'package:local_auth_android/local_auth_android.dart';
+import 'package:percent_indicator/circular_percent_indicator.dart';
 
-import '../../presentation/blocs/profile/profile_bloc.dart';
-import '../../presentation/blocs/profile/profile_event.dart';
-import '../../presentation/blocs/profile/profile_state.dart';
-import '../../../data/repositories/profile_repository.dart';
+import 'package:flutter_sombri_ya/presentation/blocs/profile/profile_bloc.dart';
+import 'package:flutter_sombri_ya/presentation/blocs/profile/profile_event.dart';
+import 'package:flutter_sombri_ya/presentation/blocs/profile/profile_state.dart';
+import 'package:flutter_sombri_ya/data/repositories/profile_repository.dart';
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
-
   @override
   State<ProfilePage> createState() => _ProfilePageState();
 }
 
 class _ProfilePageState extends State<ProfilePage> {
   final _storage = const FlutterSecureStorage();
+  final _auth = LocalAuthentication();
   late final ProfileBloc _bloc;
   String? _userId;
 
-  static const int _nameMax = 30;
-  static const int _emailMax = 254;
-  static const int _phoneMax = 20;
-  static const int _passMin = 8;
-  static const int _passMax = 64;
+  static const double _goalKm = 5.0;
+
+  static const int _nameMax = 20, _emailMax = 40, _passMax = 12;
 
   @override
   void initState() {
     super.initState();
     _bloc = ProfileBloc(repository: ProfileRepository());
-    _loadUser();
+    _init();
+  }
+
+  Future<void> _init() async {
+    final id = await _storage.read(key: 'user_id');
+    if (!mounted) return;
+    setState(() => _userId = id);
+    if (id != null && id.isNotEmpty) _bloc.add(LoadProfile(id));
   }
 
   @override
@@ -40,234 +48,232 @@ class _ProfilePageState extends State<ProfilePage> {
     super.dispose();
   }
 
-  Future<void> _loadUser() async {
-    final id = await _storage.read(key: 'user_id');
-    if (!mounted) return;
-    setState(() => _userId = id);
-    if (id != null && id.isNotEmpty) {
-      _bloc.add(LoadProfile(id));
+  Future<bool> _authenticateUser() async {
+    try {
+      final supported = await _auth.isDeviceSupported();
+      final canCheck = await _auth.canCheckBiometrics;
+      if (!supported && !canCheck) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Tu dispositivo no admite biometría o PIN.')),
+        );
+        return false;
+      }
+      final ok = await _auth.authenticate(
+        localizedReason: 'Confirma tu identidad para continuar',
+        options: const AuthenticationOptions(
+          biometricOnly: false,
+          stickyAuth: true,
+          useErrorDialogs: true,
+        ),
+        authMessages: const <AuthMessages>[
+          AndroidAuthMessages(
+            signInTitle: 'Verificación requerida',
+            cancelButton: 'Cancelar',
+            biometricHint: 'Usa tu huella o PIN',
+            biometricNotRecognized: 'No reconocido',
+            biometricSuccess: 'Autenticación exitosa',
+            biometricRequiredTitle: 'Autenticación necesaria',
+            deviceCredentialsRequiredTitle: 'Usa tu PIN o patrón',
+            deviceCredentialsSetupDescription: 'Configura un PIN o patrón en Ajustes',
+          ),
+        ],
+      );
+      return ok;
+    } on PlatformException catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error en autenticación: ${e.message}')),
+      );
+      return false;
     }
   }
 
-  Future<void> _onRefresh() async {
-    if (_userId != null && _userId!.isNotEmpty) {
-      _bloc.add(RefreshProfile(_userId!));
-    }
+  void _showVerificationPanel(VoidCallback onConfirm) {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
+      ),
+      backgroundColor: Colors.white,
+      builder: (_) => Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.lock_outline, size: 45, color: Colors.black54),
+            const SizedBox(height: 10),
+            const Text('Verifica tu identidad', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 10),
+            const Text('Confirma tu identidad para continuar.', textAlign: TextAlign.center, style: TextStyle(color: Colors.black54)),
+            const SizedBox(height: 25),
+            ElevatedButton.icon(
+              icon: const Icon(Icons.verified_user),
+              label: const Text('Verificar ahora'),
+              onPressed: () async {
+                Navigator.pop(context);
+                final ok = await _authenticateUser();
+                if (ok) onConfirm();
+              },
+            ),
+          ],
+        ),
+      ),
+    );
   }
-
-  String _val(Map<String, dynamic>? p, String key, {String fallback = '-'}) {
-    final v = p?[key];
-    if (v == null) return fallback;
-    if (v is String && v.trim().isEmpty) return fallback;
-    return '$v';
-  }
-
-  String? _validateName(String? value) {
-    final v = (value ?? '').trim();
-    if (v.isEmpty) return 'Ingresa un nombre';
-    if (v.length > _nameMax) return 'Máximo $_nameMax caracteres';
-    final ok = RegExp(r"^[A-Za-zÀ-ÿ\u00f1\u00d1' -]+$").hasMatch(v);
-    if (!ok) return 'Usa solo letras y espacios';
-    return null;
-  }
-
-  String? _validateEmail(String? value) {
-    final v = (value ?? '').trim();
-    if (v.isEmpty) return 'Ingresa un correo';
-    if (v.length > _emailMax) return 'Máximo $_emailMax caracteres';
-    final ok = RegExp(
-      r"^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$",
-      caseSensitive: false,
-    ).hasMatch(v);
-    if (!ok) return 'Correo no válido';
-    return null;
-  }
-
-  String? _validatePhone(String? value) {
-    final v = (value ?? '').trim();
-    if (v.isEmpty) return 'Ingresa un teléfono';
-    if (v.length > _phoneMax) return 'Máximo $_phoneMax caracteres';
-    final digits = v.replaceAll(RegExp(r'[^0-9]'), '');
-    if (digits.length < 7 || digits.length > 15) {
-      return 'Debe tener entre 7 y 15 dígitos';
-    }
-    return null;
-  }
-
-  String? _validatePassword(String? value) {
-    final v = (value ?? '').trim();
-    if (v.length < _passMin) return 'Mínimo $_passMin caracteres';
-    if (v.length > _passMax) return 'Máximo $_passMax caracteres';
-    final hasLower = RegExp(r'[a-z]').hasMatch(v);
-    final hasUpper = RegExp(r'[A-Z]').hasMatch(v);
-    final hasDigit = RegExp(r'\d').hasMatch(v);
-    final hasSpec  = RegExp(r'[^\w\s]').hasMatch(v);
-    if (!(hasLower && hasUpper && hasDigit && hasSpec)) {
-      return 'Debe incluir mayúscula, minúscula, número y símbolo';
-    }
-    return null;
-  }
-
-  Future<void> _showEditFieldDialog({
+ 
+  //Dialogues 
+  Future<void> _editFieldDialog({
     required String title,
     required String fieldKey,
     required String initialValue,
     required String? Function(String?) validator,
-    List<TextInputFormatter> inputFormatters = const [],
     TextInputType keyboardType = TextInputType.text,
+    List<TextInputFormatter> formatters = const [],
   }) async {
     final formKey = GlobalKey<FormState>();
     final controller = TextEditingController(text: initialValue);
 
-    final result = await showDialog<String>(
+    final value = await showDialog<String>(
       context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: Text('Cambiar $title'),
-          content: Form(
-            key: formKey,
-            child: TextFormField(
-              controller: controller,
-              autofocus: true,
-              keyboardType: keyboardType,
-              inputFormatters: inputFormatters,
-              validator: validator,
-              autovalidateMode: AutovalidateMode.onUserInteraction,
-              decoration: InputDecoration(
-                labelText: 'Nuevo $title',
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
+      builder: (_) => AlertDialog(
+        title: Text('Cambiar $title'),
+        content: Form(
+          key: formKey,
+          child: TextFormField(
+            controller: controller,
+            keyboardType: keyboardType,
+            inputFormatters: formatters,
+            validator: validator,
+            autovalidateMode: AutovalidateMode.onUserInteraction,
+            decoration: InputDecoration(
+              labelText: 'Nuevo $title',
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
             ),
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Cancelar'),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                if (formKey.currentState!.validate()) {
-                  Navigator.of(context).pop(controller.text.trim());
-                }
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Theme.of(context).colorScheme.primary,
-                foregroundColor: Colors.white,
-              ),
-              child: const Text('Guardar'),
-            ),
-          ],
-        );
-      },
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancelar')),
+          ElevatedButton(
+            onPressed: () {
+              if (formKey.currentState!.validate()) {
+                Navigator.pop(context, controller.text.trim());
+              }
+            },
+            child: const Text('Guardar'),
+          ),
+        ],
+      ),
     );
 
-    if (result != null && _userId != null) {
-      _bloc.add(UpdateProfileField(
-        userId: _userId!,
-        fieldKey: fieldKey,
-        newValue: result,
-      ));
+    if (value != null && _userId != null) {
+      _bloc.add(UpdateProfileField(userId: _userId!, fieldKey: fieldKey, newValue: value));
     }
   }
 
-  Future<void> _showChangePasswordDialog() async {
+  Future<void> _changePasswordDialog() async {
     final formKey = GlobalKey<FormState>();
-    final currentController = TextEditingController();
-    final newController = TextEditingController();
-    final confirmController = TextEditingController();
+    final curr = TextEditingController();
+    final next = TextEditingController();
+    final confirm = TextEditingController();
 
     final ok = await showDialog<bool>(
       context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: const Text('Cambiar Contraseña'),
-          content: Form(
-            key: formKey,
-            child: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  TextFormField(
-                    controller: currentController,
-                    obscureText: true,
-                    validator: (v) =>
-                        (v == null || v.isEmpty) ? 'Ingresa tu contraseña actual' : null,
-                    decoration: InputDecoration(
-                      labelText: 'Contraseña Actual',
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  TextFormField(
-                    controller: newController,
-                    obscureText: true,
-                    maxLength: _passMax,
-                    inputFormatters: [
-                      LengthLimitingTextInputFormatter(_passMax),
-                    ],
-                    validator: (v) => _validatePassword(v),
-                    autovalidateMode: AutovalidateMode.onUserInteraction,
-                    decoration: InputDecoration(
-                      labelText: 'Nueva Contraseña',
-                      counterText: '',
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  TextFormField(
-                    controller: confirmController,
-                    obscureText: true,
-                    validator: (v) {
-                      if (v == null || v.isEmpty) return 'Confirma la nueva contraseña';
-                      if (v != newController.text) return 'No coincide';
-                      return null;
-                    },
-                    decoration: InputDecoration(
-                      labelText: 'Confirmar Nueva Contraseña',
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                  ),
-                ],
+      builder: (_) => AlertDialog(
+        title: const Text('Cambiar Contraseña'),
+        content: Form(
+          key: formKey,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextFormField(
+                controller: curr,
+                obscureText: true,
+                inputFormatters: [LengthLimitingTextInputFormatter(_passMax)],
+                maxLength: _passMax,
+                maxLengthEnforcement: MaxLengthEnforcement.enforced,
+                decoration: const InputDecoration(
+                  labelText: 'Contraseña actual',
+                  counterText: '',
+                ),
+                validator: (v) =>
+                    (v == null || v.isEmpty) ? 'Ingresa tu contraseña actual' : null,
               ),
-            ),
+              const SizedBox(height: 12),
+              TextFormField(
+                controller: next,
+                obscureText: true,
+                inputFormatters: [LengthLimitingTextInputFormatter(_passMax)],
+                maxLength: _passMax,
+                maxLengthEnforcement: MaxLengthEnforcement.enforced,
+                decoration: const InputDecoration(
+                  labelText: 'Nueva contraseña',
+                  counterText: '',
+                ),
+                autovalidateMode: AutovalidateMode.onUserInteraction,
+                validator: (v) {
+                  final s = (v ?? '').trim();
+                  if (s.length < 8 || s.length > _passMax) return '8–$_passMax caracteres';
+                  final ok = RegExp(r'[a-z]').hasMatch(s) &&
+                             RegExp(r'[A-Z]').hasMatch(s) &&
+                             RegExp(r'\d').hasMatch(s) &&
+                             RegExp(r'[^\w\s]').hasMatch(s);
+                  return ok ? null : 'Incluye mayúscula, minúscula, número y símbolo';
+                },
+              ),
+              const SizedBox(height: 12),
+              TextFormField(
+                controller: confirm,
+                obscureText: true,
+                inputFormatters: [LengthLimitingTextInputFormatter(_passMax)],
+                maxLength: _passMax,
+                maxLengthEnforcement: MaxLengthEnforcement.enforced,
+                decoration: const InputDecoration(
+                  labelText: 'Confirmar nueva contraseña',
+                  counterText: '',
+                ),
+                validator: (v) => (v ?? '') == next.text ? null : 'No coincide',
+              ),
+            ],
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(false),
-              child: const Text('Cancelar'),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                if (formKey.currentState!.validate()) {
-                  Navigator.of(context).pop(true);
-                }
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Theme.of(context).colorScheme.primary,
-                foregroundColor: Colors.white,
-              ),
-              child: const Text('Guardar'),
-            ),
-          ],
-        );
-      },
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancelar')),
+          ElevatedButton(
+            onPressed: () {
+              if (formKey.currentState!.validate()) Navigator.pop(context, true);
+            },
+            child: const Text('Guardar'),
+          ),
+        ],
+      ),
     );
 
     if (ok == true && _userId != null) {
-      _bloc.add(ChangePassword(
-        userId: _userId!,
-        currentPassword: currentController.text.trim(),
-        newPassword: newController.text.trim(),
-      ));
+      _bloc.add(ChangePassword(userId: _userId!, currentPassword: curr.text.trim(), newPassword: next.text.trim()));
     }
+  }
+  
+  String? _vName(String? v) {
+    final s = (v ?? '').trim();
+    if (s.isEmpty) return 'Ingresa un nombre';
+    if (s.length > _nameMax) return 'Máximo $_nameMax caracteres';
+    if (!RegExp(r"^[A-Za-zÀ-ÿ\u00f1\u00d1' -]+$").hasMatch(s)) return 'Solo letras y espacios';
+    return null;
+  }
+
+  String? _vEmail(String? v) {
+    final s = (v ?? '').trim();
+    if (s.isEmpty) return 'Ingresa un correo';
+    if (s.length > _emailMax) return 'Máximo $_emailMax caracteres';
+    if (!RegExp(r"^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$", caseSensitive: false).hasMatch(s)) {
+      return 'Correo no válido';
+    }
+    return null;
+  }
+
+  Future<void> _logout() async {
+    await _storage.delete(key: 'auth_token');
+    if (!mounted) return;
+    Navigator.of(context).pop();
   }
 
   @override
@@ -275,26 +281,22 @@ class _ProfilePageState extends State<ProfilePage> {
     return BlocProvider.value(
       value: _bloc,
       child: Scaffold(
+        backgroundColor: const Color(0xFFFFFDFD),
         appBar: AppBar(
-          backgroundColor: const Color(0xFF90E0EF),
+          title: Text('Cuenta',
+              style: GoogleFonts.cormorantGaramond(
+                color: Colors.black, fontSize: 24, fontWeight: FontWeight.bold,
+              )),
           centerTitle: true,
-          title: Text(
-            'Perfil',
-            style: GoogleFonts.cormorantGaramond(
-              color: Colors.black,
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
+          backgroundColor: const Color(0xFF90E0EF),
+          elevation: 0,
           leading: IconButton(
             icon: const Icon(Icons.arrow_back, color: Colors.black),
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => Navigator.of(context).pop(),
           ),
         ),
         body: BlocListener<ProfileBloc, ProfileState>(
-          listenWhen: (prev, curr) =>
-              prev.successMessage != curr.successMessage ||
-              prev.errorMessage != curr.errorMessage,
+          listenWhen: (p, c) => p.successMessage != c.successMessage || p.errorMessage != c.errorMessage,
           listener: (context, state) {
             if (state.successMessage != null) {
               ScaffoldMessenger.of(context).showSnackBar(
@@ -309,115 +311,84 @@ class _ProfilePageState extends State<ProfilePage> {
               _bloc.add(const ClearProfileMessages());
             }
           },
-          child: RefreshIndicator(
-            onRefresh: _onRefresh,
-            child: BlocBuilder<ProfileBloc, ProfileState>(
-              builder: (context, state) {
-                if (_userId == null || _userId!.isEmpty) {
-                  return const Center(child: CircularProgressIndicator());
-                }
-                if (state.loading && state.profile == null) {
-                  return const Center(child: CircularProgressIndicator());
-                }
+          child: BlocBuilder<ProfileBloc, ProfileState>(
+            builder: (context, state) {
+              if (_userId == null || state.loading && state.profile == null) {
+                return const Center(child: CircularProgressIndicator());
+              }
+              if (state.profile == null) {
+                return const Center(child: Text('No se pudo cargar el perfil.'));
+              }
 
-                final profile = state.profile ?? const <String, dynamic>{};
+              final profile = state.profile!;
+              final totalKm = state.totalDistanceKm ?? 0;
+              final dryProgress = (totalKm / _goalKm).clamp(0.0, 1.0);
 
-                return ListView(
-                  physics: const AlwaysScrollableScrollPhysics(),
-                  padding: const EdgeInsets.all(16),
+              return SingleChildScrollView(
+                padding: const EdgeInsets.all(20),
+                child: Column(
                   children: [
-                    Center(
-                      child: CircleAvatar(
-                        radius: 40,
-                        child: Text(
-                          _val(profile, 'name', fallback: 'U')[0].toUpperCase(),
-                          style: const TextStyle(fontSize: 28),
-                        ),
-                      ),
+                    const SizedBox(height: 20),
+                    const Text('Te has mantenido seco durante',
+                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 10),
+                    CircularPercentIndicator(
+                      radius: 80.0,
+                      lineWidth: 5.0,
+                      percent: dryProgress,
+                      center: const Icon(Icons.sunny, size: 50, color: Color(0xFFFCE55F)),
+                      progressColor: const Color(0xFF001242),
+                      backgroundColor: Colors.grey[300]!,
+                      animation: true,
+                      circularStrokeCap: CircularStrokeCap.round,
                     ),
-                    const SizedBox(height: 12),
-                    Center(
-                      child: Text(
-                        _val(profile, 'name', fallback: 'Sin nombre'),
-                        style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Center(
-                      child: Text(
-                        _val(profile, 'email', fallback: 'correo@dominio.com'),
-                        style: const TextStyle(color: Colors.black54),
-                      ),
-                    ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 10),
+                    Text('${totalKm.toStringAsFixed(2)} km de ${_goalKm.toStringAsFixed(0)} km',
+                        style: const TextStyle(fontSize: 14, color: Colors.black54)),
+                    const SizedBox(height: 40),
 
-                    Card(
-                      elevation: 2,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                      child: Column(
-                        children: [
-                          _ProfileTile(
-                            icon: Icons.person_outline,
-                            title: 'Nombre',
-                            value: _val(profile, 'name'),
-                            onEdit: () => _showEditFieldDialog(
-                              title: 'Nombre',
-                              fieldKey: 'name',
-                              initialValue: _val(profile, 'name', fallback: ''),
-                              validator: _validateName,
-                              inputFormatters: [
-                                LengthLimitingTextInputFormatter(_nameMax),
-                              ],
-                            ),
-                          ),
-                          const Divider(height: 1),
-                          _ProfileTile(
-                            icon: Icons.email_outlined,
-                            title: 'Correo',
-                            value: _val(profile, 'email'),
-                            onEdit: () => _showEditFieldDialog(
-                              title: 'Correo',
-                              fieldKey: 'email',
-                              initialValue: _val(profile, 'email', fallback: ''),
-                              keyboardType: TextInputType.emailAddress,
-                              validator: _validateEmail,
-                              inputFormatters: [
-                                LengthLimitingTextInputFormatter(_emailMax),
-                              ],
-                            ),
-                          ),
-                          const Divider(height: 1),
-                          _ProfileTile(
-                            icon: Icons.phone_outlined,
-                            title: 'Teléfono',
-                            value: _val(profile, 'phone'),
-                            onEdit: () => _showEditFieldDialog(
-                              title: 'Teléfono',
-                              fieldKey: 'phone',
-                              initialValue: _val(profile, 'phone', fallback: ''),
-                              keyboardType: TextInputType.phone,
-                              validator: _validatePhone,
-                              inputFormatters: [
-                                LengthLimitingTextInputFormatter(_phoneMax),
-                                FilteringTextInputFormatter.allow(
-                                  RegExp(r'[0-9 +()\-\.]'),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
+                    _item('Nombre', profile['name'] ?? '-', onTap: () {
+                      _showVerificationPanel(() {
+                        _editFieldDialog(
+                          title: 'Nombre',
+                          fieldKey: 'name',
+                          initialValue: (profile['name'] ?? '').toString(),
+                          validator: _vName,
+                          formatters: [LengthLimitingTextInputFormatter(_nameMax)],
+                        );
+                      });
+                    }),
 
                     const SizedBox(height: 20),
+                    _item('Contraseña', '*********', onTap: () {
+                      _showVerificationPanel(_changePasswordDialog);
+                    }),
 
-                    ElevatedButton.icon(
-                      onPressed: _showChangePasswordDialog,
-                      icon: const Icon(Icons.lock_reset),
-                      label: const Text('Cambiar contraseña'),
-                      style: ElevatedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    const SizedBox(height: 20),
+                    _item('Email', profile['email'] ?? '-', onTap: () {
+                      _showVerificationPanel(() {
+                        _editFieldDialog(
+                          title: 'Correo',
+                          fieldKey: 'email',
+                          initialValue: (profile['email'] ?? '').toString(),
+                          keyboardType: TextInputType.emailAddress,
+                          validator: _vEmail,
+                          formatters: [LengthLimitingTextInputFormatter(_emailMax)],
+                        );
+                      });
+                    }),
+
+                    const SizedBox(height: 50),
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        onPressed: _logout,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.redAccent,
+                          padding: const EdgeInsets.symmetric(vertical: 15),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+                        ),
+                        child: const Text('Cerrar Sesión', style: TextStyle(color: Colors.white, fontSize: 18)),
                       ),
                     ),
 
@@ -426,36 +397,40 @@ class _ProfilePageState extends State<ProfilePage> {
                       const LinearProgressIndicator(),
                     ],
                   ],
-                );
-              },
-            ),
+                ),
+              );
+            },
           ),
         ),
       ),
     );
   }
-}
 
-class _ProfileTile extends StatelessWidget {
-  final IconData icon;
-  final String title;
-  final String value;
-  final VoidCallback onEdit;
-
-  const _ProfileTile({
-    required this.icon,
-    required this.title,
-    required this.value,
-    required this.onEdit,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return ListTile(
-      leading: Icon(icon, color: Colors.black54),
-      title: Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
-      subtitle: Text(value),
-      trailing: IconButton(icon: const Icon(Icons.edit_outlined), onPressed: onEdit),
+  Widget _item(String label, String value, {required VoidCallback onTap}) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(25),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(25),
+          border: Border.all(color: Colors.black, width: 1),
+          boxShadow: const [BoxShadow(blurRadius: 6, color: Colors.black12)],
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(label, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+            Row(
+              children: [
+                Text(value, style: const TextStyle(fontSize: 16, color: Colors.grey)),
+                const Icon(Icons.chevron_right, color: Colors.grey),
+              ],
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

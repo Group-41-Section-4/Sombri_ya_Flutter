@@ -1,4 +1,3 @@
-// lib/presentation/blocs/profile/profile_bloc.dart
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'profile_event.dart';
 import 'profile_state.dart';
@@ -12,6 +11,7 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
     on<RefreshProfile>(_onRefresh);
     on<UpdateProfileField>(_onUpdateField);
     on<ChangePassword>(_onChangePassword);
+    on<LoadTotalDistance>(_onLoadDistance);
     on<ClearProfileMessages>((e, emit) {
       emit(state.copyWith(successMessage: null, errorMessage: null));
     });
@@ -23,7 +23,7 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
         v.length <= 50 &&
         RegExp(r"^[A-Za-zÀ-ÿ\u00f1\u00d1' -]+$").hasMatch(v);
   }
-
+  
   bool _validEmail(String v) {
     v = v.trim();
     return v.isNotEmpty &&
@@ -32,17 +32,7 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
                 caseSensitive: false)
             .hasMatch(v);
   }
-
-  bool _validPhone(String v) {
-    v = v.trim();
-    if (v.isEmpty || v.length > 20) return false;
-    final plusCount = RegExp(r'\+').allMatches(v).length;
-    if (plusCount > 1) return false;
-    if (plusCount == 1 && !v.startsWith('+')) return false;
-    final digits = v.replaceAll(RegExp(r'[^0-9]'), '');
-    return digits.length >= 7 && digits.length <= 15;
-  }
-
+  
   bool _validPass(String v) {
     v = v.trim();
     if (v.length < 8 || v.length > 64) return false;
@@ -52,66 +42,73 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
     final hasSpec  = RegExp(r'[^\w\s]').hasMatch(v);
     return hasLower && hasUpper && hasDigit && hasSpec;
   }
-  
-  Future<void> _onLoad(LoadProfile event, Emitter<ProfileState> emit) async {
+
+  Future<void> _onLoad(LoadProfile e, Emitter<ProfileState> emit) async {
     emit(state.copyWith(loading: true, successMessage: null, errorMessage: null));
     try {
-      final data = await repository.getProfile(event.userId);
+      final data = await repository.getProfile(e.userId);
       emit(state.copyWith(loading: false, profile: data));
+      add(LoadTotalDistance(data['id']?.toString() ?? e.userId));
     } catch (_) {
       emit(state.copyWith(loading: false, errorMessage: 'No se pudo cargar el perfil.'));
     }
   }
 
-  Future<void> _onRefresh(RefreshProfile event, Emitter<ProfileState> emit) async {
+  Future<void> _onRefresh(RefreshProfile e, Emitter<ProfileState> emit) async {
     try {
-      final data = await repository.getProfile(event.userId);
+      final data = await repository.getProfile(e.userId);
       emit(state.copyWith(profile: data));
+      add(LoadTotalDistance(data['id']?.toString() ?? e.userId));
     } catch (_) {
       emit(state.copyWith(errorMessage: 'No se pudo actualizar el perfil.'));
     }
   }
 
-  Future<void> _onUpdateField(UpdateProfileField event, Emitter<ProfileState> emit) async {
-    final val = event.newValue.trim();
+  Future<void> _onLoadDistance(LoadTotalDistance e, Emitter<ProfileState> emit) async {
+    try {
+      final km = await repository.getTotalDistance(e.userId);
+      emit(state.copyWith(totalDistanceKm: km));
+    } catch (_) {/* no crítico */}
+  }
 
-    final ok = switch (event.fieldKey) {
+  Future<void> _onUpdateField(UpdateProfileField e, Emitter<ProfileState> emit) async {
+    final val = e.newValue.trim();
+    final ok = switch (e.fieldKey) {
       'name'  => _validName(val),
       'email' => _validEmail(val),
-      'phone' => _validPhone(val),
       _       => val.isNotEmpty && val.length <= 100,
     };
     if (!ok) {
-      emit(state.copyWith(errorMessage: 'Valor no válido para ${event.fieldKey}.'));
+      emit(state.copyWith(errorMessage: 'Valor no válido para ${e.fieldKey}.'));
       return;
     }
 
     final old = Map<String, dynamic>.from(state.profile ?? {});
-    final optimistic = Map<String, dynamic>.from(old)..[event.fieldKey] = val;
+    final optimistic = Map<String, dynamic>.from(old)..[e.fieldKey] = val;
     emit(state.copyWith(profile: optimistic, successMessage: null, errorMessage: null));
 
     try {
       final updated = await repository.updateField(
-        userId: event.userId,
-        fieldKey: event.fieldKey,
+        userId: (state.profile?['id'] ?? e.userId).toString(),
+        fieldKey: e.fieldKey,
         newValue: val,
       );
       emit(state.copyWith(profile: updated, successMessage: 'Campo actualizado'));
     } catch (_) {
-      emit(state.copyWith(profile: old, errorMessage: 'No se pudo actualizar ${event.fieldKey}.'));
+      emit(state.copyWith(profile: old, errorMessage: 'No se pudo actualizar ${e.fieldKey}.'));
     }
   }
 
-  Future<void> _onChangePassword(ChangePassword event, Emitter<ProfileState> emit) async {
-    final curr = event.currentPassword.trim();
-    final next = event.newPassword.trim();
+  Future<void> _onChangePassword(ChangePassword e, Emitter<ProfileState> emit) async {
+    final curr = e.currentPassword.trim();
+    final next = e.newPassword.trim();
     if (!_validPass(next) || curr.isEmpty) {
       emit(state.copyWith(errorMessage: 'La contraseña no cumple los requisitos.'));
       return;
     }
     try {
       await repository.changePassword(
-        userId: event.userId,
+        userId: (state.profile?['id'] ?? e.userId).toString(),
         currentPassword: curr,
         newPassword: next,
       );

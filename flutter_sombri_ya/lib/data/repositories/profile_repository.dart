@@ -1,12 +1,26 @@
-import 'package:flutter_sombri_ya/data/providers/api_provider.dart';
+import 'dart:convert';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:http/http.dart' as http;
 
 class ProfileRepository {
-  final ApiProvider _api;
-  ProfileRepository({ApiProvider? apiProvider}) : _api = apiProvider ?? ApiProvider();
+  static const _base = 'https://sombri-ya-back-4def07fa1804.herokuapp.com';
+  final _storage = const FlutterSecureStorage();
+
+  Future<Map<String, String>> _headers() async {
+    final token = await _storage.read(key: 'auth_token');
+    return {
+      'Content-Type': 'application/json',
+      if (token != null) 'Authorization': 'Bearer $token',
+    };
+  }
 
   Future<Map<String, dynamic>> getProfile(String userId) async {
-    final data = await _api.getWithParams('/users/profile', {'user_id': userId});
-    return (data as Map).cast<String, dynamic>();
+    final uri = Uri.parse('$_base/auth/me');
+    final resp = await http.get(uri, headers: await _headers());
+    if (resp.statusCode != 200) {
+      throw Exception('Error getProfile: ${resp.statusCode} ${resp.body}');
+    }
+    return (json.decode(resp.body) as Map).cast<String, dynamic>();
   }
 
   Future<Map<String, dynamic>> updateField({
@@ -14,12 +28,16 @@ class ProfileRepository {
     required String fieldKey,
     required String newValue,
   }) async {
-    final data = await _api.getWithBody('/users/update', {
-      'user_id': userId,
-      'field': fieldKey,
-      'value': newValue,
-    });
-    return (data as Map).cast<String, dynamic>();
+    final uri = Uri.parse('$_base/users/$userId');
+    final resp = await http.put(
+      uri,
+      headers: await _headers(),
+      body: json.encode({fieldKey: newValue}),
+    );
+    if (resp.statusCode != 200) {
+      throw Exception('Error updateField: ${resp.statusCode} ${resp.body}');
+    }
+    return (json.decode(resp.body) as Map).cast<String, dynamic>();
   }
 
   Future<void> changePassword({
@@ -27,10 +45,28 @@ class ProfileRepository {
     required String currentPassword,
     required String newPassword,
   }) async {
-    await _api.getWithBody('/users/change-password', {
-      'user_id': userId,
-      'current_password': currentPassword,
-      'new_password': newPassword,
-    });
+    final uri = Uri.parse('$_base/users/change-password');
+    final resp = await http.post(
+      uri,
+      headers: await _headers(),
+      body: json.encode({
+        'user_id': userId,
+        'current_password': currentPassword,
+        'new_password': newPassword,
+      }),
+    );
+    if (resp.statusCode != 200) {
+      throw Exception('Error changePassword: ${resp.statusCode} ${resp.body}');
+    }
+  }
+
+  Future<double> getTotalDistance(String userId) async {
+    final uri = Uri.parse('$_base/users/$userId/total-distance');
+    final resp = await http.get(uri, headers: await _headers());
+    if (resp.statusCode != 200) {
+      throw Exception('Error getTotalDistance: ${resp.statusCode} ${resp.body}');
+    }
+    final map = (json.decode(resp.body) as Map).cast<String, dynamic>();
+    return (map['totalDistanceKm'] as num).toDouble();
   }
 }

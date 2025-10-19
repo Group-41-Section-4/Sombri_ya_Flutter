@@ -23,7 +23,7 @@ import '../../presentation/blocs/notifications/notifications_bloc.dart';
 import '../../presentation/blocs/notifications/notifications_event.dart';
 
 // BloC Profile
-import 'package:flutter_sombri_ya/views/profile/profile_page.dart';
+import '../profile/profile_page.dart';
 
 class HomePage extends StatelessWidget {
   const HomePage({super.key});
