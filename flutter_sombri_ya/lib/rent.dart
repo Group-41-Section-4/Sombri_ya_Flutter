@@ -2,19 +2,24 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_sombri_ya/data/repositories/profile_repository.dart';
-import 'package:flutter_sombri_ya/views/profile/profile_page.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'menu.dart';
 
 // Bloc imports for Home
 import 'views/home/home_page.dart';
 import '../../presentation/blocs/home/home_bloc.dart';
+
+//Bloc imports for Profile
+import 'views/profile/profile_page.dart';
 import '../../presentation/blocs/profile/profile_bloc.dart';
 import '../../presentation/blocs/profile/profile_event.dart';
-import '../../presentation/blocs/profile/profile_state.dart';
 
+// Bloc imports for Notifications
 import 'views/notifications/notifications_page.dart';
-//import 'profile.dart';
+import '../../presentation/blocs/notifications/notifications_bloc.dart';
+import '../../presentation/blocs/notifications/notifications_event.dart';
+
+//imports
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:nfc_manager/nfc_manager.dart';
@@ -295,41 +300,54 @@ class _RentPageState extends State<RentPage> {
             Navigator.push(
               context,
               MaterialPageRoute(
-                builder: (context) => const NotificationsPage(),
+                builder: (_) => BlocProvider(
+                  create: (_) => NotificationsBloc()
+                    ..add(
+                      StartRentalPolling(
+                        "5e1a88f1-55c5-44d0-87bb-44919f9f4202",
+                      ),
+                    )
+                    ..add(const CheckWeather()),
+                  child: const NotificationsPage(),
+                ),
               ),
             );
           },
         ),
         actions: [
-           IconButton(
-              onPressed: () async {
-                try { await _scannerController.stop(); } catch (_) {}
-      
-                final userId = await storage.read(key: "user_id");
-                
-                await Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => BlocProvider<ProfileBloc>(
-                      create: (_) => ProfileBloc(repository: ProfileRepository())
-                        ..add(LoadProfile(userId ?? '')),
-                      child: const ProfilePage(),
-                    ),
-                  ),
-                );
+          IconButton(
+            onPressed: () async {
+              try {
+                await _scannerController.stop();
+              } catch (_) {}
 
-                try { await _scannerController.start(); } catch (_) {}
-              },
-              icon: const CircleAvatar(
-                radius: 16,
-                backgroundColor: Colors.white24,
-                backgroundImage: AssetImage('assets/images/profile.png'),
-              ),
+              final userId = await storage.read(key: "user_id");
+
+              await Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => BlocProvider<ProfileBloc>(
+                    create: (_) =>
+                        ProfileBloc(repository: ProfileRepository())
+                          ..add(LoadProfile(userId ?? '')),
+                    child: const ProfilePage(),
+                  ),
+                ),
+              );
+
+              try {
+                await _scannerController.start();
+              } catch (_) {}
+            },
+            icon: const CircleAvatar(
+              radius: 16,
+              backgroundColor: Colors.white24,
+              backgroundImage: AssetImage('assets/images/profile.png'),
             ),
-          ],
-        ),
-      
-      
+          ),
+        ],
+      ),
+
       endDrawer: AppDrawer(),
       body: Stack(
         children: [

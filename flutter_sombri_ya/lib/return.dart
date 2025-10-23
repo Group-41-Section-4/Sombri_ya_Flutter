@@ -9,7 +9,7 @@ import 'views/home/home_page.dart';
 import '../../presentation/blocs/home/home_bloc.dart';
 
 import 'views/notifications/notifications_page.dart';
-import 'profile.dart';
+import 'views/profile/profile_page.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../services/api.dart';
