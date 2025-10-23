@@ -1,15 +1,20 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_sombri_ya/data/repositories/profile_repository.dart';
+import 'package:flutter_sombri_ya/views/profile/profile_page.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'menu.dart';
 
 // Bloc imports for Home
 import 'views/home/home_page.dart';
 import '../../presentation/blocs/home/home_bloc.dart';
+import '../../presentation/blocs/profile/profile_bloc.dart';
+import '../../presentation/blocs/profile/profile_event.dart';
+import '../../presentation/blocs/profile/profile_state.dart';
 
 import 'views/notifications/notifications_page.dart';
-import 'profile.dart';
+//import 'profile.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:nfc_manager/nfc_manager.dart';
@@ -296,21 +301,35 @@ class _RentPageState extends State<RentPage> {
           },
         ),
         actions: [
-          IconButton(
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const ProfilePage()),
-              );
-            },
-            icon: const CircleAvatar(
-              radius: 16,
-              backgroundColor: Colors.white24,
-              backgroundImage: AssetImage('assets/images/profile.png'),
+           IconButton(
+              onPressed: () async {
+                try { await _scannerController.stop(); } catch (_) {}
+      
+                final userId = await storage.read(key: "user_id");
+                
+                await Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => BlocProvider<ProfileBloc>(
+                      create: (_) => ProfileBloc(repository: ProfileRepository())
+                        ..add(LoadProfile(userId ?? '')),
+                      child: const ProfilePage(),
+                    ),
+                  ),
+                );
+
+                try { await _scannerController.start(); } catch (_) {}
+              },
+              icon: const CircleAvatar(
+                radius: 16,
+                backgroundColor: Colors.white24,
+                backgroundImage: AssetImage('assets/images/profile.png'),
+              ),
             ),
-          ),
-        ],
-      ),
+          ],
+        ),
+      
+      
       endDrawer: AppDrawer(),
       body: Stack(
         children: [
