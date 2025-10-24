@@ -11,7 +11,7 @@ import '../../presentation/blocs/home/home_bloc.dart';
 import '../../presentation/blocs/home/home_event.dart';
 import '../../presentation/blocs/home/home_state.dart';
 
-import '../../menu.dart';
+import '../../widgets/app_drawer.dart';
 import '../../rent.dart';
 import '../../return.dart';
 import '../../data/models/gps_coord.dart';
@@ -127,17 +127,24 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
         ),
         leading: IconButton(
           icon: const Icon(Icons.notifications_none),
-          onPressed: () {
+          onPressed: () async {
+            final storage = const FlutterSecureStorage();
+            final userId = await storage.read(key: 'user_id');
+            if (userId == null || !context.mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('No se pudo identificar al usuario.'),
+                  backgroundColor: Colors.red,
+                ),
+              );
+              return;
+            }
             Navigator.push(
               context,
               MaterialPageRoute(
                 builder: (_) => BlocProvider(
                   create: (_) => NotificationsBloc()
-                    ..add(
-                      StartRentalPolling(
-                        "5e1a88f1-55c5-44d0-87bb-44919f9f4202",
-                      ),
-                    )
+                    ..add(StartRentalPolling(userId))
                     ..add(const CheckWeather()),
                   child: const NotificationsPage(),
                 ),

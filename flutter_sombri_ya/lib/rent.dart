@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_sombri_ya/data/repositories/profile_repository.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
-import 'menu.dart';
+import 'widgets/app_drawer.dart';
 
 // Bloc imports for Home
 import 'views/home/home_page.dart';

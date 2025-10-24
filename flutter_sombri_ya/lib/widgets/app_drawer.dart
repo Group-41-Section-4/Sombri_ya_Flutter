@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import 'payment_methods.dart';
-import 'nfc_registration.dart';
+import '../nfc_registration.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_sombri_ya/views/history/history_page.dart';
+import 'package:flutter_sombri_ya/views/payment/payment_methods_page.dart';
 
 class AppDrawer extends StatelessWidget {
   AppDrawer({super.key});
@@ -31,6 +31,7 @@ class AppDrawer extends StatelessWidget {
               ),
             ),
           ),
+
           /*
           ListTile(
             leading: const Icon(Icons.settings),
@@ -40,7 +41,6 @@ class AppDrawer extends StatelessWidget {
               Navigator.pop(context);
             },
             */
-
           ListTile(
             leading: const Icon(Icons.bookmark_border),
             title: const Text("Historial de Reservas"),
@@ -65,6 +65,7 @@ class AppDrawer extends StatelessWidget {
               );
             },
           ),
+
           /*
           ListTile(
             leading: const Icon(Icons.check_box_outlined),
@@ -80,31 +81,32 @@ class AppDrawer extends StatelessWidget {
           ),
 
            */
-
           ListTile(
             leading: const Icon(Icons.payment),
             title: const Text("Registrar NFC"),
-            onTap: () async  {
+            onTap: () async {
               Navigator.pop(context);
               final storage = FlutterSecureStorage();
               final token = await storage.read(key: "auth_token");
 
               if (token == null) {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text("No se encontró el token de autenticación")),
+                  const SnackBar(
+                    content: Text("No se encontró el token de autenticación"),
+                  ),
                 );
                 return;
               }
 
               Navigator.push(
-               context,
+                context,
                 MaterialPageRoute(
-                 builder: (context) =>  RegisterNfcStationPage(authToken: token),
+                  builder: (context) =>
+                      RegisterNfcStationPage(authToken: token),
                 ),
-               );
+              );
             },
           ),
-
         ],
       ),
     );
