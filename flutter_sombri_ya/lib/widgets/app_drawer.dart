@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../nfc_registration.dart';
+import '../views/nfc_registration/register_nfc_station_page.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_sombri_ya/views/history/history_page.dart';
