@@ -1,5 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import '../config/ollama_config.dart';
+import '../data/repositories/chat_repository.dart';
+import '../services/ollama_service.dart';
+import '../presentation/blocs/chat/chat_bloc.dart';
 import '../views/nfc_registration/register_nfc_station_page.dart';
+import '../views/chat/chat_page.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_sombri_ya/views/history/history_page.dart';
@@ -65,6 +71,34 @@ class AppDrawer extends StatelessWidget {
               );
             },
           ),
+          ListTile(
+            leading: const Icon(Icons.chat_bubble_outline),
+            title: const Text("Sombri-IA"),
+
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) {
+
+                    final service = OllamaService(
+                      ollamaBaseUrl: OllamaConfig.ollamaBaseUrl,
+                      model: OllamaConfig.model,
+                    );
+
+                    final chatRepo = ChatRepository(service: service);
+
+                    return BlocProvider<ChatBloc>(
+                      create: (_) => ChatBloc(repo: chatRepo),
+                      child: const ChatPage(),
+                    );
+                  },
+                ),
+              );
+            },
+
+
+          ),
 
           /*
           ListTile(
@@ -82,7 +116,7 @@ class AppDrawer extends StatelessWidget {
 
            */
           ListTile(
-            leading: const Icon(Icons.payment),
+            leading: const Icon(Icons.nfc),
             title: const Text("Registrar NFC"),
             onTap: () async {
               Navigator.pop(context);
