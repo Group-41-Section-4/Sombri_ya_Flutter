@@ -6,6 +6,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:local_auth/local_auth.dart';
 import 'package:local_auth_android/local_auth_android.dart';
 import 'package:percent_indicator/circular_percent_indicator.dart';
+import '../../main.dart';
 
 import 'package:flutter_sombri_ya/presentation/blocs/profile/profile_bloc.dart';
 import 'package:flutter_sombri_ya/presentation/blocs/profile/profile_event.dart';
@@ -313,8 +314,12 @@ class _ProfilePageState extends State<ProfilePage> {
   Future<void> _logout() async {
     await _storage.delete(key: 'auth_token');
     if (!mounted) return;
-    Navigator.of(context).pop();
+    Navigator.of(context).pushAndRemoveUntil(
+      MaterialPageRoute(builder: (_) => const SplashScreen()),
+          (route) => false,
+    );
   }
+
 
   @override
   Widget build(BuildContext context) {
