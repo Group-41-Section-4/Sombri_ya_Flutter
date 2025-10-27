@@ -12,8 +12,6 @@ import '../../presentation/blocs/home/home_event.dart';
 import '../../presentation/blocs/home/home_state.dart';
 
 import '../../widgets/app_drawer.dart';
-import '../../rent.dart';
-import '../../return.dart';
 import '../../data/models/gps_coord.dart';
 import '../../data/models/station_model.dart';
 
@@ -24,6 +22,16 @@ import '../../presentation/blocs/notifications/notifications_event.dart';
 
 // BloC Profile
 import '../profile/profile_page.dart';
+
+//BloC Rent and Return
+import '../rent/rent_page.dart';
+import '../return/return_page.dart';
+import '../../presentation/blocs/rent/rent_bloc.dart';
+import '../../presentation/blocs/return/return_bloc.dart';   
+import '../../presentation/blocs/rent/rent_event.dart';
+import '../../presentation/blocs/return/return_event.dart'; 
+import '../../data/repositories/rental_repository.dart';
+
 
 class HomePage extends StatelessWidget {
   const HomePage({super.key});
@@ -265,38 +273,59 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
             final rentalId = await storage.read(key: 'rental_id');
 
             if (rentalId != null && rentalId.isNotEmpty) {
+              // ========= Devolver =========
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (context) => ReturnPage(
-                    userPosition: GpsCoord(
-                      latitude: userPosition.latitude,
-                      longitude: userPosition.longitude,
+                  builder: (_) => RepositoryProvider(
+                    create: (_) => RentalRepository(storage: const FlutterSecureStorage()),
+                    child: BlocProvider(
+                      create: (ctx) => ReturnBloc(
+                        repo: RepositoryProvider.of<RentalRepository>(ctx),
+                      )..add(const ReturnInit()),
+                      child: ReturnPage(
+                        userPosition: GpsCoord(
+                          latitude: userPosition.latitude,
+                          longitude: userPosition.longitude,                          
+                        ),
+                      ),
                     ),
                   ),
                 ),
               );
             } else {
+              // ========= Rentar =========
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (context) => RentPage(
-                    userPosition: GpsCoord(
-                      latitude: userPosition.latitude,
-                      longitude: userPosition.longitude,
+                  builder: (_) => RepositoryProvider(
+                    create: (_) => RentalRepository(
+                      storage: const FlutterSecureStorage()
+                    ),
+                    child: BlocProvider(
+                      create: (ctx) => RentBloc(
+                        repo: RepositoryProvider.of<RentalRepository>(ctx),
+                      )..add(const RentInit()),
+                      child: RentPage(
+                        userPosition: GpsCoord(
+                          latitude: userPosition.latitude,
+                          longitude: userPosition.longitude,
+                        ),
+                      ),
                     ),
                   ),
                 ),
               );
             }
           },
-          child: Image.asset(
-            'assets/images/home_button.png',
+          child: Image.asset('assets/images/home_button.png',
             width: 100,
             height: 100,
+            fit: BoxFit.contain,
           ),
         ),
       ),
+          
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
       bottomNavigationBar: BottomAppBar(
         shape: const CircularNotchedRectangle(),
