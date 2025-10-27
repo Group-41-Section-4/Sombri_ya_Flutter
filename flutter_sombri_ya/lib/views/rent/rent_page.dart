@@ -321,16 +321,27 @@ class _RentPageState extends State<RentPage> {
                           final reset = await Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (_) => RepositoryProvider(
-                                create: (_) => RentalRepository(
-                                  storage: const FlutterSecureStorage(),
-                                ),
+                              builder: (_) => MultiRepositoryProvider(
+                                providers: [
+                                  RepositoryProvider(
+                                    create: (_) => RentalRepository(
+                                      storage: const FlutterSecureStorage(),
+                                    ),
+                                  ),
+                                  RepositoryProvider(
+                                    create: (_) => ProfileRepository(),
+                                  ),
+                                ],
                                 child: BlocProvider(
                                   create: (ctx) => ReturnBloc(
                                     repo:
                                         RepositoryProvider.of<RentalRepository>(
                                           ctx,
                                         ),
+                                    profileRepo:
+                                        RepositoryProvider.of<
+                                          ProfileRepository
+                                        >(ctx),
                                   )..add(const ReturnInit()),
                                   child: ReturnPage(
                                     userPosition: widget.userPosition,

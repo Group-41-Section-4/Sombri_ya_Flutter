@@ -46,12 +46,12 @@ class ChangePassword extends ProfileEvent {
   List<Object?> get props => [userId, currentPassword, newPassword];
 }
 
-class LoadTotalDistance extends ProfileEvent {
-  final String userId;
-  const LoadTotalDistance(this.userId);
-  @override
-  List<Object?> get props => [userId];
-}
+// class LoadTotalDistance extends ProfileEvent {
+//   final String userId;
+//   const LoadTotalDistance(this.userId);
+//   @override
+//   List<Object?> get props => [userId];
+// }
 
 class ClearProfileMessages extends ProfileEvent {
   const ClearProfileMessages();

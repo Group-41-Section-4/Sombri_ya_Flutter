@@ -17,7 +17,6 @@ class _ChatPageState extends State<ChatPage> {
   final _scrollCtrl = ScrollController();
   final bool streamMode = true;
 
-
   void _scrollToEnd() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (_scrollCtrl.hasClients) {
@@ -60,7 +59,6 @@ class _ChatPageState extends State<ChatPage> {
             icon: const Icon(Icons.delete_outline),
             onPressed: () => context.read<ChatBloc>().add(const ChatCleared()),
           ),
-
         ],
       ),
       body: Column(
@@ -68,7 +66,7 @@ class _ChatPageState extends State<ChatPage> {
           Expanded(
             child: BlocConsumer<ChatBloc, ChatState>(
               listenWhen: (p, c) =>
-              p.history.length != c.history.length ||
+                  p.history.length != c.history.length ||
                   p.streamingBuffer != c.streamingBuffer,
               listener: (_, __) => _scrollToEnd(),
               builder: (context, state) {
@@ -84,7 +82,8 @@ class _ChatPageState extends State<ChatPage> {
                   itemCount: items.length,
                   itemBuilder: (_, i) {
                     final isLastStreaming =
-                        state.streamingBuffer.isNotEmpty && i == items.length - 1;
+                        state.streamingBuffer.isNotEmpty &&
+                        i == items.length - 1;
                     final m = isLastStreaming
                         ? const ChatMessage(role: 'assistant', content: '')
                         : items[i];
@@ -95,8 +94,9 @@ class _ChatPageState extends State<ChatPage> {
 
                     final isUser = m.role == 'user';
                     return Align(
-                      alignment:
-                      isUser ? Alignment.centerRight : Alignment.centerLeft,
+                      alignment: isUser
+                          ? Alignment.centerRight
+                          : Alignment.centerLeft,
                       child: Container(
                         margin: const EdgeInsets.symmetric(vertical: 6),
                         padding: const EdgeInsets.all(12),
@@ -104,7 +104,9 @@ class _ChatPageState extends State<ChatPage> {
                         decoration: BoxDecoration(
                           color: isUser
                               ? Theme.of(context).colorScheme.primaryContainer
-                              : Theme.of(context).colorScheme.surfaceVariant,
+                              : Theme.of(
+                                  context,
+                                ).colorScheme.surfaceContainerHighest,
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: Text(content),
@@ -139,15 +141,15 @@ class _ChatPageState extends State<ChatPage> {
                             border: const OutlineInputBorder(),
                             suffixIcon: disabled
                                 ? const Padding(
-                              padding: EdgeInsets.all(10),
-                              child: SizedBox(
-                                width: 18,
-                                height: 18,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                ),
-                              ),
-                            )
+                                    padding: EdgeInsets.all(10),
+                                    child: SizedBox(
+                                      width: 18,
+                                      height: 18,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                      ),
+                                    ),
+                                  )
                                 : null,
                           ),
                         ),
@@ -155,17 +157,17 @@ class _ChatPageState extends State<ChatPage> {
                       const SizedBox(width: 8),
                       disabled
                           ? IconButton(
-                        tooltip: 'Detener',
-                        onPressed: () => context
-                            .read<ChatBloc>()
-                            .add(const ChatStopRequested()),
-                        icon: const Icon(Icons.stop_circle_outlined),
-                      )
+                              tooltip: 'Detener',
+                              onPressed: () => context.read<ChatBloc>().add(
+                                const ChatStopRequested(),
+                              ),
+                              icon: const Icon(Icons.stop_circle_outlined),
+                            )
                           : ElevatedButton.icon(
-                        onPressed: () => _send(context),
-                        icon: const Icon(Icons.send),
-                        label: const Text('Enviar'),
-                      ),
+                              onPressed: () => _send(context),
+                              icon: const Icon(Icons.send),
+                              label: const Text('Enviar'),
+                            ),
                     ],
                   );
                 },

@@ -22,16 +22,16 @@ import '../../presentation/blocs/notifications/notifications_event.dart';
 
 // BloC Profile
 import '../profile/profile_page.dart';
+import '../../data/repositories/profile_repository.dart';
 
 //BloC Rent and Return
 import '../rent/rent_page.dart';
 import '../return/return_page.dart';
 import '../../presentation/blocs/rent/rent_bloc.dart';
-import '../../presentation/blocs/return/return_bloc.dart';   
+import '../../presentation/blocs/return/return_bloc.dart';
 import '../../presentation/blocs/rent/rent_event.dart';
-import '../../presentation/blocs/return/return_event.dart'; 
+import '../../presentation/blocs/return/return_event.dart';
 import '../../data/repositories/rental_repository.dart';
-
 
 class HomePage extends StatelessWidget {
   const HomePage({super.key});
@@ -273,20 +273,29 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
             final rentalId = await storage.read(key: 'rental_id');
 
             if (rentalId != null && rentalId.isNotEmpty) {
-              // ========= Devolver =========
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (_) => RepositoryProvider(
-                    create: (_) => RentalRepository(storage: const FlutterSecureStorage()),
+                  builder: (_) => MultiRepositoryProvider(
+                    providers: [
+                      RepositoryProvider(
+                        create: (_) => RentalRepository(
+                          storage: const FlutterSecureStorage(),
+                        ),
+                      ),
+                      RepositoryProvider(create: (_) => ProfileRepository()),
+                    ],
                     child: BlocProvider(
                       create: (ctx) => ReturnBloc(
                         repo: RepositoryProvider.of<RentalRepository>(ctx),
+                        profileRepo: RepositoryProvider.of<ProfileRepository>(
+                          ctx,
+                        ),
                       )..add(const ReturnInit()),
                       child: ReturnPage(
                         userPosition: GpsCoord(
                           latitude: userPosition.latitude,
-                          longitude: userPosition.longitude,                          
+                          longitude: userPosition.longitude,
                         ),
                       ),
                     ),
@@ -299,9 +308,8 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
                 context,
                 MaterialPageRoute(
                   builder: (_) => RepositoryProvider(
-                    create: (_) => RentalRepository(
-                      storage: const FlutterSecureStorage()
-                    ),
+                    create: (_) =>
+                        RentalRepository(storage: const FlutterSecureStorage()),
                     child: BlocProvider(
                       create: (ctx) => RentBloc(
                         repo: RepositoryProvider.of<RentalRepository>(ctx),
@@ -318,14 +326,15 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
               );
             }
           },
-          child: Image.asset('assets/images/home_button.png',
+          child: Image.asset(
+            'assets/images/home_button.png',
             width: 100,
             height: 100,
             fit: BoxFit.contain,
           ),
         ),
       ),
-          
+
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
       bottomNavigationBar: BottomAppBar(
         shape: const CircularNotchedRectangle(),
