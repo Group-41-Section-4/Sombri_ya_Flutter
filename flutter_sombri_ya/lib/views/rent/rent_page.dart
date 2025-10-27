@@ -29,9 +29,20 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../../presentation/blocs/return/return_bloc.dart';
 import '../../presentation/blocs/return/return_event.dart';
 
+import '../../services/location_service.dart';
+
 class RentPage extends StatefulWidget {
-  final GpsCoord userPosition;
-  const RentPage({super.key, required this.userPosition});
+  static const routeName = '/rent';
+
+  final GpsCoord? userPosition;
+
+  final String? suggestedStationId;
+
+  const RentPage({
+    super.key,
+    this.userPosition,
+    this.suggestedStationId,
+  });
 
   @override
   State<RentPage> createState() => _RentPageState();
@@ -43,10 +54,23 @@ class _RentPageState extends State<RentPage> {
 
   DateTime? _ignoreDetectionsUntil;
 
+  String? _stationIdFromArgs;
+
   @override
   void initState() {
     super.initState();
     context.read<RentBloc>().add(const RentInit());
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_stationIdFromArgs == null) {
+      final args = ModalRoute.of(context)?.settings.arguments;
+      if (args is Map && args['stationId'] is String) {
+        _stationIdFromArgs = args['stationId'] as String;
+      }
+    }
   }
 
   Future<void> _ensureScanner(bool shouldRun) async {
@@ -318,6 +342,19 @@ class _RentPageState extends State<RentPage> {
                         ),
                         onPressed: () async {
                           await _ensureScanner(false);
+
+                          GpsCoord position = widget.userPosition ??
+                              (() {
+                                return GpsCoord(latitude: 0, longitude: 0);
+                              }());
+
+                          if (widget.userPosition == null) {
+                            final pos = await LocationService.getPosition();
+                            if (pos != null) {
+                              position = GpsCoord(latitude: pos.latitude, longitude: pos.longitude);
+                            }
+                          }
+
                           final reset = await Navigator.push(
                             context,
                             MaterialPageRoute(
@@ -344,7 +381,7 @@ class _RentPageState extends State<RentPage> {
                                         >(ctx),
                                   )..add(const ReturnInit()),
                                   child: ReturnPage(
-                                    userPosition: widget.userPosition,
+                                    userPosition: position,
                                   ),
                                 ),
                               ),

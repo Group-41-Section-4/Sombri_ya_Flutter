@@ -303,7 +303,6 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
                 ),
               );
             } else {
-              // ========= Rentar =========
               Navigator.push(
                 context,
                 MaterialPageRoute(

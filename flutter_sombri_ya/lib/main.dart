@@ -1,7 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:nfc_manager/nfc_manager.dart';
+
 import 'views/auth/login_page.dart';
+
+import 'services/notification_service.dart';
+import 'services/rain_alert_scheduler.dart';
+import 'views/rent/rent_page.dart'; 
 
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'core/providers/api_provider.dart';
@@ -9,10 +14,24 @@ import 'core/services/secure_storage_service.dart';
 import 'data/repositories/auth_repository.dart';
 import 'presentation/blocs/auth/auth_bloc.dart';
 
+final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await initializeDateFormatting('es_ES', null);
   await NfcManager.instance.isAvailable();
+
+  await NotificationService.init(onTap: (payload) async {
+    if (payload == null) return; 
+    navigatorKey.currentState?.pushNamed(
+      RentPage.routeName,
+      arguments: {'stationId': payload},
+    );
+  });
+
+  await RainAlertScheduler.cancelAll();
+  await RainAlertScheduler.registerTestEveryFiveMinutes();
+  //await RainAlertScheduler.registerPeriodic();
 
   runApp(const MyApp());
 }
@@ -24,10 +43,14 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'Sombri-Ya',
       debugShowCheckedModeBanner: false,
+      navigatorKey: navigatorKey, 
       theme: ThemeData(
         useMaterial3: true,
         colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF28BCEF)),
       ),
+      routes: {
+        RentPage.routeName: (_) => const RentPage(),
+      },
       home: const SplashScreen(),
     );
   }
@@ -53,7 +76,6 @@ class SplashScreen extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                     const Spacer(flex: 2),
-
                     Align(
                       alignment: Alignment.center,
                       child: Image.asset(
@@ -62,9 +84,7 @@ class SplashScreen extends StatelessWidget {
                         width: MediaQuery.of(context).size.width * 0.7,
                       ),
                     ),
-
                     const SizedBox(height: 40),
-
                     ElevatedButton(
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFF001242),
@@ -104,6 +124,17 @@ class SplashScreen extends StatelessWidget {
                         style: TextStyle(fontSize: 20),
                       ),
                     ),
+
+                    // ElevatedButton(
+                    //   onPressed: () async {
+                    //     await NotificationService.showRainAlert(
+                    //       title: '🔔 Test notificación',
+                    //       body: 'Si ves esto, las notificaciones están OK',
+                    //       payload: 'test-station-id',
+                    //     );
+                    //   },
+                    //   child: const Text('🔔 Test notificación directa'),
+                    // ),
 
                     const Spacer(flex: 3),
                   ],
