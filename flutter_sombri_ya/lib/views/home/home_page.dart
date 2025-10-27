@@ -273,7 +273,6 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
             final rentalId = await storage.read(key: 'rental_id');
 
             if (rentalId != null && rentalId.isNotEmpty) {
-              // ========= Devolver =========
               Navigator.push(
                 context,
                 MaterialPageRoute(
@@ -294,7 +293,6 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
                 ),
               );
             } else {
-              // ========= Rentar =========
               Navigator.push(
                 context,
                 MaterialPageRoute(

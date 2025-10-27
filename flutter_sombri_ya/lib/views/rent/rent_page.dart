@@ -27,9 +27,20 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../../presentation/blocs/return/return_bloc.dart';
 import '../../presentation/blocs/return/return_event.dart';
 
+import '../../services/location_service.dart';
+
 class RentPage extends StatefulWidget {
-  final GpsCoord userPosition;
-  const RentPage({super.key, required this.userPosition});
+  static const routeName = '/rent';
+
+  final GpsCoord? userPosition;
+
+  final String? suggestedStationId;
+
+  const RentPage({
+    super.key,
+    this.userPosition,
+    this.suggestedStationId,
+  });
 
   @override
   State<RentPage> createState() => _RentPageState();
@@ -37,9 +48,11 @@ class RentPage extends StatefulWidget {
 
 class _RentPageState extends State<RentPage> {
   final MobileScannerController _scanner = MobileScannerController();
-  bool _weStoppedScanner = true; 
+  bool _weStoppedScanner = true;
 
   DateTime? _ignoreDetectionsUntil;
+
+  String? _stationIdFromArgs;
 
   @override
   void initState() {
@@ -47,18 +60,33 @@ class _RentPageState extends State<RentPage> {
     context.read<RentBloc>().add(const RentInit());
   }
 
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_stationIdFromArgs == null) {
+      final args = ModalRoute.of(context)?.settings.arguments;
+      if (args is Map && args['stationId'] is String) {
+        _stationIdFromArgs = args['stationId'] as String;
+      }
+    }
+  }
+
   Future<void> _ensureScanner(bool shouldRun) async {
     if (!mounted) return;
 
     if (shouldRun) {
       if (_weStoppedScanner) {
-        try { await _scanner.start(); } catch (_) {}
+        try {
+          await _scanner.start();
+        } catch (_) {}
         _weStoppedScanner = false;
       }
     } else {
       if (!_weStoppedScanner) {
-        try { await _scanner.stop(); } catch (_) {}
-          _weStoppedScanner = true;
+        try {
+          await _scanner.stop();
+        } catch (_) {}
+        _weStoppedScanner = true;
       }
     }
   }
@@ -66,7 +94,9 @@ class _RentPageState extends State<RentPage> {
   Future<void> _handleNfc() async {
     await _ensureScanner(false);
 
-    try { await NfcManager.instance.stopSession(); } catch (_) {}
+    try {
+      await NfcManager.instance.stopSession();
+    } catch (_) {}
     await Future.delayed(const Duration(milliseconds: 150));
 
     context.read<RentBloc>().add(const RentClearMessage());
@@ -96,7 +126,6 @@ class _RentPageState extends State<RentPage> {
 
           final uid = id.map((b) => b.toRadixString(16).padLeft(2, '0')).join(':').toUpperCase();
           context.read<RentBloc>().add(RentStartWithNfc(uid));
-
         } catch (e) {
           ScaffoldMessenger.of(context).showSnackBar(SnackBar(
             content: Text("Error en NFC: $e"),
@@ -276,6 +305,19 @@ class _RentPageState extends State<RentPage> {
                         ),
                         onPressed: () async {
                           await _ensureScanner(false);
+
+                          GpsCoord position = widget.userPosition ??
+                              (() {
+                                return GpsCoord(latitude: 0, longitude: 0);
+                              }());
+
+                          if (widget.userPosition == null) {
+                            final pos = await LocationService.getPosition();
+                            if (pos != null) {
+                              position = GpsCoord(latitude: pos.latitude, longitude: pos.longitude);
+                            }
+                          }
+
                           final reset = await Navigator.push(
                             context,
                             MaterialPageRoute(
@@ -288,7 +330,7 @@ class _RentPageState extends State<RentPage> {
                                     repo: RepositoryProvider.of<RentalRepository>(ctx),
                                   )..add(const ReturnInit()),
                                   child: ReturnPage(
-                                    userPosition: widget.userPosition,
+                                    userPosition: position,
                                   ),
                                 ),
                               ),
