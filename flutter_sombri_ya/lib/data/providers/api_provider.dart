@@ -3,6 +3,7 @@ import 'package:http/http.dart' as http;
 
 class ApiProvider {
   final String _baseUrl = 'https://sombri-ya-back-4def07fa1804.herokuapp.com';
+  static const _timeout = Duration(seconds: 15);
 
   String get baseUrl => _baseUrl;
 
@@ -12,12 +13,10 @@ class ApiProvider {
     String endpoint,
     Map<String, String> params,
   ) async {
-    final uri = Uri.parse(
-      '$_baseUrl$endpoint',
-    ).replace(queryParameters: params);
+    final uri = Uri.parse('$_baseUrl$endpoint').replace(queryParameters: params);
 
     try {
-      final response = await http.get(uri).timeout(const Duration(seconds: 15));
+      final response = await http.get(uri).timeout(_timeout);
       return _handleResponse(response);
     } catch (e) {
       throw Exception('Failed to connect to the server.');
@@ -35,10 +34,7 @@ class ApiProvider {
         ..headers['Content-Type'] = 'application/json'
         ..body = json.encode(body);
 
-      final streamedResponse = await request.send().timeout(
-        const Duration(seconds: 15),
-      );
-
+      final streamedResponse = await request.send().timeout(_timeout);
       final response = await http.Response.fromStream(streamedResponse);
       return _handleResponse(response);
     } catch (e) {
@@ -46,14 +42,44 @@ class ApiProvider {
     }
   }
 
+  Future<dynamic> post(
+    String endpoint, {
+    Map<String, dynamic>? body,
+    Map<String, String>? headers,
+  }) async {
+    final uri = Uri.parse('$_baseUrl$endpoint');
+
+    try {
+      final mergedHeaders = <String, String>{
+        'Content-Type': 'application/json',
+        if (headers != null) ...headers,
+      };
+
+      final response = await http
+          .post(
+            uri,
+            headers: mergedHeaders,
+            body: body == null ? null : json.encode(body),
+          )
+          .timeout(_timeout);
+
+      return _handleResponse(response);
+    } catch (e) {
+      throw Exception('Failed to connect to the server.');
+    }
+  }
+
   dynamic _handleResponse(http.Response response) {
-    if (response.statusCode == 200) {
+    if (response.statusCode >= 200 && response.statusCode < 300) {
+
+      if (response.body.isEmpty) return null;
       return json.decode(response.body);
     } else {
       print(
-        '[ApiProvider] Error: Received status ${response.statusCode} | Body: ${response.body}',
+        '[ApiProvider] Error: ${response.request?.method} ${response.request?.url} '
+        '| status: ${response.statusCode} | body: ${response.body}',
       );
-      throw Exception('Failed to load data from API.');
+      throw Exception('HTTP ${response.statusCode}: ${response.body}');
     }
   }
 }
