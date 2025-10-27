@@ -9,6 +9,8 @@ import 'package:nfc_manager/platform_tags.dart';
 import '../../data/models/gps_coord.dart';
 import '../../data/repositories/rental_repository.dart';
 
+import '../../presentation/blocs/notifications/notifications_bloc.dart';
+import '../../presentation/blocs/notifications/notifications_event.dart';
 import '../../presentation/blocs/rent/rent_bloc.dart';
 import '../../presentation/blocs/rent/rent_event.dart';
 import '../../presentation/blocs/rent/rent_state.dart';
@@ -37,7 +39,7 @@ class RentPage extends StatefulWidget {
 
 class _RentPageState extends State<RentPage> {
   final MobileScannerController _scanner = MobileScannerController();
-  bool _weStoppedScanner = true; 
+  bool _weStoppedScanner = true;
 
   DateTime? _ignoreDetectionsUntil;
 
@@ -52,13 +54,17 @@ class _RentPageState extends State<RentPage> {
 
     if (shouldRun) {
       if (_weStoppedScanner) {
-        try { await _scanner.start(); } catch (_) {}
+        try {
+          await _scanner.start();
+        } catch (_) {}
         _weStoppedScanner = false;
       }
     } else {
       if (!_weStoppedScanner) {
-        try { await _scanner.stop(); } catch (_) {}
-          _weStoppedScanner = true;
+        try {
+          await _scanner.stop();
+        } catch (_) {}
+        _weStoppedScanner = true;
       }
     }
   }
@@ -66,7 +72,9 @@ class _RentPageState extends State<RentPage> {
   Future<void> _handleNfc() async {
     await _ensureScanner(false);
 
-    try { await NfcManager.instance.stopSession(); } catch (_) {}
+    try {
+      await NfcManager.instance.stopSession();
+    } catch (_) {}
     await Future.delayed(const Duration(milliseconds: 150));
 
     context.read<RentBloc>().add(const RentClearMessage());
@@ -84,25 +92,31 @@ class _RentPageState extends State<RentPage> {
             if (iso != null) id = iso.identifier;
           }
           if (id == null) {
-            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-              content: Text("No se pudo leer el ID del tag NFC"),
-              backgroundColor: Colors.red,
-              duration: Duration(seconds: 1),
-            ));
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text("No se pudo leer el ID del tag NFC"),
+                backgroundColor: Colors.red,
+                duration: Duration(seconds: 1),
+              ),
+            );
             await NfcManager.instance.stopSession();
             await _ensureScanner(true);
             return;
           }
 
-          final uid = id.map((b) => b.toRadixString(16).padLeft(2, '0')).join(':').toUpperCase();
+          final uid = id
+              .map((b) => b.toRadixString(16).padLeft(2, '0'))
+              .join(':')
+              .toUpperCase();
           context.read<RentBloc>().add(RentStartWithNfc(uid));
-
         } catch (e) {
-          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-            content: Text("Error en NFC: $e"),
-            backgroundColor: Colors.red,
-            duration: const Duration(seconds: 2),
-          ));
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text("Error en NFC: $e"),
+              backgroundColor: Colors.red,
+              duration: const Duration(seconds: 2),
+            ),
+          );
           await NfcManager.instance.stopSession();
           await _ensureScanner(true);
         }
@@ -122,8 +136,9 @@ class _RentPageState extends State<RentPage> {
         await _ensureScanner(!state.loading && !state.nfcBusy);
 
         if (state.message != null) {
-          _ignoreDetectionsUntil =
-              DateTime.now().add(const Duration(milliseconds: 800));
+          _ignoreDetectionsUntil = DateTime.now().add(
+            const Duration(milliseconds: 800),
+          );
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(state.message!),
@@ -143,11 +158,14 @@ class _RentPageState extends State<RentPage> {
               err.contains('already has an active rental');
 
           if (isAlreadyActive) {
-            _ignoreDetectionsUntil =
-                DateTime.now().add(const Duration(milliseconds: 800));
+            _ignoreDetectionsUntil = DateTime.now().add(
+              const Duration(milliseconds: 800),
+            );
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(
-                content: Text("Ya tenías una sombrilla activa. Te llevo a devolución."),
+                content: Text(
+                  "Ya tenías una sombrilla activa. Te llevo a devolución.",
+                ),
                 backgroundColor: Colors.green,
                 duration: Duration(seconds: 2),
               ),
@@ -182,10 +200,30 @@ class _RentPageState extends State<RentPage> {
             ),
             leading: IconButton(
               icon: const Icon(Icons.notifications_none),
-              onPressed: () => Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const NotificationsPage()),
-              ),
+              onPressed: () async {
+                final storage = const FlutterSecureStorage();
+                final userId = await storage.read(key: 'user_id');
+                if (userId == null || !context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('No se pudo identificar al usuario.'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                  return;
+                }
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => BlocProvider(
+                      create: (_) => NotificationsBloc()
+                        ..add(StartRentalPolling(userId))
+                        ..add(const CheckWeather()),
+                      child: const NotificationsPage(),
+                    ),
+                  ),
+                );
+              },
             ),
             actions: [
               IconButton(
@@ -195,8 +233,9 @@ class _RentPageState extends State<RentPage> {
                     context,
                     MaterialPageRoute(
                       builder: (_) => BlocProvider(
-                        create: (_) => ProfileBloc(repository: ProfileRepository())
-                          ..add(const LoadProfile('')),
+                        create: (_) =>
+                            ProfileBloc(repository: ProfileRepository())
+                              ..add(const LoadProfile('')),
                         child: const ProfilePage(),
                       ),
                     ),
@@ -244,7 +283,10 @@ class _RentPageState extends State<RentPage> {
                   decoration: BoxDecoration(
                     color: Colors.transparent,
                     borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: const Color(0xFF28BCEF), width: 3),
+                    border: Border.all(
+                      color: const Color(0xFF28BCEF),
+                      width: 3,
+                    ),
                     boxShadow: const [
                       BoxShadow(
                         color: Colors.black26,
@@ -285,7 +327,10 @@ class _RentPageState extends State<RentPage> {
                                 ),
                                 child: BlocProvider(
                                   create: (ctx) => ReturnBloc(
-                                    repo: RepositoryProvider.of<RentalRepository>(ctx),
+                                    repo:
+                                        RepositoryProvider.of<RentalRepository>(
+                                          ctx,
+                                        ),
                                   )..add(const ReturnInit()),
                                   child: ReturnPage(
                                     userPosition: widget.userPosition,
@@ -296,10 +341,15 @@ class _RentPageState extends State<RentPage> {
                           );
 
                           if (reset == "returned") {
-                            _ignoreDetectionsUntil =
-                                DateTime.now().add(const Duration(milliseconds: 1500));
-                            context.read<RentBloc>().add(const RentRefreshActive());
-                            await Future.delayed(const Duration(milliseconds: 350));
+                            _ignoreDetectionsUntil = DateTime.now().add(
+                              const Duration(milliseconds: 1500),
+                            );
+                            context.read<RentBloc>().add(
+                              const RentRefreshActive(),
+                            );
+                            await Future.delayed(
+                              const Duration(milliseconds: 350),
+                            );
                           }
 
                           await _ensureScanner(true);
@@ -323,7 +373,8 @@ class _RentPageState extends State<RentPage> {
                   ],
                 ),
               ),
-              if (state.loading) const Center(child: CircularProgressIndicator()),
+              if (state.loading)
+                const Center(child: CircularProgressIndicator()),
             ],
           ),
 
@@ -371,7 +422,7 @@ class _RentPageState extends State<RentPage> {
               backgroundColor: Colors.transparent,
               elevation: 6,
               shape: const CircleBorder(),
-              onPressed: () {}, 
+              onPressed: () {},
               child: Image.asset(
                 'assets/images/home_button.png',
                 width: 200,
@@ -379,7 +430,8 @@ class _RentPageState extends State<RentPage> {
               ),
             ),
           ),
-          floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
+          floatingActionButtonLocation:
+              FloatingActionButtonLocation.centerDocked,
         );
       },
     );
