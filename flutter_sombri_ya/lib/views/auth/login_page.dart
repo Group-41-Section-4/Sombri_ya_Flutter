@@ -5,11 +5,9 @@ import '../../presentation/blocs/auth/auth_bloc.dart';
 import '../../presentation/blocs/auth/auth_event.dart';
 import '../../presentation/blocs/auth/auth_state.dart';
 
-import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../core/providers/api_provider.dart';
 import 'signin_page.dart';
 import '../home/home_page.dart';
-
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -20,7 +18,7 @@ class LoginPage extends StatefulWidget {
 class _LoginPageState extends State<LoginPage> {
   final _formKey = GlobalKey<FormState>();
   final _emailCtrl = TextEditingController();
-  final _passCtrl  = TextEditingController();
+  final _passCtrl = TextEditingController();
 
   @override
   void dispose() {
@@ -34,7 +32,8 @@ class _LoginPageState extends State<LoginPage> {
     return Scaffold(
       backgroundColor: const Color(0xFF90E0EF),
       body: BlocListener<AuthBloc, AuthState>(
-        listenWhen: (prev, curr) => curr is AuthAuthenticated || curr is AuthFailure,
+        listenWhen: (prev, curr) =>
+            curr is AuthAuthenticated || curr is AuthFailure,
         listener: (context, state) {
           if (state is AuthAuthenticated) {
             ScaffoldMessenger.of(context).showSnackBar(
@@ -49,7 +48,10 @@ class _LoginPageState extends State<LoginPage> {
             );
           } else if (state is AuthFailure) {
             ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text(state.message), backgroundColor: Colors.red),
+              SnackBar(
+                content: Text(state.message),
+                backgroundColor: Colors.red,
+              ),
             );
           }
         },
@@ -60,7 +62,11 @@ class _LoginPageState extends State<LoginPage> {
                 const SizedBox(height: 40),
                 const Text(
                   'Sombri-Ya',
-                  style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Color(0xFF001242)),
+                  style: TextStyle(
+                    fontSize: 28,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF001242),
+                  ),
                 ),
                 const SizedBox(height: 30),
 
@@ -76,19 +82,36 @@ class _LoginPageState extends State<LoginPage> {
                     key: _formKey,
                     child: Column(
                       children: [
-                        const Text('Iniciar sesión',
-                            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.black87)),
+                        const Text(
+                          'Iniciar sesión',
+                          style: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.black87,
+                          ),
+                        ),
                         const SizedBox(height: 20),
-                        const Icon(Icons.person, size: 50, color: Color(0xFF001242)),
+                        const Icon(
+                          Icons.person,
+                          size: 50,
+                          color: Color(0xFF001242),
+                        ),
                         const SizedBox(height: 15),
 
                         TextFormField(
                           controller: _emailCtrl,
                           keyboardType: TextInputType.emailAddress,
-                          decoration: _decor('Correo electrónico', 'correo@ejemplo.com'),
+                          decoration: _decor(
+                            'Correo electrónico',
+                            'correo@ejemplo.com',
+                          ),
                           validator: (v) {
-                            if (v == null || v.isEmpty) return 'Ingresa tu correo';
-                            final re = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
+                            if (v == null || v.isEmpty) {
+                              return 'Ingresa tu correo';
+                            }
+                            final re = RegExp(
+                              r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$',
+                            );
                             if (!re.hasMatch(v)) return 'Correo inválido';
                             return null;
                           },
@@ -99,7 +122,9 @@ class _LoginPageState extends State<LoginPage> {
                           controller: _passCtrl,
                           obscureText: true,
                           decoration: _decor('Contraseña', 'Contraseña'),
-                          validator: (v) => (v == null || v.isEmpty) ? 'Ingresa tu contraseña' : null,
+                          validator: (v) => (v == null || v.isEmpty)
+                              ? 'Ingresa tu contraseña'
+                              : null,
                         ),
 
                         const SizedBox(height: 10),
@@ -166,23 +191,30 @@ class _LoginPageState extends State<LoginPage> {
                                 onPressed: loading
                                     ? null
                                     : () {
-                                  if (_formKey.currentState!.validate()) {
-                                    context.read<AuthBloc>().add(
-                                      LoginWithPasswordSubmitted(
-                                        email: _emailCtrl.text.trim(),
-                                        password: _passCtrl.text,
-                                      ),
-                                    );
-                                  }
-                                },
+                                        if (_formKey.currentState!.validate()) {
+                                          context.read<AuthBloc>().add(
+                                            LoginWithPasswordSubmitted(
+                                              email: _emailCtrl.text.trim(),
+                                              password: _passCtrl.text,
+                                            ),
+                                          );
+                                        }
+                                      },
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: const Color(0xFF001242),
-                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                                  padding: const EdgeInsets.symmetric(vertical: 14),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 14,
+                                  ),
                                 ),
                                 child: Text(
                                   loading ? 'Ingresando…' : 'Iniciar sesión',
-                                  style: const TextStyle(fontSize: 16, color: Color(0xFFFFFDFD)),
+                                  style: const TextStyle(
+                                    fontSize: 16,
+                                    color: Color(0xFFFFFDFD),
+                                  ),
                                 ),
                               );
                             },
@@ -194,15 +226,23 @@ class _LoginPageState extends State<LoginPage> {
                         SizedBox(
                           width: double.infinity,
                           child: OutlinedButton.icon(
-                            onPressed: () => context.read<AuthBloc>().add(const LoginWithGoogleRequested()),
+                            onPressed: () => context.read<AuthBloc>().add(
+                              const LoginWithGoogleRequested(),
+                            ),
                             icon: SizedBox(
                               width: 10,
                               height: 10,
-                              child: Image.asset('assets/images/google_logo2.png', fit: BoxFit.contain),
+                              child: Image.asset(
+                                'assets/images/google_logo2.png',
+                                fit: BoxFit.contain,
+                              ),
                             ),
                             label: const Text(
                               'Iniciar sesión con Google',
-                              style: TextStyle(fontSize: 16, color: Colors.black87),
+                              style: TextStyle(
+                                fontSize: 16,
+                                color: Colors.black87,
+                              ),
                             ),
                             style: OutlinedButton.styleFrom(
                               side: const BorderSide(color: Colors.grey),
@@ -217,7 +257,14 @@ class _LoginPageState extends State<LoginPage> {
 
                 const SizedBox(height: 40),
 
-                const Text('Sombri-Ya', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.black)),
+                const Text(
+                  'Sombri-Ya',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black,
+                  ),
+                ),
                 const SizedBox(height: 8),
                 const Text(
                   'Ahorra tiempo y mantente\nseco en cualquier trayecto',

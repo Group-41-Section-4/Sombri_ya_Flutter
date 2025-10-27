@@ -6,6 +6,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:local_auth/local_auth.dart';
 import 'package:local_auth_android/local_auth_android.dart';
 import 'package:percent_indicator/circular_percent_indicator.dart';
+import '../../main.dart';
 
 import 'package:flutter_sombri_ya/presentation/blocs/profile/profile_bloc.dart';
 import 'package:flutter_sombri_ya/presentation/blocs/profile/profile_event.dart';
@@ -54,7 +55,9 @@ class _ProfilePageState extends State<ProfilePage> {
       final canCheck = await _auth.canCheckBiometrics;
       if (!supported && !canCheck) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Tu dispositivo no admite biometría o PIN.')),
+          const SnackBar(
+            content: Text('Tu dispositivo no admite biometría o PIN.'),
+          ),
         );
         return false;
       }
@@ -74,7 +77,8 @@ class _ProfilePageState extends State<ProfilePage> {
             biometricSuccess: 'Autenticación exitosa',
             biometricRequiredTitle: 'Autenticación necesaria',
             deviceCredentialsRequiredTitle: 'Usa tu PIN o patrón',
-            deviceCredentialsSetupDescription: 'Configura un PIN o patrón en Ajustes',
+            deviceCredentialsSetupDescription:
+                'Configura un PIN o patrón en Ajustes',
           ),
         ],
       );
@@ -101,9 +105,16 @@ class _ProfilePageState extends State<ProfilePage> {
           children: [
             const Icon(Icons.lock_outline, size: 45, color: Colors.black54),
             const SizedBox(height: 10),
-            const Text('Verifica tu identidad', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            const Text(
+              'Verifica tu identidad',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
             const SizedBox(height: 10),
-            const Text('Confirma tu identidad para continuar.', textAlign: TextAlign.center, style: TextStyle(color: Colors.black54)),
+            const Text(
+              'Confirma tu identidad para continuar.',
+              textAlign: TextAlign.center,
+              style: TextStyle(color: Colors.black54),
+            ),
             const SizedBox(height: 25),
             ElevatedButton.icon(
               icon: const Icon(Icons.verified_user),
@@ -119,8 +130,8 @@ class _ProfilePageState extends State<ProfilePage> {
       ),
     );
   }
- 
-  //Dialogues 
+
+  //Dialogues
   Future<void> _editFieldDialog({
     required String title,
     required String fieldKey,
@@ -146,12 +157,17 @@ class _ProfilePageState extends State<ProfilePage> {
             autovalidateMode: AutovalidateMode.onUserInteraction,
             decoration: InputDecoration(
               labelText: 'Nuevo $title',
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
             ),
           ),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancelar')),
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancelar'),
+          ),
           ElevatedButton(
             onPressed: () {
               if (formKey.currentState!.validate()) {
@@ -165,7 +181,13 @@ class _ProfilePageState extends State<ProfilePage> {
     );
 
     if (value != null && _userId != null) {
-      _bloc.add(UpdateProfileField(userId: _userId!, fieldKey: fieldKey, newValue: value));
+      _bloc.add(
+        UpdateProfileField(
+          userId: _userId!,
+          fieldKey: fieldKey,
+          newValue: value,
+        ),
+      );
     }
   }
 
@@ -194,8 +216,9 @@ class _ProfilePageState extends State<ProfilePage> {
                   labelText: 'Contraseña actual',
                   counterText: '',
                 ),
-                validator: (v) =>
-                    (v == null || v.isEmpty) ? 'Ingresa tu contraseña actual' : null,
+                validator: (v) => (v == null || v.isEmpty)
+                    ? 'Ingresa tu contraseña actual'
+                    : null,
               ),
               const SizedBox(height: 12),
               TextFormField(
@@ -211,12 +234,16 @@ class _ProfilePageState extends State<ProfilePage> {
                 autovalidateMode: AutovalidateMode.onUserInteraction,
                 validator: (v) {
                   final s = (v ?? '').trim();
-                  if (s.length < 8 || s.length > _passMax) return '8–$_passMax caracteres';
-                  final ok = RegExp(r'[a-z]').hasMatch(s) &&
-                             RegExp(r'[A-Z]').hasMatch(s) &&
-                             RegExp(r'\d').hasMatch(s) &&
-                             RegExp(r'[^\w\s]').hasMatch(s);
-                  return ok ? null : 'Incluye mayúscula, minúscula, número y símbolo';
+                  if (s.length < 8 || s.length > _passMax)
+                    return '8–$_passMax caracteres';
+                  final ok =
+                      RegExp(r'[a-z]').hasMatch(s) &&
+                      RegExp(r'[A-Z]').hasMatch(s) &&
+                      RegExp(r'\d').hasMatch(s) &&
+                      RegExp(r'[^\w\s]').hasMatch(s);
+                  return ok
+                      ? null
+                      : 'Incluye mayúscula, minúscula, número y símbolo';
                 },
               ),
               const SizedBox(height: 12),
@@ -236,10 +263,14 @@ class _ProfilePageState extends State<ProfilePage> {
           ),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancelar')),
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancelar'),
+          ),
           ElevatedButton(
             onPressed: () {
-              if (formKey.currentState!.validate()) Navigator.pop(context, true);
+              if (formKey.currentState!.validate())
+                Navigator.pop(context, true);
             },
             child: const Text('Guardar'),
           ),
@@ -248,15 +279,22 @@ class _ProfilePageState extends State<ProfilePage> {
     );
 
     if (ok == true && _userId != null) {
-      _bloc.add(ChangePassword(userId: _userId!, currentPassword: curr.text.trim(), newPassword: next.text.trim()));
+      _bloc.add(
+        ChangePassword(
+          userId: _userId!,
+          currentPassword: curr.text.trim(),
+          newPassword: next.text.trim(),
+        ),
+      );
     }
   }
-  
+
   String? _vName(String? v) {
     final s = (v ?? '').trim();
     if (s.isEmpty) return 'Ingresa un nombre';
     if (s.length > _nameMax) return 'Máximo $_nameMax caracteres';
-    if (!RegExp(r"^[A-Za-zÀ-ÿ\u00f1\u00d1' -]+$").hasMatch(s)) return 'Solo letras y espacios';
+    if (!RegExp(r"^[A-Za-zÀ-ÿ\u00f1\u00d1' -]+$").hasMatch(s))
+      return 'Solo letras y espacios';
     return null;
   }
 
@@ -264,7 +302,10 @@ class _ProfilePageState extends State<ProfilePage> {
     final s = (v ?? '').trim();
     if (s.isEmpty) return 'Ingresa un correo';
     if (s.length > _emailMax) return 'Máximo $_emailMax caracteres';
-    if (!RegExp(r"^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$", caseSensitive: false).hasMatch(s)) {
+    if (!RegExp(
+      r"^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$",
+      caseSensitive: false,
+    ).hasMatch(s)) {
       return 'Correo no válido';
     }
     return null;
@@ -273,8 +314,12 @@ class _ProfilePageState extends State<ProfilePage> {
   Future<void> _logout() async {
     await _storage.delete(key: 'auth_token');
     if (!mounted) return;
-    Navigator.of(context).pop();
+    Navigator.of(context).pushAndRemoveUntil(
+      MaterialPageRoute(builder: (_) => const SplashScreen()),
+          (route) => false,
+    );
   }
+
 
   @override
   Widget build(BuildContext context) {
@@ -283,10 +328,14 @@ class _ProfilePageState extends State<ProfilePage> {
       child: Scaffold(
         backgroundColor: const Color(0xFFFFFDFD),
         appBar: AppBar(
-          title: Text('Cuenta',
-              style: GoogleFonts.cormorantGaramond(
-                color: Colors.black, fontSize: 24, fontWeight: FontWeight.bold,
-              )),
+          title: Text(
+            'Cuenta',
+            style: GoogleFonts.cormorantGaramond(
+              color: Colors.black,
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
           centerTitle: true,
           backgroundColor: const Color(0xFF90E0EF),
           elevation: 0,
@@ -296,17 +345,25 @@ class _ProfilePageState extends State<ProfilePage> {
           ),
         ),
         body: BlocListener<ProfileBloc, ProfileState>(
-          listenWhen: (p, c) => p.successMessage != c.successMessage || p.errorMessage != c.errorMessage,
+          listenWhen: (p, c) =>
+              p.successMessage != c.successMessage ||
+              p.errorMessage != c.errorMessage,
           listener: (context, state) {
             if (state.successMessage != null) {
               ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text(state.successMessage!), backgroundColor: Colors.green),
+                SnackBar(
+                  content: Text(state.successMessage!),
+                  backgroundColor: Colors.green,
+                ),
               );
               _bloc.add(const ClearProfileMessages());
             }
             if (state.errorMessage != null) {
               ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text(state.errorMessage!), backgroundColor: Colors.red),
+                SnackBar(
+                  content: Text(state.errorMessage!),
+                  backgroundColor: Colors.red,
+                ),
               );
               _bloc.add(const ClearProfileMessages());
             }
@@ -317,7 +374,9 @@ class _ProfilePageState extends State<ProfilePage> {
                 return const Center(child: CircularProgressIndicator());
               }
               if (state.profile == null) {
-                return const Center(child: Text('No se pudo cargar el perfil.'));
+                return const Center(
+                  child: Text('No se pudo cargar el perfil.'),
+                );
               }
 
               final profile = state.profile!;
@@ -329,54 +388,84 @@ class _ProfilePageState extends State<ProfilePage> {
                 child: Column(
                   children: [
                     const SizedBox(height: 20),
-                    const Text('Te has mantenido seco durante',
-                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                    const Text(
+                      'Te has mantenido seco durante',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
                     const SizedBox(height: 10),
                     CircularPercentIndicator(
                       radius: 80.0,
                       lineWidth: 5.0,
                       percent: dryProgress,
-                      center: const Icon(Icons.sunny, size: 50, color: Color(0xFFFCE55F)),
+                      center: const Icon(
+                        Icons.sunny,
+                        size: 50,
+                        color: Color(0xFFFCE55F),
+                      ),
                       progressColor: const Color(0xFF001242),
                       backgroundColor: Colors.grey[300]!,
                       animation: true,
                       circularStrokeCap: CircularStrokeCap.round,
                     ),
                     const SizedBox(height: 10),
-                    Text('${totalKm.toStringAsFixed(2)} km de ${_goalKm.toStringAsFixed(0)} km',
-                        style: const TextStyle(fontSize: 14, color: Colors.black54)),
+                    Text(
+                      '${totalKm.toStringAsFixed(2)} km de ${_goalKm.toStringAsFixed(0)} km',
+                      style: const TextStyle(
+                        fontSize: 14,
+                        color: Colors.black54,
+                      ),
+                    ),
                     const SizedBox(height: 40),
 
-                    _item('Nombre', profile['name'] ?? '-', onTap: () {
-                      _showVerificationPanel(() {
-                        _editFieldDialog(
-                          title: 'Nombre',
-                          fieldKey: 'name',
-                          initialValue: (profile['name'] ?? '').toString(),
-                          validator: _vName,
-                          formatters: [LengthLimitingTextInputFormatter(_nameMax)],
-                        );
-                      });
-                    }),
+                    _item(
+                      'Nombre',
+                      profile['name'] ?? '-',
+                      onTap: () {
+                        _showVerificationPanel(() {
+                          _editFieldDialog(
+                            title: 'Nombre',
+                            fieldKey: 'name',
+                            initialValue: (profile['name'] ?? '').toString(),
+                            validator: _vName,
+                            formatters: [
+                              LengthLimitingTextInputFormatter(_nameMax),
+                            ],
+                          );
+                        });
+                      },
+                    ),
 
                     const SizedBox(height: 20),
-                    _item('Contraseña', '*********', onTap: () {
-                      _showVerificationPanel(_changePasswordDialog);
-                    }),
+                    _item(
+                      'Contraseña',
+                      '*********',
+                      onTap: () {
+                        _showVerificationPanel(_changePasswordDialog);
+                      },
+                    ),
 
                     const SizedBox(height: 20),
-                    _item('Email', profile['email'] ?? '-', onTap: () {
-                      _showVerificationPanel(() {
-                        _editFieldDialog(
-                          title: 'Correo',
-                          fieldKey: 'email',
-                          initialValue: (profile['email'] ?? '').toString(),
-                          keyboardType: TextInputType.emailAddress,
-                          validator: _vEmail,
-                          formatters: [LengthLimitingTextInputFormatter(_emailMax)],
-                        );
-                      });
-                    }),
+                    _item(
+                      'Email',
+                      profile['email'] ?? '-',
+                      onTap: () {
+                        _showVerificationPanel(() {
+                          _editFieldDialog(
+                            title: 'Correo',
+                            fieldKey: 'email',
+                            initialValue: (profile['email'] ?? '').toString(),
+                            keyboardType: TextInputType.emailAddress,
+                            validator: _vEmail,
+                            formatters: [
+                              LengthLimitingTextInputFormatter(_emailMax),
+                            ],
+                          );
+                        });
+                      },
+                    ),
 
                     const SizedBox(height: 50),
                     SizedBox(
@@ -386,9 +475,14 @@ class _ProfilePageState extends State<ProfilePage> {
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.redAccent,
                           padding: const EdgeInsets.symmetric(vertical: 15),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(30),
+                          ),
                         ),
-                        child: const Text('Cerrar Sesión', style: TextStyle(color: Colors.white, fontSize: 18)),
+                        child: const Text(
+                          'Cerrar Sesión',
+                          style: TextStyle(color: Colors.white, fontSize: 18),
+                        ),
                       ),
                     ),
 
@@ -421,10 +515,16 @@ class _ProfilePageState extends State<ProfilePage> {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(label, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+            Text(
+              label,
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            ),
             Row(
               children: [
-                Text(value, style: const TextStyle(fontSize: 16, color: Colors.grey)),
+                Text(
+                  value,
+                  style: const TextStyle(fontSize: 16, color: Colors.grey),
+                ),
                 const Icon(Icons.chevron_right, color: Colors.grey),
               ],
             ),

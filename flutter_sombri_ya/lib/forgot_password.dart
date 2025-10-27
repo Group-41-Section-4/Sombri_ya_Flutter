@@ -1,5 +1,10 @@
 import 'package:flutter/material.dart';
-import 'login.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'core/providers/api_provider.dart';
+import 'core/services/secure_storage_service.dart';
+import 'data/repositories/auth_repository.dart';
+import 'presentation/blocs/auth/auth_bloc.dart';
+import 'views/auth/login_page.dart';
 import 'reset_password.dart';
 
 class ForgotPassword extends StatelessWidget {
@@ -45,7 +50,11 @@ class ForgotPassword extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 20),
-                    const Icon(Icons.lock_reset, size: 50, color: Color(0xFF001242)),
+                    const Icon(
+                      Icons.lock_reset,
+                      size: 50,
+                      color: Color(0xFF001242),
+                    ),
                     const SizedBox(height: 15),
 
                     TextFormField(
@@ -97,7 +106,7 @@ class ForgotPassword extends StatelessWidget {
                         ),
                         child: const Text(
                           "Enviar",
-                          style: TextStyle(fontSize: 16, color: Colors.white,)
+                          style: TextStyle(fontSize: 16, color: Colors.white),
                         ),
                       ),
                     ),
@@ -108,9 +117,24 @@ class ForgotPassword extends StatelessWidget {
                       width: double.infinity,
                       child: ElevatedButton(
                         onPressed: () {
+                          const baseUrl =
+                              'https://sombri-ya-back-4def07fa1804.herokuapp.com';
                           Navigator.pushReplacement(
                             context,
-                            MaterialPageRoute(builder: (_) => const LoginPage()),
+                            MaterialPageRoute(
+                              builder: (_) => RepositoryProvider(
+                                create: (_) => ApiProvider(baseUrl: baseUrl),
+                                child: BlocProvider(
+                                  create: (ctx) => AuthBloc(
+                                    repo: AuthRepository(
+                                      api: ctx.read<ApiProvider>(),
+                                      storage: const SecureStorageService(),
+                                    ),
+                                  ),
+                                  child: const LoginPage(),
+                                ),
+                              ),
+                            ),
                           );
                         },
                         style: ElevatedButton.styleFrom(
@@ -143,7 +167,7 @@ class ForgotPassword extends StatelessWidget {
               const SizedBox(height: 8),
               const Text(
                 "Ahorra tiempo y mantente\nseco en cualquier trayecto",
-                textAlign : TextAlign.center,
+                textAlign: TextAlign.center,
                 style: TextStyle(color: Colors.white, fontSize: 14),
               ),
             ],
