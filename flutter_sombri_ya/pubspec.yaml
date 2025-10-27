@@ -51,6 +51,7 @@ dependencies:
   # HTTP requests + secure storage
   http: ^1.5.0
   flutter_secure_storage: ^9.2.4
+  flutter_local_notifications: ^17.2.1
 
   # Google Maps and geolocation
   google_maps_flutter: ^2.13.1
@@ -64,6 +65,8 @@ dependencies:
   flutter_bloc: ^9.1.1
   equatable: ^2.0.7
   local_auth_android: ^1.0.52
+  workmanager: ^0.9.0+3
+  shared_preferences: ^2.5.3
 
 
 
