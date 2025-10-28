@@ -31,12 +31,6 @@ import '../../presentation/blocs/return/return_event.dart';
 
 import '../../services/location_service.dart';
 
-import '../../core/services/voice_command_service.dart';
-import '../../presentation/blocs/voice/voice_bloc.dart';
-import '../../presentation/blocs/voice/voice_event.dart';
-import '../../presentation/blocs/voice/voice_state.dart';
-import '../../domain/voice/voice_intent.dart';
-
 class RentPage extends StatefulWidget {
   static const routeName = '/rent';
 
@@ -154,34 +148,6 @@ class _RentPageState extends State<RentPage> {
     );
   }
 
-  Future<void> _goToReturnFlow() async {
-    await _ensureScanner(false);
-
-    GpsCoord position = widget.userPosition ??
-        (() {
-          return GpsCoord(latitude: 0, longitude: 0);
-        }());
-
-    if (widget.userPosition == null) {
-      final pos = await LocationService.getPosition();
-      if (pos != null) {
-        position = GpsCoord(latitude: pos.latitude, longitude: pos.longitude);
-      }
-    }
-
-    final reset = await Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => RepositoryProvider(
-          create: (_) => RentalRepository(
-            storage: const FlutterSecureStorage(),
-          ),
-          child: BlocProvider(
-            create: (ctx) => ReturnBloc(
-              repo: RepositoryProvider.of<RentalRepository>(ctx),
-            )..add(const ReturnInit()),
-            child: ReturnPage(
-              userPosition: position,
   @override
   Widget build(BuildContext context) {
     return BlocConsumer<RentBloc, RentState>(
@@ -203,39 +169,18 @@ class _RentPageState extends State<RentPage> {
               backgroundColor: Colors.green,
               duration: const Duration(seconds: 2),
             ),
-          ),
-        ),
-      ),
-    );
+          );
+          context.read<RentBloc>().add(const RentClearMessage());
+          return;
+        }
 
-    if (reset == "returned") {
-      _ignoreDetectionsUntil = DateTime.now().add(const Duration(milliseconds: 1500));
-      context.read<RentBloc>().add(const RentRefreshActive());
-      await Future.delayed(const Duration(milliseconds: 350));
-    }
+        if (state.error != null) {
+          final err = state.error!.toLowerCase();
+          final isAlreadyActive =
+              err.contains('ya tienes una sombrilla') ||
+              err.contains('ya tenías una sombrilla') ||
+              err.contains('already has an active rental');
 
-    await _ensureScanner(true);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return BlocProvider(
-      create: (_) => VoiceBloc(VoiceCommandService())..add(const VoiceInitRequested()),
-      child: BlocConsumer<RentBloc, RentState>(
-        listenWhen: (prev, curr) =>
-            prev.loading != curr.loading ||
-            prev.message != curr.message ||
-            prev.error != curr.error ||
-            prev.hasActiveRental != curr.hasActiveRental,
-        listener: (context, state) async {
-          await _ensureScanner(!state.loading && !state.nfcBusy);
-
-          if (state.message != null) {
-            _ignoreDetectionsUntil =
-                DateTime.now().add(const Duration(milliseconds: 800));
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(state.message!),
           if (isAlreadyActive) {
             _ignoreDetectionsUntil = DateTime.now().add(
               const Duration(milliseconds: 800),
@@ -246,51 +191,13 @@ class _RentPageState extends State<RentPage> {
                   "Ya tenías una sombrilla activa. Te llevo a devolución.",
                 ),
                 backgroundColor: Colors.green,
-                duration: const Duration(seconds: 2),
+                duration: Duration(seconds: 2),
               ),
             );
             context.read<RentBloc>().add(const RentClearMessage());
             return;
           }
 
-          if (state.error != null) {
-            final err = state.error!.toLowerCase();
-            final isAlreadyActive =
-                err.contains('ya tienes una sombrilla') ||
-                err.contains('ya tenías una sombrilla') ||
-                err.contains('already has an active rental');
-
-            if (isAlreadyActive) {
-              _ignoreDetectionsUntil =
-                  DateTime.now().add(const Duration(milliseconds: 800));
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text("Ya tenías una sombrilla activa. Te llevo a devolución."),
-                  backgroundColor: Colors.green,
-                  duration: Duration(seconds: 2),
-                ),
-              );
-              context.read<RentBloc>().add(const RentClearMessage());
-              return;
-            }
-
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(state.error!),
-                backgroundColor: Colors.red,
-                duration: const Duration(seconds: 2),
-              ),
-            );
-            context.read<RentBloc>().add(const RentClearMessage());
-          }
-        },
-        builder: (context, state) {
-          return BlocListener<VoiceBloc, VoiceState>(
-            listenWhen: (p, c) => p.intent != c.intent && c.intent != VoiceIntent.none,
-            listener: (context, vstate) async {
-              switch (vstate.intent) {
-                case VoiceIntent.rentDefault:
-                case VoiceIntent.rentQR:
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(state.error!),
@@ -358,192 +265,99 @@ class _RentPageState extends State<RentPage> {
                     ),
                   );
                   await _ensureScanner(true);
-                  break;
-                case VoiceIntent.rentNFC:
-                  await _handleNfc();
-                  break;
-                case VoiceIntent.returnUmbrella:
-                  await _goToReturnFlow();
-                  break;
-                case VoiceIntent.none:
-                  break;
-              }
-              context.read<VoiceBloc>().add(const VoiceClearIntent());
-            },
-            child: Scaffold(
-              appBar: AppBar(
-                backgroundColor: const Color(0xFF90E0EF),
-                centerTitle: true,
-                foregroundColor: Colors.black,
-                title: Text(
-                  'Rentar',
-                  style: GoogleFonts.cormorantGaramond(
-                    fontSize: 22,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.black,
+                },
+                icon: const CircleAvatar(
+                  radius: 16,
+                  backgroundColor: Colors.white24,
+                  backgroundImage: AssetImage('assets/images/profile.png'),
+                ),
+              ),
+            ],
+          ),
+          endDrawer: AppDrawer(),
+
+          body: Stack(
+            children: [
+              MobileScanner(
+                controller: _scanner,
+                fit: BoxFit.cover,
+                onDetect: (capture) async {
+                  if (state.loading || state.hasActiveRental) return;
+
+                  final now = DateTime.now();
+                  if (_ignoreDetectionsUntil != null &&
+                      now.isBefore(_ignoreDetectionsUntil!)) {
+                    return;
+                  }
+
+                  final raw = capture.barcodes.isNotEmpty
+                      ? capture.barcodes.first.rawValue
+                      : null;
+                  if (raw == null) return;
+
+                  await _ensureScanner(false);
+                  context.read<RentBloc>().add(RentStartWithQr(raw));
+                },
+              ),
+              Align(
+                alignment: Alignment.center,
+                child: Container(
+                  width: MediaQuery.of(context).size.width * 0.78,
+                  height: MediaQuery.of(context).size.width * 0.58,
+                  decoration: BoxDecoration(
+                    color: Colors.transparent,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                      color: const Color(0xFF28BCEF),
+                      width: 3,
+                    ),
+                    boxShadow: const [
+                      BoxShadow(
+                        color: Colors.black26,
+                        blurRadius: 8,
+                        spreadRadius: 1,
+                      ),
+                    ],
                   ),
                 ),
-                leading: IconButton(
-                  icon: const Icon(Icons.notifications_none),
-                  onPressed: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => const NotificationsPage()),
-                  ),
-                ),
-                actions: [
-                  IconButton(
-                    onPressed: () async {
-                      await _ensureScanner(false);
-                      await Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => BlocProvider(
-                            create: (_) => ProfileBloc(repository: ProfileRepository())
-                              ..add(const LoadProfile('')),
-                            child: const ProfilePage(),
+              ),
+              Positioned(
+                bottom: 120,
+                left: 0,
+                right: 0,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    if (state.hasActiveRental)
+                      ElevatedButton.icon(
+                        icon: const Icon(Icons.assignment_return, size: 30),
+                        label: const Text("Ir a devolución"),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.white60,
+                          foregroundColor: const Color(0xFF004D63),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 30,
+                            vertical: 15,
                           ),
                         ),
-                      );
-                      await _ensureScanner(true);
-                    },
-                    icon: const CircleAvatar(
-                      radius: 16,
-                      backgroundColor: Colors.white24,
-                      backgroundImage: AssetImage('assets/images/profile.png'),
-                    ),
-                  ),
-                ],
-              ),
-              endDrawer: AppDrawer(),
+                        onPressed: () async {
+                          await _ensureScanner(false);
 
-              body: Stack(
-                children: [
-                  MobileScanner(
-                    controller: _scanner,
-                    fit: BoxFit.cover,
-                    onDetect: (capture) async {
-                      if (state.loading || state.hasActiveRental) return;
+                          GpsCoord position = widget.userPosition ??
+                              (() {
+                                return GpsCoord(latitude: 0, longitude: 0);
+                              }());
 
-                      final now = DateTime.now();
-                      if (_ignoreDetectionsUntil != null &&
-                          now.isBefore(_ignoreDetectionsUntil!)) {
-                        return;
-                      }
+                          if (widget.userPosition == null) {
+                            final pos = await LocationService.getPosition();
+                            if (pos != null) {
+                              position = GpsCoord(latitude: pos.latitude, longitude: pos.longitude);
+                            }
+                          }
 
-                      final raw = capture.barcodes.isNotEmpty
-                          ? capture.barcodes.first.rawValue
-                          : null;
-                      if (raw == null) return;
-
-                      await _ensureScanner(false);
-                      context.read<RentBloc>().add(RentStartWithQr(raw));
-                    },
-                  ),
-                  Align(
-                    alignment: Alignment.center,
-                    child: Container(
-                      width: MediaQuery.of(context).size.width * 0.78,
-                      height: MediaQuery.of(context).size.width * 0.58,
-                      decoration: BoxDecoration(
-                        color: Colors.transparent,
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: const Color(0xFF28BCEF), width: 3),
-                        boxShadow: const [
-                          BoxShadow(
-                            color: Colors.black26,
-                            blurRadius: 8,
-                            spreadRadius: 1,
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  Positioned(
-                    bottom: 120,
-                    left: 0,
-                    right: 0,
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        if (state.hasActiveRental)
-                          ElevatedButton.icon(
-                            icon: const Icon(Icons.assignment_return, size: 30),
-                            label: const Text("Ir a devolución"),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.white60,
-                              foregroundColor: const Color(0xFF004D63),
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 30,
-                                vertical: 15,
-                              ),
-                            ),
-                            onPressed: () async {
-                              await _goToReturnFlow();
-                            },
-                          ),
-                        const SizedBox(width: 12),
-                        if (!state.hasActiveRental)
-                          ElevatedButton.icon(
-                            icon: const Icon(Icons.contactless, size: 30),
-                            label: const Text("Rentar con NFC"),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.white,
-                              foregroundColor: const Color(0xFF004D63),
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 30,
-                                vertical: 15,
-                              ),
-                            ),
-                            onPressed: state.nfcBusy ? null : _handleNfc,
-                          ),
-                      ],
-                    ),
-                  ),
-
-                  Positioned(
-                    right: 16,
-                    bottom: kBottomNavigationBarHeight + MediaQuery.of(context).padding.bottom,
-                    child: BlocBuilder<VoiceBloc, VoiceState>(
-                      builder: (context, vstate) {
-                        return FloatingActionButton.extended(
-                          heroTag: 'voice-mic',
-                          onPressed: () {
-                            final bloc = context.read<VoiceBloc>();
-                            vstate.isListening
-                                ? bloc.add(const VoiceStopRequested())
-                                : bloc.add(const VoiceStartRequested());
-                          },
-                          icon: Icon(vstate.isListening ? Icons.mic : Icons.mic_none),
-                          label: Text(vstate.isListening ? 'Escuchando…' : 'Hablar'),
-                        );
-                      },
-                    ),
-                  ),
-
-                  if (state.loading) const Center(child: CircularProgressIndicator()),
-                ],
-              ),
-
-              bottomNavigationBar: BottomAppBar(
-                shape: const CircularNotchedRectangle(),
-                color: const Color(0xFF90E0EF),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceAround,
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.all(14),
-                      child: IconButton(
-                        icon: const Icon(Icons.home, color: Colors.black),
-                        onPressed: () {
-                          Navigator.push(
+                          final reset = await Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (_) => BlocProvider(
-                                create: (_) => HomeBloc(),
-                                child: const HomePage(),
-                              ),
-                            ),
-                          );
                               builder: (_) => MultiRepositoryProvider(
                                 providers: [
                                   RepositoryProvider(
@@ -589,41 +403,85 @@ class _RentPageState extends State<RentPage> {
                           await _ensureScanner(true);
                         },
                       ),
-                    ),
-                    const SizedBox(width: 48),
-                    Padding(
-                      padding: const EdgeInsets.all(14),
-                      child: Builder(
-                        builder: (context) => IconButton(
-                          icon: const Icon(Icons.menu, color: Colors.black),
-                          onPressed: () => Scaffold.of(context).openEndDrawer(),
+                    const SizedBox(width: 12),
+                    if (!state.hasActiveRental)
+                      ElevatedButton.icon(
+                        icon: const Icon(Icons.contactless, size: 30),
+                        label: const Text("Rentar con NFC"),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.white,
+                          foregroundColor: const Color(0xFF004D63),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 30,
+                            vertical: 15,
+                          ),
                         ),
+                        onPressed: state.nfcBusy ? null : _handleNfc,
                       ),
-                    ),
                   ],
                 ),
               ),
+              if (state.loading)
+                const Center(child: CircularProgressIndicator()),
+            ],
+          ),
 
-              floatingActionButton: SizedBox(
-                width: 76,
-                height: 76,
-                child: FloatingActionButton(
-                  backgroundColor: Colors.transparent,
-                  elevation: 6,
-                  shape: const CircleBorder(),
-                  onPressed: () {}, 
-                  child: Image.asset(
-                    'assets/images/home_button.png',
-                    width: 200,
-                    height: 200,
+          bottomNavigationBar: BottomAppBar(
+            shape: const CircularNotchedRectangle(),
+            color: const Color(0xFF90E0EF),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.all(14),
+                  child: IconButton(
+                    icon: const Icon(Icons.home, color: Colors.black),
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => BlocProvider(
+                            create: (_) => HomeBloc(),
+                            child: const HomePage(),
+                          ),
+                        ),
+                      );
+                    },
                   ),
                 ),
-              ),
-              floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
+                const SizedBox(width: 48),
+                Padding(
+                  padding: const EdgeInsets.all(14),
+                  child: Builder(
+                    builder: (context) => IconButton(
+                      icon: const Icon(Icons.menu, color: Colors.black),
+                      onPressed: () => Scaffold.of(context).openEndDrawer(),
+                    ),
+                  ),
+                ),
+              ],
             ),
-          );
-        },
-      ),
+          ),
+
+          floatingActionButton: SizedBox(
+            width: 76,
+            height: 76,
+            child: FloatingActionButton(
+              backgroundColor: Colors.transparent,
+              elevation: 6,
+              shape: const CircleBorder(),
+              onPressed: () {},
+              child: Image.asset(
+                'assets/images/home_button.png',
+                width: 200,
+                height: 200,
+              ),
+            ),
+          ),
+          floatingActionButtonLocation:
+              FloatingActionButtonLocation.centerDocked,
+        );
+      },
     );
   }
 

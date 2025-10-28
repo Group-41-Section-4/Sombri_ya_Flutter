@@ -14,10 +14,6 @@ import 'core/services/secure_storage_service.dart';
 import 'data/repositories/auth_repository.dart';
 import 'presentation/blocs/auth/auth_bloc.dart';
 
-import 'core/services/voice_command_service.dart';
-import 'presentation/blocs/voice/voice_bloc.dart';
-import 'presentation/blocs/voice/voice_event.dart';
-
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
 void main() async {
