@@ -15,6 +15,34 @@ import '../home/home_page.dart';
 import '../../presentation/blocs/home/home_bloc.dart';
 import '../notifications/notifications_page.dart';
 import '../../widgets/app_drawer.dart';
+
+String bytesToHexColonUpper(Uint8List bytes) =>
+    bytes.map((b) => b.toRadixString(16).padLeft(2, '0')).join(':').toUpperCase();
+
+Uint8List? _extractRawIdFromTagData(Map<dynamic, dynamic> tagData) {
+  if (tagData.containsKey('nfca')) {
+    final nfca = tagData['nfca'];
+    final raw = (nfca is Map) ? nfca['identifier'] : null;
+    if (raw is Uint8List) return raw;
+    if (raw is List) return Uint8List.fromList(raw.cast<int>());
+  }
+  if (tagData.containsKey('mifareclassic')) {
+    final mifare = tagData['mifareclassic'];
+    final raw = (mifare is Map) ? mifare['identifier'] : null;
+    if (raw is Uint8List) return raw;
+    if (raw is List) return Uint8List.fromList(raw.cast<int>());
+  }
+  for (final e in tagData.entries) {
+    final v = e.value;
+    if (v is Map && v['identifier'] != null) {
+      final raw = v['identifier'];
+      if (raw is Uint8List) return raw;
+      if (raw is List) return Uint8List.fromList(raw.cast<int>());
+    }
+  }
+  return null;
+}
+
 class ReturnPage extends StatefulWidget {
   final GpsCoord userPosition;
   const ReturnPage({super.key, required this.userPosition});
@@ -48,20 +76,15 @@ class _ReturnPageState extends State<ReturnPage> {
     try { await NfcManager.instance.stopSession(); } catch (_) {}
     await Future.delayed(const Duration(milliseconds: 150));
     context.read<ReturnBloc>().add(ReturnClearMessage());
-
     NfcManager.instance.startSession(
       pollingOptions: {NfcPollingOption.iso14443},
       onDiscovered: (NfcTag tag) async {
         try {
-          Uint8List? id;
-          final nfca = NfcA.from(tag);
-          if (nfca != null) {
-            id = nfca.identifier;
-          } else {
-            final iso = IsoDep.from(tag);
-            if (iso != null) id = iso.identifier;
-          }
-          if (id == null) {
+          await _ensureScanner(false);
+          final tagData = tag.data;
+          Uint8List? rawId = NfcA.from(tag)?.identifier ?? IsoDep.from(tag)?.identifier;
+          rawId ??= _extractRawIdFromTagData(tagData);
+          if (rawId == null) {
             ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
               content: Text("No se pudo leer el ID del tag NFC"),
               backgroundColor: Colors.red,
@@ -71,9 +94,9 @@ class _ReturnPageState extends State<ReturnPage> {
             await _ensureScanner(true);
             return;
           }
-
-          final uid = id.map((b) => b.toRadixString(16).padLeft(2, '0')).join(':').toUpperCase();
+          final uid = bytesToHexColonUpper(rawId);
           context.read<ReturnBloc>().add(ReturnWithNfc(uid));
+          await NfcManager.instance.stopSession();
         } catch (e) {
           ScaffoldMessenger.of(context).showSnackBar(SnackBar(
             content: Text("Error en NFC: $e"),
@@ -91,13 +114,12 @@ class _ReturnPageState extends State<ReturnPage> {
   Widget build(BuildContext context) {
     return BlocConsumer<ReturnBloc, ReturnState>(
       listenWhen: (prev, curr) =>
-          prev.loading != curr.loading ||
+      prev.loading != curr.loading ||
           prev.ended != curr.ended ||
           prev.message != curr.message ||
           prev.error != curr.error,
       listener: (context, state) async {
         await _ensureScanner(!state.loading && !state.nfcBusy);
-
         if (state.message != null) {
           ScaffoldMessenger.of(context).showSnackBar(SnackBar(
             content: Text(state.message!),
@@ -114,7 +136,6 @@ class _ReturnPageState extends State<ReturnPage> {
           ));
           context.read<ReturnBloc>().add(ReturnClearMessage());
         }
-
         if (state.ended) {
           if (mounted) Navigator.pop(context, "returned");
         }
@@ -126,12 +147,20 @@ class _ReturnPageState extends State<ReturnPage> {
             backgroundColor: scheme.primary,
             centerTitle: true,
             foregroundColor: scheme.onPrimary,
-            title: Text('Devolver sombrilla',
+            title: Text(
+              'Devolver sombrilla',
               style: GoogleFonts.cormorantGaramond(
-                  fontSize: 22, fontWeight: FontWeight.bold, color: scheme.onPrimary)),
+                fontSize: 22,
+                fontWeight: FontWeight.bold,
+                color: scheme.onPrimary,
+              ),
+            ),
             leading: IconButton(
-              icon:  Icon(Icons.notifications_none, color: scheme.onPrimary),
-              onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const NotificationsPage())),
+              icon: Icon(Icons.notifications_none, color: scheme.onPrimary),
+              onPressed: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const NotificationsPage()),
+              ),
             ),
           ),
           endDrawer: AppDrawer(),
@@ -169,7 +198,7 @@ class _ReturnPageState extends State<ReturnPage> {
                         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
                         decoration: BoxDecoration(color: Colors.black54, borderRadius: BorderRadius.circular(25)),
                         child: const Text('Apunta la cámara al QR para devolver',
-                          style: TextStyle(color: Colors.white, fontSize: 16)),
+                            style: TextStyle(color: Colors.white, fontSize: 16)),
                       ),
                       const SizedBox(height: 15),
                       ElevatedButton.icon(
@@ -199,9 +228,12 @@ class _ReturnPageState extends State<ReturnPage> {
                 IconButton(
                   icon: const Icon(Icons.home, color: Colors.black),
                   onPressed: () {
-                    Navigator.push(context, MaterialPageRoute(
-                      builder: (_) => BlocProvider(create: (_) => HomeBloc(), child: const HomePage()),
-                    ));
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => BlocProvider(create: (_) => HomeBloc(), child: const HomePage()),
+                      ),
+                    );
                   },
                 ),
                 const SizedBox(width: 48),

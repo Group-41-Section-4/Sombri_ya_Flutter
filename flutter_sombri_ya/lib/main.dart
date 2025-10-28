@@ -61,9 +61,8 @@ class SplashScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
     return Scaffold(
-      backgroundColor: scheme.primary,
+      backgroundColor: const Color(0xFF90E0EF),
       body: SafeArea(
         child: SingleChildScrollView(
           child: ConstrainedBox(

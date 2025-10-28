@@ -8,13 +8,11 @@ import 'package:nfc_manager/platform_tags.dart';
 
 import '../../data/models/gps_coord.dart';
 import '../../data/repositories/rental_repository.dart';
-
 import '../../presentation/blocs/notifications/notifications_bloc.dart';
 import '../../presentation/blocs/notifications/notifications_event.dart';
 import '../../presentation/blocs/rent/rent_bloc.dart';
 import '../../presentation/blocs/rent/rent_event.dart';
 import '../../presentation/blocs/rent/rent_state.dart';
-
 import '../home/home_page.dart';
 import '../../presentation/blocs/home/home_bloc.dart';
 import '../notifications/notifications_page.dart';
@@ -22,28 +20,45 @@ import '../profile/profile_page.dart';
 import '../../data/repositories/profile_repository.dart';
 import '../../presentation/blocs/profile/profile_bloc.dart';
 import '../../presentation/blocs/profile/profile_event.dart';
-
 import '../../widgets/app_drawer.dart';
 import '../return/return_page.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../../presentation/blocs/return/return_bloc.dart';
 import '../../presentation/blocs/return/return_event.dart';
-
 import '../../services/location_service.dart';
+
+String bytesToHexColonUpper(Uint8List bytes) =>
+    bytes.map((b) => b.toRadixString(16).padLeft(2, '0')).join(':').toUpperCase();
+
+Uint8List? _extractRawIdFromTagData(Map<dynamic, dynamic> tagData) {
+  if (tagData.containsKey('nfca')) {
+    final nfca = tagData['nfca'];
+    final raw = (nfca is Map) ? nfca['identifier'] : null;
+    if (raw is Uint8List) return raw;
+    if (raw is List) return Uint8List.fromList(raw.cast<int>());
+  }
+  if (tagData.containsKey('mifareclassic')) {
+    final mifare = tagData['mifareclassic'];
+    final raw = (mifare is Map) ? mifare['identifier'] : null;
+    if (raw is Uint8List) return raw;
+    if (raw is List) return Uint8List.fromList(raw.cast<int>());
+  }
+  for (final e in tagData.entries) {
+    final v = e.value;
+    if (v is Map && v['identifier'] != null) {
+      final raw = v['identifier'];
+      if (raw is Uint8List) return raw;
+      if (raw is List) return Uint8List.fromList(raw.cast<int>());
+    }
+  }
+  return null;
+}
 
 class RentPage extends StatefulWidget {
   static const routeName = '/rent';
-
   final GpsCoord? userPosition;
-
   final String? suggestedStationId;
-
-  const RentPage({
-    super.key,
-    this.userPosition,
-    this.suggestedStationId,
-  });
-
+  const RentPage({super.key, this.userPosition, this.suggestedStationId});
   @override
   State<RentPage> createState() => _RentPageState();
 }
@@ -51,9 +66,7 @@ class RentPage extends StatefulWidget {
 class _RentPageState extends State<RentPage> {
   final MobileScannerController _scanner = MobileScannerController();
   bool _weStoppedScanner = true;
-
   DateTime? _ignoreDetectionsUntil;
-
   String? _stationIdFromArgs;
 
   @override
@@ -75,7 +88,6 @@ class _RentPageState extends State<RentPage> {
 
   Future<void> _ensureScanner(bool shouldRun) async {
     if (!mounted) return;
-
     if (shouldRun) {
       if (_weStoppedScanner) {
         try {
@@ -95,27 +107,20 @@ class _RentPageState extends State<RentPage> {
 
   Future<void> _handleNfc() async {
     await _ensureScanner(false);
-
     try {
       await NfcManager.instance.stopSession();
     } catch (_) {}
     await Future.delayed(const Duration(milliseconds: 150));
-
     context.read<RentBloc>().add(const RentClearMessage());
-
     NfcManager.instance.startSession(
       pollingOptions: {NfcPollingOption.iso14443},
       onDiscovered: (NfcTag tag) async {
         try {
-          Uint8List? id;
-          final nfca = NfcA.from(tag);
-          if (nfca != null) {
-            id = nfca.identifier;
-          } else {
-            final iso = IsoDep.from(tag);
-            if (iso != null) id = iso.identifier;
-          }
-          if (id == null) {
+          await _ensureScanner(false);
+          final tagData = tag.data;
+          Uint8List? rawId = NfcA.from(tag)?.identifier ?? IsoDep.from(tag)?.identifier;
+          rawId ??= _extractRawIdFromTagData(tagData);
+          if (rawId == null) {
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(
                 content: Text("No se pudo leer el ID del tag NFC"),
@@ -127,12 +132,10 @@ class _RentPageState extends State<RentPage> {
             await _ensureScanner(true);
             return;
           }
-
-          final uid = id
-              .map((b) => b.toRadixString(16).padLeft(2, '0'))
-              .join(':')
-              .toUpperCase();
+          final uid = bytesToHexColonUpper(rawId);
+          debugPrint('[RENT][NFC] uid=$uid');
           context.read<RentBloc>().add(RentStartWithNfc(uid));
+          await NfcManager.instance.stopSession();
         } catch (e) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
@@ -153,17 +156,14 @@ class _RentPageState extends State<RentPage> {
     final scheme = Theme.of(context).colorScheme;
     return BlocConsumer<RentBloc, RentState>(
       listenWhen: (prev, curr) =>
-          prev.loading != curr.loading ||
+      prev.loading != curr.loading ||
           prev.message != curr.message ||
           prev.error != curr.error ||
           prev.hasActiveRental != curr.hasActiveRental,
       listener: (context, state) async {
         await _ensureScanner(!state.loading && !state.nfcBusy);
-
         if (state.message != null) {
-          _ignoreDetectionsUntil = DateTime.now().add(
-            const Duration(milliseconds: 800),
-          );
+          _ignoreDetectionsUntil = DateTime.now().add(const Duration(milliseconds: 800));
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(state.message!),
@@ -174,23 +174,16 @@ class _RentPageState extends State<RentPage> {
           context.read<RentBloc>().add(const RentClearMessage());
           return;
         }
-
         if (state.error != null) {
           final err = state.error!.toLowerCase();
-          final isAlreadyActive =
-              err.contains('ya tienes una sombrilla') ||
+          final isAlreadyActive = err.contains('ya tienes una sombrilla') ||
               err.contains('ya tenías una sombrilla') ||
               err.contains('already has an active rental');
-
           if (isAlreadyActive) {
-            _ignoreDetectionsUntil = DateTime.now().add(
-              const Duration(milliseconds: 800),
-            );
+            _ignoreDetectionsUntil = DateTime.now().add(const Duration(milliseconds: 800));
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(
-                content: Text(
-                  "Ya tenías una sombrilla activa. Te llevo a devolución.",
-                ),
+                content: Text("Ya tenías una sombrilla activa. Te llevo a devolución."),
                 backgroundColor: Colors.green,
                 duration: Duration(seconds: 2),
               ),
@@ -198,7 +191,6 @@ class _RentPageState extends State<RentPage> {
             context.read<RentBloc>().add(const RentClearMessage());
             return;
           }
-
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(state.error!),
@@ -224,7 +216,7 @@ class _RentPageState extends State<RentPage> {
               ),
             ),
             leading: IconButton(
-              icon:  Icon(Icons.notifications_none, color: scheme.onPrimary),
+              icon: Icon(Icons.notifications_none, color: scheme.onPrimary),
               onPressed: () async {
                 final storage = const FlutterSecureStorage();
                 final userId = await storage.read(key: 'user_id');
@@ -259,8 +251,7 @@ class _RentPageState extends State<RentPage> {
                     MaterialPageRoute(
                       builder: (_) => BlocProvider(
                         create: (_) =>
-                            ProfileBloc(repository: ProfileRepository())
-                              ..add(const LoadProfile('')),
+                        ProfileBloc(repository: ProfileRepository())..add(const LoadProfile('')),
                         child: const ProfilePage(),
                       ),
                     ),
@@ -276,7 +267,6 @@ class _RentPageState extends State<RentPage> {
             ],
           ),
           endDrawer: AppDrawer(),
-
           body: Stack(
             children: [
               MobileScanner(
@@ -284,18 +274,12 @@ class _RentPageState extends State<RentPage> {
                 fit: BoxFit.cover,
                 onDetect: (capture) async {
                   if (state.loading || state.hasActiveRental) return;
-
                   final now = DateTime.now();
-                  if (_ignoreDetectionsUntil != null &&
-                      now.isBefore(_ignoreDetectionsUntil!)) {
+                  if (_ignoreDetectionsUntil != null && now.isBefore(_ignoreDetectionsUntil!)) {
                     return;
                   }
-
-                  final raw = capture.barcodes.isNotEmpty
-                      ? capture.barcodes.first.rawValue
-                      : null;
+                  final raw = capture.barcodes.isNotEmpty ? capture.barcodes.first.rawValue : null;
                   if (raw == null) return;
-
                   await _ensureScanner(false);
                   context.read<RentBloc>().add(RentStartWithQr(raw));
                 },
@@ -308,17 +292,8 @@ class _RentPageState extends State<RentPage> {
                   decoration: BoxDecoration(
                     color: Colors.transparent,
                     borderRadius: BorderRadius.circular(8),
-                    border: Border.all(
-                      color: const Color(0xFF28BCEF),
-                      width: 3,
-                    ),
-                    boxShadow: const [
-                      BoxShadow(
-                        color: Colors.black26,
-                        blurRadius: 8,
-                        spreadRadius: 1,
-                      ),
-                    ],
+                    border: Border.all(color: const Color(0xFF28BCEF), width: 3),
+                    boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 8, spreadRadius: 1)],
                   ),
                 ),
               ),
@@ -336,71 +311,42 @@ class _RentPageState extends State<RentPage> {
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.white60,
                           foregroundColor: const Color(0xFF004D63),
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 30,
-                            vertical: 15,
-                          ),
+                          padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 15),
                         ),
                         onPressed: () async {
                           await _ensureScanner(false);
-
-                          GpsCoord position = widget.userPosition ??
-                              (() {
-                                return GpsCoord(latitude: 0, longitude: 0);
-                              }());
-
+                          GpsCoord position = widget.userPosition ?? GpsCoord(latitude: 0, longitude: 0);
                           if (widget.userPosition == null) {
                             final pos = await LocationService.getPosition();
                             if (pos != null) {
                               position = GpsCoord(latitude: pos.latitude, longitude: pos.longitude);
                             }
                           }
-
                           final reset = await Navigator.push(
                             context,
                             MaterialPageRoute(
                               builder: (_) => MultiRepositoryProvider(
                                 providers: [
                                   RepositoryProvider(
-                                    create: (_) => RentalRepository(
-                                      storage: const FlutterSecureStorage(),
-                                    ),
+                                    create: (_) => RentalRepository(storage: const FlutterSecureStorage()),
                                   ),
-                                  RepositoryProvider(
-                                    create: (_) => ProfileRepository(),
-                                  ),
+                                  RepositoryProvider(create: (_) => ProfileRepository()),
                                 ],
                                 child: BlocProvider(
                                   create: (ctx) => ReturnBloc(
-                                    repo:
-                                        RepositoryProvider.of<RentalRepository>(
-                                          ctx,
-                                        ),
-                                    profileRepo:
-                                        RepositoryProvider.of<
-                                          ProfileRepository
-                                        >(ctx),
+                                    repo: RepositoryProvider.of<RentalRepository>(ctx),
+                                    profileRepo: RepositoryProvider.of<ProfileRepository>(ctx),
                                   )..add(const ReturnInit()),
-                                  child: ReturnPage(
-                                    userPosition: position,
-                                  ),
+                                  child: ReturnPage(userPosition: position),
                                 ),
                               ),
                             ),
                           );
-
                           if (reset == "returned") {
-                            _ignoreDetectionsUntil = DateTime.now().add(
-                              const Duration(milliseconds: 1500),
-                            );
-                            context.read<RentBloc>().add(
-                              const RentRefreshActive(),
-                            );
-                            await Future.delayed(
-                              const Duration(milliseconds: 350),
-                            );
+                            _ignoreDetectionsUntil = DateTime.now().add(const Duration(milliseconds: 1500));
+                            context.read<RentBloc>().add(const RentRefreshActive());
+                            await Future.delayed(const Duration(milliseconds: 350));
                           }
-
                           await _ensureScanner(true);
                         },
                       ),
@@ -412,21 +358,16 @@ class _RentPageState extends State<RentPage> {
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.white,
                           foregroundColor: const Color(0xFF004D63),
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 30,
-                            vertical: 15,
-                          ),
+                          padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 15),
                         ),
                         onPressed: state.nfcBusy ? null : _handleNfc,
                       ),
                   ],
                 ),
               ),
-              if (state.loading)
-                const Center(child: CircularProgressIndicator()),
+              if (state.loading) const Center(child: CircularProgressIndicator()),
             ],
           ),
-
           bottomNavigationBar: BottomAppBar(
             shape: const CircularNotchedRectangle(),
             color: scheme.primary,
@@ -436,15 +377,12 @@ class _RentPageState extends State<RentPage> {
                 Padding(
                   padding: const EdgeInsets.all(14),
                   child: IconButton(
-                    icon:  Icon(Icons.home, color: scheme.onPrimary),
+                    icon: Icon(Icons.home, color: scheme.onPrimary),
                     onPressed: () {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (_) => BlocProvider(
-                            create: (_) => HomeBloc(),
-                            child: const HomePage(),
-                          ),
+                          builder: (_) => BlocProvider(create: (_) => HomeBloc(), child: const HomePage()),
                         ),
                       );
                     },
@@ -455,7 +393,7 @@ class _RentPageState extends State<RentPage> {
                   padding: const EdgeInsets.all(14),
                   child: Builder(
                     builder: (context) => IconButton(
-                      icon:  Icon(Icons.menu, color: scheme.onPrimary),
+                      icon: Icon(Icons.menu, color: scheme.onPrimary),
                       onPressed: () => Scaffold.of(context).openEndDrawer(),
                     ),
                   ),
@@ -463,7 +401,6 @@ class _RentPageState extends State<RentPage> {
               ],
             ),
           ),
-
           floatingActionButton: SizedBox(
             width: 76,
             height: 76,
@@ -472,15 +409,10 @@ class _RentPageState extends State<RentPage> {
               elevation: 6,
               shape: const CircleBorder(),
               onPressed: () {},
-              child: Image.asset(
-                'assets/images/home_button.png',
-                width: 200,
-                height: 200,
-              ),
+              child: Image.asset('assets/images/home_button.png', width: 200, height: 200),
             ),
           ),
-          floatingActionButtonLocation:
-              FloatingActionButtonLocation.centerDocked,
+          floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
         );
       },
     );
