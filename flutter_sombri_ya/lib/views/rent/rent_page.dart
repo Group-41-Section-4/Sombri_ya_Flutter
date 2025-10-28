@@ -38,11 +38,7 @@ class RentPage extends StatefulWidget {
 
   final String? suggestedStationId;
 
-  const RentPage({
-    super.key,
-    this.userPosition,
-    this.suggestedStationId,
-  });
+  const RentPage({super.key, this.userPosition, this.suggestedStationId});
 
   @override
   State<RentPage> createState() => _RentPageState();
@@ -225,6 +221,7 @@ class _RentPageState extends State<RentPage> {
             leading: IconButton(
               icon: const Icon(Icons.notifications_none),
               onPressed: () async {
+                await _ensureScanner(false);
                 final storage = const FlutterSecureStorage();
                 final userId = await storage.read(key: 'user_id');
                 if (userId == null || !context.mounted) {
@@ -234,6 +231,7 @@ class _RentPageState extends State<RentPage> {
                       backgroundColor: Colors.red,
                     ),
                   );
+                  await _ensureScanner(true);
                   return;
                 }
                 Navigator.push(
@@ -247,23 +245,28 @@ class _RentPageState extends State<RentPage> {
                     ),
                   ),
                 );
+                await _ensureScanner(true);
               },
             ),
             actions: [
               IconButton(
                 onPressed: () async {
                   await _ensureScanner(false);
-                  await Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => BlocProvider(
-                        create: (_) =>
-                            ProfileBloc(repository: ProfileRepository())
-                              ..add(const LoadProfile('')),
-                        child: const ProfilePage(),
+                  final storage = const FlutterSecureStorage();
+                  final userId = await storage.read(key: 'user_id');
+                  if (userId == null || !context.mounted) {
+                    await Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => BlocProvider(
+                          create: (_) =>
+                              ProfileBloc(repository: ProfileRepository())
+                                ..add(LoadProfile(userId!)),
+                          child: const ProfilePage(),
+                        ),
                       ),
-                    ),
-                  );
+                    );
+                  }
                   await _ensureScanner(true);
                 },
                 icon: const CircleAvatar(
@@ -343,7 +346,8 @@ class _RentPageState extends State<RentPage> {
                         onPressed: () async {
                           await _ensureScanner(false);
 
-                          GpsCoord position = widget.userPosition ??
+                          GpsCoord position =
+                              widget.userPosition ??
                               (() {
                                 return GpsCoord(latitude: 0, longitude: 0);
                               }());
@@ -351,7 +355,10 @@ class _RentPageState extends State<RentPage> {
                           if (widget.userPosition == null) {
                             final pos = await LocationService.getPosition();
                             if (pos != null) {
-                              position = GpsCoord(latitude: pos.latitude, longitude: pos.longitude);
+                              position = GpsCoord(
+                                latitude: pos.latitude,
+                                longitude: pos.longitude,
+                              );
                             }
                           }
 
@@ -380,9 +387,7 @@ class _RentPageState extends State<RentPage> {
                                           ProfileRepository
                                         >(ctx),
                                   )..add(const ReturnInit()),
-                                  child: ReturnPage(
-                                    userPosition: position,
-                                  ),
+                                  child: ReturnPage(userPosition: position),
                                 ),
                               ),
                             ),
