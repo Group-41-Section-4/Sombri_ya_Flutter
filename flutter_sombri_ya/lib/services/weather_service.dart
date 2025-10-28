@@ -1,6 +1,8 @@
+
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import 'package:flutter_sombri_ya/config/openweather_config.dart ';
+import 'package:flutter_sombri_ya/config/openweather_config.dart';
+import '../data/models/weather_models.dart';
 
 class WeatherService {
   final String apiKey;
@@ -43,5 +45,40 @@ class WeatherService {
       }
     }
     return false;
+  }
+
+
+  Future<SimpleWeather?> snapshot(double lat, double lng) async {
+    final uri = Uri.parse(
+      '$_baseUrl?lat=$lat&lon=$lng&exclude=minutely,daily,alerts&units=metric&appid=$apiKey',
+    );
+    final resp = await http.get(uri).timeout(const Duration(seconds: 10));
+    if (resp.statusCode != 200) return null;
+
+    final data = json.decode(resp.body) as Map<String, dynamic>;
+
+    final current = Map<String, dynamic>.from(data['current'] ?? {});
+    final dt = (current['dt'] as num?)?.toInt();
+    final sunrise = (current['sunrise'] as num?)?.toInt();
+    final sunset = (current['sunset'] as num?)?.toInt();
+    final bool isNight = (dt != null && sunrise != null && sunset != null)
+        ? (dt < sunrise || dt > sunset)
+        : false;
+
+    int code = 800;
+    if (current['weather'] is List && (current['weather'] as List).isNotEmpty) {
+      code = (current['weather'][0]['id'] as num?)?.toInt() ?? 800;
+    } else if (data['hourly'] is List && (data['hourly'] as List).isNotEmpty) {
+      final h0 = Map<String, dynamic>.from(data['hourly'][0]);
+      if (h0['weather'] is List && (h0['weather'] as List).isNotEmpty) {
+        code = (h0['weather'][0]['id'] as num?)?.toInt() ?? 800;
+      }
+    }
+
+    return SimpleWeather(
+      condition: conditionFromOpenWeather(code),
+      isNight: isNight,
+      code: code,
+    );
   }
 }

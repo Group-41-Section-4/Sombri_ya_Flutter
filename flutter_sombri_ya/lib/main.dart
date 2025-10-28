@@ -6,7 +6,7 @@ import 'views/auth/login_page.dart';
 
 import 'services/notification_service.dart';
 import 'services/rain_alert_scheduler.dart';
-import 'views/rent/rent_page.dart'; 
+import 'views/rent/rent_page.dart';
 
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'core/providers/api_provider.dart';
@@ -22,7 +22,7 @@ void main() async {
   await NfcManager.instance.isAvailable();
 
   await NotificationService.init(onTap: (payload) async {
-    if (payload == null) return; 
+    if (payload == null) return;
     navigatorKey.currentState?.pushNamed(
       RentPage.routeName,
       arguments: {'stationId': payload},
@@ -43,7 +43,7 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'Sombri-Ya',
       debugShowCheckedModeBanner: false,
-      navigatorKey: navigatorKey, 
+      navigatorKey: navigatorKey,
       theme: ThemeData(
         useMaterial3: true,
         colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF28BCEF)),
@@ -61,8 +61,9 @@ class SplashScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Scaffold(
-      backgroundColor: const Color(0xFF90E0EF),
+      backgroundColor: scheme.primary,
       body: SafeArea(
         child: SingleChildScrollView(
           child: ConstrainedBox(
@@ -125,16 +126,6 @@ class SplashScreen extends StatelessWidget {
                       ),
                     ),
 
-                    // ElevatedButton(
-                    //   onPressed: () async {
-                    //     await NotificationService.showRainAlert(
-                    //       title: '🔔 Test notificación',
-                    //       body: 'Si ves esto, las notificaciones están OK',
-                    //       payload: 'test-station-id',
-                    //     );
-                    //   },
-                    //   child: const Text('🔔 Test notificación directa'),
-                    // ),
 
                     const Spacer(flex: 3),
                   ],

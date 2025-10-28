@@ -81,16 +81,17 @@ class _HistoryPageState extends State<HistoryPage> {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return BlocProvider.value(
       value: _bloc,
       child: Scaffold(
         appBar: AppBar(
-          backgroundColor: const Color(0xFF90E0EF),
+          backgroundColor: scheme.primary,
           centerTitle: true,
           title: Text(
             "Historial",
             style: GoogleFonts.cormorantGaramond(
-              color: Colors.black, fontSize: 24, fontWeight: FontWeight.bold,
+              color: scheme.onPrimary, fontSize: 24, fontWeight: FontWeight.bold,
             ),
           ),
           leading: IconButton(

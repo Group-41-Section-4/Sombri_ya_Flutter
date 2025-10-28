@@ -325,6 +325,7 @@ class _ProfilePageState extends State<ProfilePage> {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return BlocProvider.value(
       value: _bloc,
       child: Scaffold(
@@ -333,13 +334,13 @@ class _ProfilePageState extends State<ProfilePage> {
           title: Text(
             'Cuenta',
             style: GoogleFonts.cormorantGaramond(
-              color: Colors.black,
+              color: scheme.onPrimary,
               fontSize: 24,
               fontWeight: FontWeight.bold,
             ),
           ),
           centerTitle: true,
-          backgroundColor: const Color(0xFF90E0EF),
+          backgroundColor: scheme.primary,
           elevation: 0,
           leading: IconButton(
             icon: const Icon(Icons.arrow_back, color: Colors.black),

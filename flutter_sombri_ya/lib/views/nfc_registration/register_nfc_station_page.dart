@@ -41,13 +41,14 @@ class _RegisterViewState extends State<_RegisterView> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final scheme = Theme.of(context).colorScheme;
 
     return Scaffold(
       backgroundColor: const Color(0xFFF6FBFF),
       appBar: AppBar(
         title: const Text("Registrar NFC de estación"),
-        backgroundColor: const Color(0xFF90E0EF),
-        foregroundColor: Colors.black,
+        backgroundColor: scheme.primary,
+        foregroundColor: scheme.onPrimary,
         elevation: 0,
         centerTitle: true,
       ),
@@ -147,8 +148,8 @@ class _RegisterViewState extends State<_RegisterView> {
                                           style: const TextStyle(fontSize: 16),
                                         ),
                                         style: ElevatedButton.styleFrom(
-                                          backgroundColor: const Color(0xFF90E0EF),
-                                          foregroundColor: Colors.black,
+                                          backgroundColor: scheme.primary,
+                                          foregroundColor: scheme.onPrimary,
                                           padding: const EdgeInsets.symmetric(
                                             vertical: 14,
                                             horizontal: 16,

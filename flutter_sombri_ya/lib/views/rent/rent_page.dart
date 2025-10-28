@@ -150,6 +150,7 @@ class _RentPageState extends State<RentPage> {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return BlocConsumer<RentBloc, RentState>(
       listenWhen: (prev, curr) =>
           prev.loading != curr.loading ||
@@ -211,7 +212,7 @@ class _RentPageState extends State<RentPage> {
       builder: (context, state) {
         return Scaffold(
           appBar: AppBar(
-            backgroundColor: const Color(0xFF90E0EF),
+            backgroundColor: scheme.primary,
             centerTitle: true,
             foregroundColor: Colors.black,
             title: Text(
@@ -219,11 +220,11 @@ class _RentPageState extends State<RentPage> {
               style: GoogleFonts.cormorantGaramond(
                 fontSize: 22,
                 fontWeight: FontWeight.bold,
-                color: Colors.black,
+                color: scheme.onPrimary,
               ),
             ),
             leading: IconButton(
-              icon: const Icon(Icons.notifications_none),
+              icon:  Icon(Icons.notifications_none, color: scheme.onPrimary),
               onPressed: () async {
                 final storage = const FlutterSecureStorage();
                 final userId = await storage.read(key: 'user_id');
@@ -428,14 +429,14 @@ class _RentPageState extends State<RentPage> {
 
           bottomNavigationBar: BottomAppBar(
             shape: const CircularNotchedRectangle(),
-            color: const Color(0xFF90E0EF),
+            color: scheme.primary,
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
                 Padding(
                   padding: const EdgeInsets.all(14),
                   child: IconButton(
-                    icon: const Icon(Icons.home, color: Colors.black),
+                    icon:  Icon(Icons.home, color: scheme.onPrimary),
                     onPressed: () {
                       Navigator.push(
                         context,
@@ -454,7 +455,7 @@ class _RentPageState extends State<RentPage> {
                   padding: const EdgeInsets.all(14),
                   child: Builder(
                     builder: (context) => IconButton(
-                      icon: const Icon(Icons.menu, color: Colors.black),
+                      icon:  Icon(Icons.menu, color: scheme.onPrimary),
                       onPressed: () => Scaffold.of(context).openEndDrawer(),
                     ),
                   ),

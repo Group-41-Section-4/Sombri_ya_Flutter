@@ -50,23 +50,37 @@ class _ChatPageState extends State<ChatPage> {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Sombri-IA'),
+        backgroundColor: scheme.primary,
+        foregroundColor: scheme.onPrimary,
+        centerTitle: true,
+        title: Text(
+          'Sombri-IA',
+          style: TextStyle(
+            color: scheme.onPrimary,
+            fontSize: 24,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
         actions: [
           IconButton(
             tooltip: 'Limpiar',
             icon: const Icon(Icons.delete_outline),
-            onPressed: () => context.read<ChatBloc>().add(const ChatCleared()),
+            onPressed: () =>
+                context.read<ChatBloc>().add(const ChatCleared()),
           ),
         ],
       ),
+
       body: Column(
         children: [
           Expanded(
             child: BlocConsumer<ChatBloc, ChatState>(
               listenWhen: (p, c) =>
-                  p.history.length != c.history.length ||
+              p.history.length != c.history.length ||
                   p.streamingBuffer != c.streamingBuffer,
               listener: (_, __) => _scrollToEnd(),
               builder: (context, state) {
@@ -83,16 +97,17 @@ class _ChatPageState extends State<ChatPage> {
                   itemBuilder: (_, i) {
                     final isLastStreaming =
                         state.streamingBuffer.isNotEmpty &&
-                        i == items.length - 1;
+                            i == items.length - 1;
+
                     final m = isLastStreaming
                         ? const ChatMessage(role: 'assistant', content: '')
                         : items[i];
 
-                    final content = isLastStreaming
-                        ? state.streamingBuffer
-                        : m.content;
+                    final content =
+                    isLastStreaming ? state.streamingBuffer : m.content;
 
                     final isUser = m.role == 'user';
+
                     return Align(
                       alignment: isUser
                           ? Alignment.centerRight
@@ -103,10 +118,8 @@ class _ChatPageState extends State<ChatPage> {
                         constraints: const BoxConstraints(maxWidth: 600),
                         decoration: BoxDecoration(
                           color: isUser
-                              ? Theme.of(context).colorScheme.primaryContainer
-                              : Theme.of(
-                                  context,
-                                ).colorScheme.surfaceContainerHighest,
+                              ? scheme.primaryContainer
+                              : scheme.surfaceContainerHighest,
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: Text(content),
@@ -141,15 +154,15 @@ class _ChatPageState extends State<ChatPage> {
                             border: const OutlineInputBorder(),
                             suffixIcon: disabled
                                 ? const Padding(
-                                    padding: EdgeInsets.all(10),
-                                    child: SizedBox(
-                                      width: 18,
-                                      height: 18,
-                                      child: CircularProgressIndicator(
-                                        strokeWidth: 2,
-                                      ),
-                                    ),
-                                  )
+                              padding: EdgeInsets.all(10),
+                              child: SizedBox(
+                                width: 18,
+                                height: 18,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
+                              ),
+                            )
                                 : null,
                           ),
                         ),
@@ -157,17 +170,17 @@ class _ChatPageState extends State<ChatPage> {
                       const SizedBox(width: 8),
                       disabled
                           ? IconButton(
-                              tooltip: 'Detener',
-                              onPressed: () => context.read<ChatBloc>().add(
-                                const ChatStopRequested(),
-                              ),
-                              icon: const Icon(Icons.stop_circle_outlined),
-                            )
+                        tooltip: 'Detener',
+                        onPressed: () => context
+                            .read<ChatBloc>()
+                            .add(const ChatStopRequested()),
+                        icon: const Icon(Icons.stop_circle_outlined),
+                      )
                           : ElevatedButton.icon(
-                              onPressed: () => _send(context),
-                              icon: const Icon(Icons.send),
-                              label: const Text('Enviar'),
-                            ),
+                        onPressed: () => _send(context),
+                        icon: const Icon(Icons.send),
+                        label: const Text('Enviar'),
+                      ),
                     ],
                   );
                 },

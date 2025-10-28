@@ -120,16 +120,17 @@ class _ReturnPageState extends State<ReturnPage> {
         }
       },
       builder: (context, state) {
+        final scheme = Theme.of(context).colorScheme;
         return Scaffold(
           appBar: AppBar(
-            backgroundColor: const Color(0xFF90E0EF),
+            backgroundColor: scheme.primary,
             centerTitle: true,
-            foregroundColor: Colors.black,
+            foregroundColor: scheme.onPrimary,
             title: Text('Devolver sombrilla',
               style: GoogleFonts.cormorantGaramond(
-                  fontSize: 22, fontWeight: FontWeight.bold, color: Colors.black)),
+                  fontSize: 22, fontWeight: FontWeight.bold, color: scheme.onPrimary)),
             leading: IconButton(
-              icon: const Icon(Icons.notifications_none),
+              icon:  Icon(Icons.notifications_none, color: scheme.onPrimary),
               onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const NotificationsPage())),
             ),
           ),
