@@ -27,11 +27,14 @@ import '../../data/repositories/profile_repository.dart';
 //BloC Rent and Return
 import '../rent/rent_page.dart';
 import '../return/return_page.dart';
-import '../../presentation/blocs/rent/rent_bloc.dart';
 import '../../presentation/blocs/return/return_bloc.dart';
+import '../../presentation/blocs/rent/rent_bloc.dart';
 import '../../presentation/blocs/rent/rent_event.dart';
 import '../../presentation/blocs/return/return_event.dart';
 import '../../data/repositories/rental_repository.dart';
+
+// Services
+import '../../../core/services/pedometer_service.dart';
 
 class HomePage extends StatelessWidget {
   const HomePage({super.key});
@@ -55,6 +58,7 @@ class HomeView extends StatefulWidget {
 class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
   GoogleMapController? _mapController;
   BitmapDescriptor? _stationIcon;
+  final PedometerService _pedometer = PedometerService();
 
   @override
   void initState() {
@@ -125,13 +129,51 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
         backgroundColor: const Color(0xFF90E0EF),
         foregroundColor: Colors.black,
         centerTitle: true,
-        title: Text(
-          '',
-          style: GoogleFonts.cormorantGaramond(
-            fontSize: 22,
-            fontWeight: FontWeight.bold,
-            color: Colors.black,
-          ),
+        title: ValueListenableBuilder<bool>(
+          valueListenable: _pedometer.isTracking,
+          builder: (context, isTracking, child) {
+            if (!isTracking) {
+              return Text(
+                '',
+                style: GoogleFonts.cormorantGaramond(
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black,
+                ),
+              );
+            }
+
+            return ValueListenableBuilder<int>(
+              valueListenable: _pedometer.sessionSteps,
+              builder: (context, steps, child) {
+                return Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 8,
+                  ),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF005E7C),
+                    borderRadius: BorderRadius.circular(20),
+                    boxShadow: const [
+                      BoxShadow(
+                        color: Colors.black26,
+                        blurRadius: 4,
+                        offset: Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: Text(
+                    'PASOS: $steps',
+                    style: GoogleFonts.robotoSlab(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                  ),
+                );
+              },
+            );
+          },
         ),
         leading: IconButton(
           icon: const Icon(Icons.notifications_none),
