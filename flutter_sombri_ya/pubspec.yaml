@@ -67,6 +67,8 @@ dependencies:
   local_auth_android: ^1.0.52
   workmanager: ^0.9.0+3
   shared_preferences: ^2.5.3
+  speech_to_text: ^7.3.0
+  permission_handler: ^11.3.1
 
 
 
