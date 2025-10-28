@@ -17,6 +17,9 @@ import '../../presentation/blocs/return/return_event.dart';
 import '../../data/models/gps_coord.dart';
 import '../../services/location_service.dart';
 
+import '../../data/repositories/profile_repository.dart';
+
+
 class VoiceMicButton extends StatelessWidget {
   const VoiceMicButton({super.key});
 
@@ -59,12 +62,21 @@ class VoiceMicButton extends StatelessWidget {
 
             Navigator.of(context).push(
               MaterialPageRoute(
-                builder: (_) => RepositoryProvider(
-                  create: (_) =>
-                      RentalRepository(storage: const FlutterSecureStorage()),
+                builder: (_) => MultiRepositoryProvider(
+                  providers: [
+                    RepositoryProvider(
+                      create: (_) => RentalRepository(
+                        storage: const FlutterSecureStorage(),
+                      ),
+                    ),
+                    RepositoryProvider(
+                      create: (_) => ProfileRepository(),
+                    ),
+                  ],
                   child: BlocProvider(
                     create: (ctx) => ReturnBloc(
                       repo: RepositoryProvider.of<RentalRepository>(ctx),
+                      profileRepo: RepositoryProvider.of<ProfileRepository>(ctx),
                     )..add(const ReturnInit()),
                     child: ReturnPage(userPosition: userGps),
                   ),
