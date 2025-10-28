@@ -9,6 +9,8 @@ import 'package:nfc_manager/platform_tags.dart';
 import '../../data/models/gps_coord.dart';
 import '../../data/repositories/rental_repository.dart';
 
+import '../../presentation/blocs/notifications/notifications_bloc.dart';
+import '../../presentation/blocs/notifications/notifications_event.dart';
 import '../../presentation/blocs/rent/rent_bloc.dart';
 import '../../presentation/blocs/rent/rent_event.dart';
 import '../../presentation/blocs/rent/rent_state.dart';
@@ -120,24 +122,31 @@ class _RentPageState extends State<RentPage> {
             if (iso != null) id = iso.identifier;
           }
           if (id == null) {
-            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-              content: Text("No se pudo leer el ID del tag NFC"),
-              backgroundColor: Colors.red,
-              duration: Duration(seconds: 1),
-            ));
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text("No se pudo leer el ID del tag NFC"),
+                backgroundColor: Colors.red,
+                duration: Duration(seconds: 1),
+              ),
+            );
             await NfcManager.instance.stopSession();
             await _ensureScanner(true);
             return;
           }
 
-          final uid = id.map((b) => b.toRadixString(16).padLeft(2, '0')).join(':').toUpperCase();
+          final uid = id
+              .map((b) => b.toRadixString(16).padLeft(2, '0'))
+              .join(':')
+              .toUpperCase();
           context.read<RentBloc>().add(RentStartWithNfc(uid));
         } catch (e) {
-          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-            content: Text("Error en NFC: $e"),
-            backgroundColor: Colors.red,
-            duration: const Duration(seconds: 2),
-          ));
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text("Error en NFC: $e"),
+              backgroundColor: Colors.red,
+              duration: const Duration(seconds: 2),
+            ),
+          );
           await NfcManager.instance.stopSession();
           await _ensureScanner(true);
         }
@@ -173,6 +182,26 @@ class _RentPageState extends State<RentPage> {
             )..add(const ReturnInit()),
             child: ReturnPage(
               userPosition: position,
+  @override
+  Widget build(BuildContext context) {
+    return BlocConsumer<RentBloc, RentState>(
+      listenWhen: (prev, curr) =>
+          prev.loading != curr.loading ||
+          prev.message != curr.message ||
+          prev.error != curr.error ||
+          prev.hasActiveRental != curr.hasActiveRental,
+      listener: (context, state) async {
+        await _ensureScanner(!state.loading && !state.nfcBusy);
+
+        if (state.message != null) {
+          _ignoreDetectionsUntil = DateTime.now().add(
+            const Duration(milliseconds: 800),
+          );
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(state.message!),
+              backgroundColor: Colors.green,
+              duration: const Duration(seconds: 2),
             ),
           ),
         ),
@@ -207,6 +236,15 @@ class _RentPageState extends State<RentPage> {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Text(state.message!),
+          if (isAlreadyActive) {
+            _ignoreDetectionsUntil = DateTime.now().add(
+              const Duration(milliseconds: 800),
+            );
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text(
+                  "Ya tenías una sombrilla activa. Te llevo a devolución.",
+                ),
                 backgroundColor: Colors.green,
                 duration: const Duration(seconds: 2),
               ),
@@ -253,6 +291,72 @@ class _RentPageState extends State<RentPage> {
               switch (vstate.intent) {
                 case VoiceIntent.rentDefault:
                 case VoiceIntent.rentQR:
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(state.error!),
+              backgroundColor: Colors.red,
+              duration: const Duration(seconds: 2),
+            ),
+          );
+          context.read<RentBloc>().add(const RentClearMessage());
+        }
+      },
+      builder: (context, state) {
+        return Scaffold(
+          appBar: AppBar(
+            backgroundColor: const Color(0xFF90E0EF),
+            centerTitle: true,
+            foregroundColor: Colors.black,
+            title: Text(
+              'Rentar',
+              style: GoogleFonts.cormorantGaramond(
+                fontSize: 22,
+                fontWeight: FontWeight.bold,
+                color: Colors.black,
+              ),
+            ),
+            leading: IconButton(
+              icon: const Icon(Icons.notifications_none),
+              onPressed: () async {
+                final storage = const FlutterSecureStorage();
+                final userId = await storage.read(key: 'user_id');
+                if (userId == null || !context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('No se pudo identificar al usuario.'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                  return;
+                }
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => BlocProvider(
+                      create: (_) => NotificationsBloc()
+                        ..add(StartRentalPolling(userId))
+                        ..add(const CheckWeather()),
+                      child: const NotificationsPage(),
+                    ),
+                  ),
+                );
+              },
+            ),
+            actions: [
+              IconButton(
+                onPressed: () async {
+                  await _ensureScanner(false);
+                  await Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => BlocProvider(
+                        create: (_) =>
+                            ProfileBloc(repository: ProfileRepository())
+                              ..add(const LoadProfile('')),
+                        child: const ProfilePage(),
+                      ),
+                    ),
+                  );
                   await _ensureScanner(true);
                   break;
                 case VoiceIntent.rentNFC:
@@ -440,6 +544,49 @@ class _RentPageState extends State<RentPage> {
                               ),
                             ),
                           );
+                              builder: (_) => MultiRepositoryProvider(
+                                providers: [
+                                  RepositoryProvider(
+                                    create: (_) => RentalRepository(
+                                      storage: const FlutterSecureStorage(),
+                                    ),
+                                  ),
+                                  RepositoryProvider(
+                                    create: (_) => ProfileRepository(),
+                                  ),
+                                ],
+                                child: BlocProvider(
+                                  create: (ctx) => ReturnBloc(
+                                    repo:
+                                        RepositoryProvider.of<RentalRepository>(
+                                          ctx,
+                                        ),
+                                    profileRepo:
+                                        RepositoryProvider.of<
+                                          ProfileRepository
+                                        >(ctx),
+                                  )..add(const ReturnInit()),
+                                  child: ReturnPage(
+                                    userPosition: position,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          );
+
+                          if (reset == "returned") {
+                            _ignoreDetectionsUntil = DateTime.now().add(
+                              const Duration(milliseconds: 1500),
+                            );
+                            context.read<RentBloc>().add(
+                              const RentRefreshActive(),
+                            );
+                            await Future.delayed(
+                              const Duration(milliseconds: 350),
+                            );
+                          }
+
+                          await _ensureScanner(true);
                         },
                       ),
                     ),

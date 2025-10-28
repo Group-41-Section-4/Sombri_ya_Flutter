@@ -3,18 +3,27 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../data/repositories/rental_repository.dart';
 import 'return_event.dart';
 import 'return_state.dart';
+import '../../../core/services/pedometer_service.dart';
+import '../../../data/repositories/profile_repository.dart';
 
 class ReturnBloc extends Bloc<ReturnEvent, ReturnState> {
   final RentalRepository repo;
-  ReturnBloc({required this.repo}) : super(const ReturnState()) {
+  final ProfileRepository profileRepo;
+  final PedometerService _pedometer = PedometerService();
+  ReturnBloc({required this.repo, required this.profileRepo})
+    : super(const ReturnState()) {
     on<ReturnInit>(_onInit);
     on<ReturnWithQr>(_onQr);
     on<ReturnWithNfc>(_onNfc);
-    on<ReturnClearMessage>((e, emit) => emit(state.copyWith(message: null, error: null)));
+    on<ReturnClearMessage>(
+      (e, emit) => emit(state.copyWith(message: null, error: null)),
+    );
   }
 
   Future<void> _onInit(ReturnInit event, Emitter<ReturnState> emit) async {
-    emit(state.copyWith(loading: true, ended: false, message: null, error: null));
+    emit(
+      state.copyWith(loading: true, ended: false, message: null, error: null),
+    );
     try {
       final userId = await repo.readUserId();
       if (userId == null) {
@@ -29,7 +38,12 @@ class ReturnBloc extends Bloc<ReturnEvent, ReturnState> {
       }
       emit(state.copyWith(loading: false, activeRentalId: backId));
     } catch (e) {
-      emit(state.copyWith(loading: false, error: "Error al verificar renta activa: $e"));
+      emit(
+        state.copyWith(
+          loading: false,
+          error: "Error al verificar renta activa: $e",
+        ),
+      );
     }
   }
 
@@ -44,16 +58,29 @@ class ReturnBloc extends Bloc<ReturnEvent, ReturnState> {
     }
     await repo.endRental(userId: userId, stationEndId: stationEndId);
     await repo.clearLocalRentalId();
-    emit(state.copyWith(
-      loading: false,
-      activeRentalId: null,
-      ended: true,
-      message: "Sombrilla devuelta exitosamente.",
-    ));
+    final double distanceKm = _pedometer.stopAndGetDistanceKm();
+    if (distanceKm > 0.01) {
+      try {
+        await profileRepo.addPedometerDistance(distanceKm);
+      } catch (e) {
+        // No es crítico si falla, no detengas al usuario
+        print("Error al guardar distancia del podómetro: $e");
+      }
+    }
+    emit(
+      state.copyWith(
+        loading: false,
+        activeRentalId: null,
+        ended: true,
+        message: "Sombrilla devuelta exitosamente.",
+      ),
+    );
   }
 
   Future<void> _onQr(ReturnWithQr event, Emitter<ReturnState> emit) async {
-    emit(state.copyWith(loading: true, ended: false, message: null, error: null));
+    emit(
+      state.copyWith(loading: true, ended: false, message: null, error: null),
+    );
     try {
       late final String stationId;
       try {
@@ -64,7 +91,12 @@ class ReturnBloc extends Bloc<ReturnEvent, ReturnState> {
         return;
       }
       if (stationId.isEmpty) {
-        emit(state.copyWith(loading: false, error: "QR inválido: falta station_id."));
+        emit(
+          state.copyWith(
+            loading: false,
+            error: "QR inválido: falta station_id.",
+          ),
+        );
         return;
       }
 
@@ -76,39 +108,62 @@ class ReturnBloc extends Bloc<ReturnEvent, ReturnState> {
       final backId = await repo.getActiveRentalIdFromBackend(userId);
       if (backId == null) {
         await repo.clearLocalRentalId();
-        emit(state.copyWith(
-          loading: false,
-          activeRentalId: null,
-          ended: true,
-          message: "No tenías ninguna sombrilla activa.",
-        ));
+        emit(
+          state.copyWith(
+            loading: false,
+            activeRentalId: null,
+            ended: true,
+            message: "No tenías ninguna sombrilla activa.",
+          ),
+        );
         return;
       }
 
       await _endFlow(emit: emit, stationEndId: stationId);
     } catch (e) {
-      emit(state.copyWith(loading: false, error: "Error al procesar devolución: $e"));
+      emit(
+        state.copyWith(
+          loading: false,
+          error: "Error al procesar devolución: $e",
+        ),
+      );
     }
   }
 
   Future<void> _onNfc(ReturnWithNfc event, Emitter<ReturnState> emit) async {
-    emit(state.copyWith(loading: true, nfcBusy: true, ended: false, message: null, error: null));
+    emit(
+      state.copyWith(
+        loading: true,
+        nfcBusy: true,
+        ended: false,
+        message: null,
+        error: null,
+      ),
+    );
     try {
       final userId = await repo.readUserId();
       if (userId == null) {
-        emit(state.copyWith(loading: false, nfcBusy: false, error: "Usuario no encontrado."));
+        emit(
+          state.copyWith(
+            loading: false,
+            nfcBusy: false,
+            error: "Usuario no encontrado.",
+          ),
+        );
         return;
       }
       final backId = await repo.getActiveRentalIdFromBackend(userId);
       if (backId == null) {
         await repo.clearLocalRentalId();
-        emit(state.copyWith(
-          loading: false,
-          nfcBusy: false,
-          activeRentalId: null,
-          ended: true,
-          message: "No tenías ninguna sombrilla activa.",
-        ));
+        emit(
+          state.copyWith(
+            loading: false,
+            nfcBusy: false,
+            activeRentalId: null,
+            ended: true,
+            message: "No tenías ninguna sombrilla activa.",
+          ),
+        );
         return;
       }
 
@@ -116,7 +171,13 @@ class ReturnBloc extends Bloc<ReturnEvent, ReturnState> {
       await _endFlow(emit: emit, stationEndId: stationId);
       emit(state.copyWith(nfcBusy: false));
     } catch (e) {
-      emit(state.copyWith(loading: false, nfcBusy: false, error: "Error en devolución NFC: $e"));
+      emit(
+        state.copyWith(
+          loading: false,
+          nfcBusy: false,
+          error: "Error en devolución NFC: $e",
+        ),
+      );
     }
   }
 }

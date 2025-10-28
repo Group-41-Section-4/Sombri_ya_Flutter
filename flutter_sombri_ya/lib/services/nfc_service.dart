@@ -33,23 +33,23 @@ class NfcService {
   String? _extractUid(Map<dynamic, dynamic> tagData) {
     Uint8List? id;
 
-    Uint8List? _coerce(dynamic raw) {
+    Uint8List? coerce(dynamic raw) {
       if (raw is Uint8List) return raw;
       if (raw is List) return Uint8List.fromList(raw.cast<int>());
       return null;
     }
 
     if (tagData.containsKey('nfca')) {
-      id ??= _coerce(tagData['nfca']?['identifier']);
+      id ??= coerce(tagData['nfca']?['identifier']);
     }
     if (id == null && tagData.containsKey('mifareclassic')) {
-      id ??= _coerce(tagData['mifareclassic']?['identifier']);
+      id ??= coerce(tagData['mifareclassic']?['identifier']);
     }
     if (id == null) {
       for (final entry in tagData.entries) {
         final value = entry.value;
         if (value is Map && value['identifier'] != null) {
-          id = _coerce(value['identifier']);
+          id = coerce(value['identifier']);
           if (id != null) break;
         }
       }

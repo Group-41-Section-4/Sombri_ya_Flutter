@@ -234,8 +234,9 @@ class _ProfilePageState extends State<ProfilePage> {
                 autovalidateMode: AutovalidateMode.onUserInteraction,
                 validator: (v) {
                   final s = (v ?? '').trim();
-                  if (s.length < 8 || s.length > _passMax)
+                  if (s.length < 8 || s.length > _passMax) {
                     return '8–$_passMax caracteres';
+                  }
                   final ok =
                       RegExp(r'[a-z]').hasMatch(s) &&
                       RegExp(r'[A-Z]').hasMatch(s) &&
@@ -269,8 +270,9 @@ class _ProfilePageState extends State<ProfilePage> {
           ),
           ElevatedButton(
             onPressed: () {
-              if (formKey.currentState!.validate())
+              if (formKey.currentState!.validate()) {
                 Navigator.pop(context, true);
+              }
             },
             child: const Text('Guardar'),
           ),
@@ -293,8 +295,9 @@ class _ProfilePageState extends State<ProfilePage> {
     final s = (v ?? '').trim();
     if (s.isEmpty) return 'Ingresa un nombre';
     if (s.length > _nameMax) return 'Máximo $_nameMax caracteres';
-    if (!RegExp(r"^[A-Za-zÀ-ÿ\u00f1\u00d1' -]+$").hasMatch(s))
+    if (!RegExp(r"^[A-Za-zÀ-ÿ\u00f1\u00d1' -]+$").hasMatch(s)) {
       return 'Solo letras y espacios';
+    }
     return null;
   }
 
@@ -316,10 +319,9 @@ class _ProfilePageState extends State<ProfilePage> {
     if (!mounted) return;
     Navigator.of(context).pushAndRemoveUntil(
       MaterialPageRoute(builder: (_) => const SplashScreen()),
-          (route) => false,
+      (route) => false,
     );
   }
-
 
   @override
   Widget build(BuildContext context) {

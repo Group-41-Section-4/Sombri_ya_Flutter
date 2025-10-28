@@ -22,14 +22,15 @@ import '../../presentation/blocs/notifications/notifications_event.dart';
 
 // BloC Profile
 import '../profile/profile_page.dart';
+import '../../data/repositories/profile_repository.dart';
 
 //BloC Rent and Return
 import '../rent/rent_page.dart';
 import '../return/return_page.dart';
+import '../../presentation/blocs/return/return_bloc.dart';
 import '../../presentation/blocs/rent/rent_bloc.dart';
-import '../../presentation/blocs/return/return_bloc.dart';   
 import '../../presentation/blocs/rent/rent_event.dart';
-import '../../presentation/blocs/return/return_event.dart'; 
+import '../../presentation/blocs/return/return_event.dart';
 import '../../data/repositories/rental_repository.dart';
 
 // Voice imports
@@ -64,6 +65,7 @@ class HomeView extends StatefulWidget {
 class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
   GoogleMapController? _mapController;
   BitmapDescriptor? _stationIcon;
+  final PedometerService _pedometer = PedometerService();
 
   @override
   void initState() {
@@ -157,6 +159,58 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
               ),
             ),
           ),
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        backgroundColor: const Color(0xFF90E0EF),
+        foregroundColor: Colors.black,
+        centerTitle: true,
+        title: ValueListenableBuilder<bool>(
+          valueListenable: _pedometer.isTracking,
+          builder: (context, isTracking, child) {
+            if (!isTracking) {
+              return Text(
+                '',
+                style: GoogleFonts.cormorantGaramond(
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black,
+                ),
+              );
+            }
+
+            return ValueListenableBuilder<int>(
+              valueListenable: _pedometer.sessionSteps,
+              builder: (context, steps, child) {
+                return Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 8,
+                  ),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF005E7C),
+                    borderRadius: BorderRadius.circular(20),
+                    boxShadow: const [
+                      BoxShadow(
+                        color: Colors.black26,
+                        blurRadius: 4,
+                        offset: Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: Text(
+                    'PASOS: $steps',
+                    style: GoogleFonts.robotoSlab(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                  ),
+                );
+              },
+            );
+          },
         ),
       );
     } else {
@@ -389,71 +443,80 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
               final storage = const FlutterSecureStorage();
               final rentalId = await storage.read(key: 'rental_id');
 
-              if (rentalId != null && rentalId.isNotEmpty) {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => RepositoryProvider(
-                      create: (_) => RentalRepository(storage: const FlutterSecureStorage()),
-                      child: BlocProvider(
-                        create: (ctx) => ReturnBloc(
-                          repo: RepositoryProvider.of<RentalRepository>(ctx),
-                        )..add(const ReturnInit()),
-                        child: ReturnPage(
-                          userPosition: GpsCoord(
-                            latitude: userPosition.latitude,
-                            longitude: userPosition.longitude,                          
-                          ),
+            if (rentalId != null && rentalId.isNotEmpty) {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => MultiRepositoryProvider(
+                    providers: [
+                      RepositoryProvider(
+                        create: (_) => RentalRepository(
+                          storage: const FlutterSecureStorage(),
+                        ),
+                      ),
+                      RepositoryProvider(create: (_) => ProfileRepository()),
+                    ],
+                    child: BlocProvider(
+                      create: (ctx) => ReturnBloc(
+                        repo: RepositoryProvider.of<RentalRepository>(ctx),
+                        profileRepo: RepositoryProvider.of<ProfileRepository>(
+                          ctx,
+                        ),
+                      )..add(const ReturnInit()),
+                      child: ReturnPage(
+                        userPosition: GpsCoord(
+                          latitude: userPosition.latitude,
+                          longitude: userPosition.longitude,
                         ),
                       ),
                     ),
                   ),
-                );
-              } else {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => RepositoryProvider(
-                      create: (_) => RentalRepository(
-                        storage: const FlutterSecureStorage()
-                      ),
-                      child: BlocProvider(
-                        create: (ctx) => RentBloc(
-                          repo: RepositoryProvider.of<RentalRepository>(ctx),
-                        )..add(const RentInit()),
-                        child: RentPage(
-                          userPosition: GpsCoord(
-                            latitude: userPosition.latitude,
-                            longitude: userPosition.longitude,
-                          ),
+                ),
+              );
+            } else {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => RepositoryProvider(
+                    create: (_) =>
+                        RentalRepository(storage: const FlutterSecureStorage()),
+                    child: BlocProvider(
+                      create: (ctx) => RentBloc(
+                        repo: RepositoryProvider.of<RentalRepository>(ctx),
+                      )..add(const RentInit()),
+                      child: RentPage(
+                        userPosition: GpsCoord(
+                          latitude: userPosition.latitude,
+                          longitude: userPosition.longitude,
                         ),
                       ),
                     ),
                   ),
-                );
-              }
-            },
-            child: Image.asset('assets/images/home_button.png',
-              width: 100,
-              height: 100,
-              fit: BoxFit.contain,
-            ),
+                ),
+              );
+            }
+          },
+          child: Image.asset(
+            'assets/images/home_button.png',
+            width: 100,
+            height: 100,
+            fit: BoxFit.contain,
           ),
         ),
-            
-        floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
-        bottomNavigationBar: BottomAppBar(
-          shape: const CircularNotchedRectangle(),
-          color: const Color(0xFF90E0EF),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: [
-              Padding(
-                padding: const EdgeInsets.all(14),
-                child: IconButton(
-                  icon: const Icon(Icons.home, color: Colors.black),
-                  onPressed: () {},
-                ),
+      ),
+
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
+      bottomNavigationBar: BottomAppBar(
+        shape: const CircularNotchedRectangle(),
+        color: const Color(0xFF90E0EF),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceAround,
+          children: [
+            Padding(
+              padding: const EdgeInsets.all(14),
+              child: IconButton(
+                icon: const Icon(Icons.home, color: Colors.black),
+                onPressed: () {},
               ),
               const SizedBox(width: 48),
               Padding(

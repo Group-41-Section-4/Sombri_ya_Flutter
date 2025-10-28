@@ -64,9 +64,27 @@ class ProfileRepository {
     final uri = Uri.parse('$_base/users/$userId/total-distance');
     final resp = await http.get(uri, headers: await _headers());
     if (resp.statusCode != 200) {
-      throw Exception('Error getTotalDistance: ${resp.statusCode} ${resp.body}');
+      throw Exception(
+        'Error getTotalDistance: ${resp.statusCode} ${resp.body}',
+      );
     }
     final map = (json.decode(resp.body) as Map).cast<String, dynamic>();
     return (map['totalDistanceKm'] as num).toDouble();
+  }
+
+  Future<void> addPedometerDistance(double distanceKm) async {
+    final uri = Uri.parse('$_base/users/me/add-distance');
+
+    final resp = await http.post(
+      uri,
+      headers: await _headers(),
+      body: json.encode({'distanceKm': distanceKm}),
+    );
+
+    if (resp.statusCode != 200 && resp.statusCode != 201) {
+      throw Exception(
+        'Error addPedometerDistance: ${resp.statusCode} ${resp.body}',
+      );
+    }
   }
 }
