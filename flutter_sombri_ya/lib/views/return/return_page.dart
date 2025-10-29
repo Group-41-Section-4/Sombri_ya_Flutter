@@ -7,6 +7,8 @@ import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:nfc_manager/nfc_manager.dart';
 import 'package:nfc_manager/platform_tags.dart';
 
+import '../profile/profile_page.dart';
+
 import '../../data/models/gps_coord.dart';
 import '../../data/repositories/profile_repository.dart';
 import '../../presentation/blocs/notifications/notifications_bloc.dart';
@@ -48,7 +50,7 @@ Uint8List? _extractRawIdFromTagData(Map<dynamic, dynamic> tagData) {
   }
   return null;
 }
-import '../profile/profile_page.dart';
+
 
 class ReturnPage extends StatefulWidget {
   final GpsCoord userPosition;

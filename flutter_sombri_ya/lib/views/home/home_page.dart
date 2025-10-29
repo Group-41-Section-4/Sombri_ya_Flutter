@@ -5,29 +5,35 @@ import 'package:geolocator/geolocator.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
+// Config & Services
 import '../../config/openweather_config.dart';
-// BLoC Home
+import '../../services/weather_service.dart';
+import '../../core/services/pedometer_service.dart';
+
+// BLoCs Home / Weather / Voice
 import '../../data/repositories/profile_repository.dart';
 import '../../presentation/blocs/home/home_bloc.dart';
 import '../../presentation/blocs/home/home_event.dart';
 import '../../presentation/blocs/home/home_state.dart';
-
-import '../../services/weather_service.dart';
-import '../../widgets/app_drawer.dart';
-import '../../data/models/gps_coord.dart';
-import '../../data/models/station_model.dart';
-
-import '../notifications/notifications_page.dart';
-import '../../presentation/blocs/notifications/notifications_bloc.dart';
-import '../../presentation/blocs/notifications/notifications_event.dart';
-
-import '../profile/profile_page.dart';
 
 import '../../presentation/blocs/weather/weather_cubit.dart';
 import '../../data/models/weather_models.dart';
 import '../../widgets/weather_icon.dart';
 import '../../core/theme/weather_theme.dart';
 
+import '../../core/services/voice_command_service.dart';
+import '../../presentation/blocs/voice/voice_bloc.dart';
+import '../../presentation/blocs/voice/voice_event.dart';
+import '../../presentation/blocs/voice/voice_state.dart';
+import '../../domain/voice/voice_intent.dart';
+
+// Notifications
+import '../notifications/notifications_page.dart';
+import '../../presentation/blocs/notifications/notifications_bloc.dart';
+import '../../presentation/blocs/notifications/notifications_event.dart';
+
+// Rent / Return
+import '../profile/profile_page.dart';
 import '../rent/rent_page.dart';
 import '../return/return_page.dart';
 import '../../presentation/blocs/return/return_bloc.dart';
@@ -36,15 +42,10 @@ import '../../presentation/blocs/rent/rent_event.dart';
 import '../../presentation/blocs/return/return_event.dart';
 import '../../data/repositories/rental_repository.dart';
 
-// Voice imports
-import '../../core/services/voice_command_service.dart';
-import '../../presentation/blocs/voice/voice_bloc.dart';
-import '../../presentation/blocs/voice/voice_event.dart';
-import '../../presentation/blocs/voice/voice_state.dart';
-import '../../domain/voice/voice_intent.dart';
-
-// Services
-import '../../../core/services/pedometer_service.dart';
+// Other UI
+import '../../widgets/app_drawer.dart';
+import '../../data/models/gps_coord.dart';
+import '../../data/models/station_model.dart';
 
 class HomePage extends StatelessWidget {
   const HomePage({super.key});
@@ -58,10 +59,10 @@ class HomePage extends StatelessWidget {
           create: (_) => WeatherCubit(
             weather: WeatherService(apiKey: OpenWeatherConfig.apiKey),
           )..start(every: const Duration(minutes: 10)),
-        BlocProvider(create: (context) => HomeBloc()),
+        ),
         BlocProvider(
           create: (_) =>
-              VoiceBloc(VoiceCommandService())..add(const VoiceInitRequested()),
+          VoiceBloc(VoiceCommandService())..add(const VoiceInitRequested()),
         ),
       ],
       child: const HomeView(),
@@ -96,9 +97,8 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
     });
 
     _loadCustomMarkerIcon().then((_) {
-      if (mounted) {
-        context.read<HomeBloc>().add(InitializeHome(stationIcon: _stationIcon));
-      }
+      if (!mounted) return;
+      context.read<HomeBloc>().add(InitializeHome(stationIcon: _stationIcon));
     });
   }
 
@@ -117,13 +117,12 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
   }
 
   Future<void> _loadCustomMarkerIcon() async {
-    final icon = await BitmapDescriptor.asset(
+    final icon = await BitmapDescriptor.fromAssetImage(
       const ImageConfiguration(size: Size(48, 48)),
       'assets/images/pin.png',
     );
-    setState(() {
-      _stationIcon = icon;
-    });
+    if (!mounted) return;
+    setState(() => _stationIcon = icon);
   }
 
   void _showEnableLocationDialog() {
@@ -152,121 +151,6 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
     );
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return BlocListener<WeatherCubit, SimpleWeather?>(
-      listenWhen: (prev, curr) =>
-      prev?.condition != curr?.condition || prev?.isNight != curr?.isNight,
-      listener: (context, w) {
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (!mounted) return;
-          setState(() => _weatherForUI = w);
-
-          final cond = (w?.condition ?? WeatherCondition.unknown).name;
-          final night = w?.isNight == true;
-        });
-      },
-
-      child: Builder(
-        builder: (context) {
-          final w = _weatherForUI;
-
-          final theme = themeFor(
-            w?.condition ?? WeatherCondition.unknown,
-            w?.isNight ?? false,
-          );
-          final scheme = theme.colorScheme;
-
-
-          return Theme(
-            data: theme,
-            child: Scaffold(
-              appBar: AppBar(
-                automaticallyImplyLeading: false,
-                backgroundColor: scheme.primary,
-                foregroundColor: scheme.onPrimary,
-                centerTitle: true,
-                title: Text(
-                  '',
-                  style: GoogleFonts.robotoSlab(
-                    fontSize: 20,
-                    fontWeight: FontWeight.w700,
-                    color: scheme.onPrimary,
-                    letterSpacing: 0.3,
-                  ),
-                ),
-                leading: Builder(
-                  builder: (ctx) => IconButton(
-                    tooltip: 'Notificaciones',
-                    icon: Icon(Icons.notifications_none, color: scheme.onPrimary),
-                    onPressed: () async {
-                      debugPrint('[Home] Tap notifications');
-                      final storage = const FlutterSecureStorage();
-                      final userId = await storage.read(key: 'user_id');
-
-                      if (!ctx.mounted) return;
-
-                      if (userId == null || userId.isEmpty) {
-                        ScaffoldMessenger.of(ctx).showSnackBar(
-                          const SnackBar(
-                            content: Text('No se pudo identificar al usuario.'),
-                            backgroundColor: Colors.red,
-                          ),
-                        );
-                        return;
-                      }
-
-                      Navigator.of(ctx, rootNavigator: true).push(
-                        MaterialPageRoute(
-                          builder: (_) => BlocProvider(
-                            create: (_) => NotificationsBloc()
-                              ..add(StartRentalPolling(userId))
-                              ..add(const CheckWeather()),
-                            child: const NotificationsPage(),
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-                ),
-                actions: [
-                  Builder(
-                    builder: (ctx) => IconButton(
-                      tooltip: 'Perfil',
-                      onPressed: () {
-                        debugPrint('[Home] Tap perfil');
-                        Navigator.of(ctx, rootNavigator: true).push(
-                          MaterialPageRoute(builder: (_) => const ProfilePage()),
-                        );
-                      },
-                      icon: const CircleAvatar(
-                        radius: 16,
-                        backgroundColor: Colors.black,
-                        backgroundImage: AssetImage('assets/images/profile.png'),
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text('Ubicación Desactivada'),
-          content: const Text(
-            'Para mostrar las estaciones cercanas, por favor activa los servicios de ubicación de tu dispositivo.',
-          ),
-          actions: <Widget>[
-            TextButton(
-              child: const Text('Cancelar'),
-              onPressed: () => Navigator.of(context).pop(),
-            ),
-            TextButton(
-              child: const Text('Activar Ubicación'),
-              onPressed: () {
-                Geolocator.openLocationSettings();
-                Navigator.of(context).pop();
-              },
-            ),
-          ],
-        );
-      },
-    );
-  }
-
   Future<void> _goToReturnIfActiveOrRentOtherwise() async {
     final userPosition = context.read<HomeBloc>().state.userPosition;
     if (userPosition == null) {
@@ -280,6 +164,7 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
     final rentalId = await storage.read(key: 'rental_id');
 
     if (rentalId != null && rentalId.isNotEmpty) {
+
       Navigator.push(
         context,
         MaterialPageRoute(
@@ -291,7 +176,6 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
               ),
               RepositoryProvider(create: (_) => ProfileRepository()),
             ],
-
             child: BlocProvider(
               create: (ctx) => ReturnBloc(
                 repo: RepositoryProvider.of<RentalRepository>(ctx),
@@ -308,6 +192,7 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
         ),
       );
     } else {
+
       Navigator.push(
         context,
         MaterialPageRoute(
@@ -316,8 +201,8 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
                 RentalRepository(storage: const FlutterSecureStorage()),
             child: BlocProvider(
               create: (ctx) =>
-                  RentBloc(repo: RepositoryProvider.of<RentalRepository>(ctx))
-                    ..add(const RentInit()),
+              RentBloc(repo: RepositoryProvider.of<RentalRepository>(ctx))
+                ..add(const RentInit()),
               child: RentPage(
                 userPosition: GpsCoord(
                   latitude: userPosition.latitude,
@@ -347,103 +232,135 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
 
   @override
   Widget build(BuildContext context) {
-    return BlocListener<VoiceBloc, VoiceState>(
-      listenWhen: (p, c) =>
-          p.intent != c.intent && c.intent != VoiceIntent.none,
-      listener: (context, vstate) async {
-        switch (vstate.intent) {
-          case VoiceIntent.rentDefault:
-          case VoiceIntent.rentQR:
-            await _goToReturnIfActiveOrRentOtherwise();
-            break;
-          case VoiceIntent.rentNFC:
-            await _goToReturnIfActiveOrRentOtherwise();
-            break;
-          case VoiceIntent.returnUmbrella:
-            await _goToReturnIfActiveElseSnack();
-            break;
-          case VoiceIntent.none:
-            break;
-        }
-        context.read<VoiceBloc>().add(const VoiceClearIntent());
-      },
-      child: Scaffold(
-        appBar: AppBar(
-          backgroundColor: const Color(0xFF90E0EF),
-          foregroundColor: Colors.black,
-          centerTitle: true,
-          title: ValueListenableBuilder<bool>(
-            valueListenable: _pedometer.isTracking,
-            builder: (context, isTracking, child) {
-              if (!isTracking) {
-                return Text(
-                  '',
-                  style: GoogleFonts.cormorantGaramond(
-                    fontSize: 22,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.black,
-                  ),
-                );
-              }
+    return MultiBlocListener(
+      listeners: [
 
-              return ValueListenableBuilder<int>(
-                valueListenable: _pedometer.sessionSteps,
-                builder: (context, steps, child) {
-                  return Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 8,
-                    ),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF005E7C),
-                      borderRadius: BorderRadius.circular(20),
-                      boxShadow: const [
-                        BoxShadow(
-                          color: Colors.black26,
-                          blurRadius: 4,
-                          offset: Offset(0, 2),
+        BlocListener<WeatherCubit, SimpleWeather?>(
+          listenWhen: (prev, curr) =>
+          prev?.condition != curr?.condition || prev?.isNight != curr?.isNight,
+          listener: (context, w) {
+            if (!mounted) return;
+            setState(() => _weatherForUI = w);
+          },
+        ),
+
+        BlocListener<VoiceBloc, VoiceState>(
+          listenWhen: (p, c) => p.intent != c.intent && c.intent != VoiceIntent.none,
+          listener: (context, vstate) async {
+            switch (vstate.intent) {
+              case VoiceIntent.rentDefault:
+              case VoiceIntent.rentQR:
+              case VoiceIntent.rentNFC:
+                await _goToReturnIfActiveOrRentOtherwise();
+                break;
+              case VoiceIntent.returnUmbrella:
+                await _goToReturnIfActiveElseSnack();
+                break;
+              case VoiceIntent.none:
+                break;
+            }
+            context.read<VoiceBloc>().add(const VoiceClearIntent());
+          },
+        ),
+      ],
+      child: Builder(
+        builder: (context) {
+          final w = _weatherForUI;
+          final theme = themeFor(
+            w?.condition ?? WeatherCondition.unknown,
+            w?.isNight ?? false,
+          );
+          final scheme = theme.colorScheme;
+
+          return Theme(
+            data: theme,
+            child: Scaffold(
+              appBar: AppBar(
+                backgroundColor: scheme.primary,
+                foregroundColor: scheme.onPrimary,
+                centerTitle: true,
+                // En el AppBar.title
+                title: ValueListenableBuilder<bool>(
+                  valueListenable: _pedometer.isTracking,
+                  builder: (context, isTracking, _) {
+                    if (!isTracking) {
+                      return const SizedBox.shrink();
+                    }
+                    return ValueListenableBuilder<int>(
+                      valueListenable: _pedometer.sessionSteps,
+                      builder: (context, steps, _) {
+                        return Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                          decoration: BoxDecoration(
+                            color: Theme.of(context).colorScheme.inversePrimary.withOpacity(0.9),
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: Text(
+                            'PASOS: $steps',
+                            style: GoogleFonts.robotoSlab(
+                              fontSize: 16, fontWeight: FontWeight.bold,
+                              color: Theme.of(context).colorScheme.onInverseSurface,
+                            ),
+                          ),
+                        );
+                      },
+                    );
+                  },
+                ),
+
+                leading: Builder(
+                  builder: (ctx) => IconButton(
+                    tooltip: 'Notificaciones',
+                    icon: Icon(Icons.notifications_none, color: scheme.onPrimary),
+                    onPressed: () async {
+                      final storage = const FlutterSecureStorage();
+                      final userId = await storage.read(key: 'user_id');
+                      if (userId == null || userId.isEmpty) {
+                        if (!ctx.mounted) return;
+                        ScaffoldMessenger.of(ctx).showSnackBar(
+                          const SnackBar(
+                            content: Text('No se pudo identificar al usuario.'),
+                            backgroundColor: Colors.red,
+                          ),
+                        );
+                        return;
+                      }
+                      if (!ctx.mounted) return;
+                      Navigator.push(
+                        ctx,
+                        MaterialPageRoute(
+                          builder: (_) => BlocProvider(
+                            create: (_) => NotificationsBloc()
+                              ..add(StartRentalPolling(userId))
+                              ..add(const CheckWeather()),
+                            child: const NotificationsPage(),
+                          ),
                         ),
-                      ],
-                    ),
-                    child: Text(
-                      'PASOS: $steps',
-                      style: GoogleFonts.robotoSlab(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
+                      );
+                    },
+                  ),
+                ),
+                actions: [
+                  Builder(
+                    builder: (ctx) => IconButton(
+                      tooltip: 'Perfil',
+                      onPressed: () {
+                        Navigator.of(ctx, rootNavigator: true).push(
+                          MaterialPageRoute(builder: (_) => const ProfilePage()),
+                        );
+                      },
+                      icon: const CircleAvatar(
+                        radius: 16,
+                        backgroundColor: Colors.black,
+                        backgroundImage: AssetImage('assets/images/profile.png'),
                       ),
                     ),
-                  );
-                },
-              );
-            },
-          ),
-          leading: IconButton(
-            icon: const Icon(Icons.notifications_none),
-            onPressed: () async {
-              final storage = const FlutterSecureStorage();
-              final userId = await storage.read(key: 'user_id');
-              if (userId == null || !context.mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('No se pudo identificar al usuario.'),
-                    backgroundColor: Colors.red,
-                  ),
-                );
-                return;
-              }
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => BlocProvider(
-                    create: (_) => NotificationsBloc()
-                      ..add(StartRentalPolling(userId))
-                      ..add(const CheckWeather()),
-                    child: const NotificationsPage(),
                   ),
                 ],
               ),
+
               endDrawer: AppDrawer(),
+
               body: BlocConsumer<HomeBloc, HomeState>(
                 listenWhen: (prev, current) =>
                 prev.locationError != current.locationError ||
@@ -457,12 +374,10 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
                   if (state.cameraTarget != null) {
                     _mapController?.animateCamera(
                       CameraUpdate.newLatLngZoom(
-                        state.cameraTarget!,
-                        state.cameraZoom,
+                        state.cameraTarget!, state.cameraZoom,
                       ),
                     );
                   }
-
                   if (state.userPosition != null) {
                     context.read<WeatherCubit>().refreshAt(
                       lat: state.userPosition!.latitude,
@@ -488,10 +403,11 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
                         mapToolbarEnabled: false,
                         zoomControlsEnabled: false,
                       ),
+
                       if (state.isLoading)
                         const Center(child: CircularProgressIndicator()),
 
-
+                      // Ícono del clima arriba-izquierda
                       Positioned(
                         top: 12,
                         left: 12,
@@ -505,7 +421,8 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
                               child: Padding(
                                 padding: const EdgeInsets.all(6),
                                 child: WeatherIcon(
-                                  condition: _weatherForUI?.condition ?? WeatherCondition.unknown,
+                                  condition:
+                                  _weatherForUI?.condition ?? WeatherCondition.unknown,
                                   isNight: _weatherForUI?.isNight ?? false,
                                   size: 30,
                                 ),
@@ -515,7 +432,7 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
                         ),
                       ),
 
-
+                      // Botón ESTACIONES (arriba-centro)
                       Positioned(
                         top: 16,
                         left: 0,
@@ -526,8 +443,7 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
                               backgroundColor: const Color(0xFF005E7C),
                               foregroundColor: Colors.white,
                               padding: const EdgeInsets.symmetric(
-                                horizontal: 40,
-                                vertical: 12,
+                                horizontal: 40, vertical: 12,
                               ),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(20),
@@ -539,116 +455,53 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
                                 context: context,
                                 isScrollControlled: true,
                                 backgroundColor: Colors.transparent,
-                                builder: (_) =>
-                                    EstacionesSheet(stations: state.nearbyStations),
+                                builder: (_) => EstacionesSheet(
+                                  stations: state.nearbyStations,
+                                ),
                               );
                             },
                             child: Text(
                               'ESTACIONES',
                               style: GoogleFonts.robotoSlab(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
+                                fontSize: 16, fontWeight: FontWeight.bold,
                               ),
                             ),
                           ),
-                ),
-              );
-            },
-          ),
-          actions: [
-            IconButton(
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => const ProfilePage()),
-                );
-              },
-              icon: const CircleAvatar(
-                radius: 16,
-                backgroundColor: Colors.black,
-                backgroundImage: AssetImage('assets/images/profile.png'),
-              ),
-            ),
-          ],
-        ),
-        endDrawer: AppDrawer(),
-        body: BlocConsumer<HomeBloc, HomeState>(
-          listenWhen: (prev, current) =>
-              prev.locationError != current.locationError ||
-              (prev.cameraTarget != current.cameraTarget &&
-                  current.cameraTarget != null),
-          listener: (context, state) {
-            if (state.locationError == 'disabled') {
-              _showEnableLocationDialog();
-            }
-            if (state.cameraTarget != null) {
-              _mapController?.animateCamera(
-                CameraUpdate.newLatLngZoom(
-                  state.cameraTarget!,
-                  state.cameraZoom,
-                ),
-              );
-            }
-          },
-          builder: (context, state) {
-            return Stack(
-              children: [
-                GoogleMap(
-                  initialCameraPosition: CameraPosition(
-                    target:
-                        state.cameraTarget ??
-                        const LatLng(4.603083, -74.065130),
-                    zoom: state.cameraZoom,
-                  ),
-                  onMapCreated: (controller) {
-                    _mapController = controller;
-                  },
-                  markers: state.markers,
-                  myLocationEnabled: true,
-                  myLocationButtonEnabled: true,
-                  mapToolbarEnabled: false,
-                  zoomControlsEnabled: false,
-                ),
-                if (state.isLoading)
-                  const Center(child: CircularProgressIndicator()),
-                Positioned(
-                  top: 16,
-                  left: 0,
-                  right: 0,
-                  child: Center(
-                    child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF005E7C),
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 40,
-                          vertical: 12,
                         ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        elevation: 6,
                       ),
-                      onPressed: () {
-                        showModalBottomSheet(
-                          context: context,
-                          isScrollControlled: true,
-                          backgroundColor: Colors.transparent,
-                          builder: (_) =>
-                              EstacionesSheet(stations: state.nearbyStations),
-                        );
-                      },
-                      child: Text(
-                        'ESTACIONES',
-                        style: GoogleFonts.robotoSlab(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
+
+                      // FAB de voz (derecha, sobre la BottomBar)
+                      Positioned(
+                        right: 16,
+                        bottom: kBottomNavigationBarHeight +
+                            MediaQuery.of(context).padding.bottom +
+                            12,
+                        child: BlocBuilder<VoiceBloc, VoiceState>(
+                          builder: (context, vstate) {
+                            return FloatingActionButton.extended(
+                              heroTag: 'home-voice-mic',
+                              onPressed: () {
+                                final bloc = context.read<VoiceBloc>();
+                                vstate.isListening
+                                    ? bloc.add(const VoiceStopRequested())
+                                    : bloc.add(const VoiceStartRequested());
+                              },
+                              icon: Icon(
+                                vstate.isListening ? Icons.mic : Icons.mic_none,
+                              ),
+                              label: Text(
+                                vstate.isListening ? 'Escuchando…' : 'Hablar',
+                              ),
+                            );
+                          },
                         ),
                       ),
                     ],
                   );
                 },
               ),
+
+              // FAB central (rentar/devolver)
               floatingActionButton: SizedBox(
                 width: 76,
                 height: 76,
@@ -656,72 +509,7 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
                   backgroundColor: Colors.transparent,
                   elevation: 6,
                   shape: const CircleBorder(),
-                  onPressed: () async {
-                    final userPosition =
-                        context.read<HomeBloc>().state.userPosition;
-                    if (userPosition == null) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Esperando tu ubicación...')),
-                      );
-                      return;
-                    }
-
-                    final storage = const FlutterSecureStorage();
-                    final rentalId = await storage.read(key: 'rental_id');
-
-                    if (rentalId != null && rentalId.isNotEmpty) {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => MultiRepositoryProvider(
-                            providers: [
-                              RepositoryProvider(
-                                create: (_) => RentalRepository(
-                                  storage: const FlutterSecureStorage(),
-                                ),
-                              ),
-                              RepositoryProvider(create: (_) => ProfileRepository()),
-                            ],
-                            child: BlocProvider(
-                              create: (ctx) => ReturnBloc(
-                                repo: RepositoryProvider.of<RentalRepository>(ctx),
-                                profileRepo:
-                                RepositoryProvider.of<ProfileRepository>(ctx),
-                              )..add(const ReturnInit()),
-                              child: ReturnPage(
-                                userPosition: GpsCoord(
-                                  latitude: userPosition.latitude,
-                                  longitude: userPosition.longitude,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                      );
-                    } else {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => RepositoryProvider(
-                            create: (_) => RentalRepository(
-                              storage: const FlutterSecureStorage(),
-                            ),
-                            child: BlocProvider(
-                              create: (ctx) => RentBloc(
-                                repo: RepositoryProvider.of<RentalRepository>(ctx),
-                              )..add(const RentInit()),
-                              child: RentPage(
-                                userPosition: GpsCoord(
-                                  latitude: userPosition.latitude,
-                                  longitude: userPosition.longitude,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                      );
-                    }
-                  },
+                  onPressed: _goToReturnIfActiveOrRentOtherwise,
                   child: Image.asset(
                     'assets/images/home_button.png',
                     width: 100,
@@ -730,8 +518,8 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
                   ),
                 ),
               ),
-              floatingActionButtonLocation:
-              FloatingActionButtonLocation.centerDocked,
+              floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
+
               bottomNavigationBar: BottomAppBar(
                 shape: const CircularNotchedRectangle(),
                 color: scheme.primary,
@@ -761,145 +549,6 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
             ),
           );
         },
-
-                Positioned(
-                  right: 16,
-                  bottom:
-                      kBottomNavigationBarHeight +
-                      MediaQuery.of(context).padding.bottom,
-                  child: BlocBuilder<VoiceBloc, VoiceState>(
-                    builder: (context, vstate) {
-                      return FloatingActionButton.extended(
-                        heroTag: 'home-voice-mic',
-                        onPressed: () {
-                          final bloc = context.read<VoiceBloc>();
-                          vstate.isListening
-                              ? bloc.add(const VoiceStopRequested())
-                              : bloc.add(const VoiceStartRequested());
-                        },
-                        icon: Icon(
-                          vstate.isListening ? Icons.mic : Icons.mic_none,
-                        ),
-                        label: Text(
-                          vstate.isListening ? 'Escuchando…' : 'Hablar',
-                        ),
-                      );
-                    },
-                  ),
-                ),
-              ],
-            );
-          },
-        ),
-        floatingActionButton: SizedBox(
-          width: 76,
-          height: 76,
-          child: FloatingActionButton(
-            backgroundColor: Colors.transparent,
-            elevation: 6,
-            shape: const CircleBorder(),
-            onPressed: () async {
-              final userPosition = context.read<HomeBloc>().state.userPosition;
-              if (userPosition == null) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Esperando tu ubicación...')),
-                );
-                return;
-              }
-
-              final storage = const FlutterSecureStorage();
-              final rentalId = await storage.read(key: 'rental_id');
-
-              if (rentalId != null && rentalId.isNotEmpty) {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => MultiRepositoryProvider(
-                      providers: [
-                        RepositoryProvider(
-                          create: (_) => RentalRepository(
-                            storage: const FlutterSecureStorage(),
-                          ),
-                        ),
-                        RepositoryProvider(create: (_) => ProfileRepository()),
-                      ],
-                      child: BlocProvider(
-                        create: (ctx) => ReturnBloc(
-                          repo: RepositoryProvider.of<RentalRepository>(ctx),
-                          profileRepo: RepositoryProvider.of<ProfileRepository>(
-                            ctx,
-                          ),
-                        )..add(const ReturnInit()),
-                        child: ReturnPage(
-                          userPosition: GpsCoord(
-                            latitude: userPosition.latitude,
-                            longitude: userPosition.longitude,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                );
-              } else {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => RepositoryProvider(
-                      create: (_) => RentalRepository(
-                        storage: const FlutterSecureStorage(),
-                      ),
-                      child: BlocProvider(
-                        create: (ctx) => RentBloc(
-                          repo: RepositoryProvider.of<RentalRepository>(ctx),
-                        )..add(const RentInit()),
-                        child: RentPage(
-                          userPosition: GpsCoord(
-                            latitude: userPosition.latitude,
-                            longitude: userPosition.longitude,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                );
-              }
-            },
-            child: Image.asset(
-              'assets/images/home_button.png',
-              width: 100,
-              height: 100,
-              fit: BoxFit.contain,
-            ),
-          ),
-        ),
-
-        floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
-        bottomNavigationBar: BottomAppBar(
-          shape: const CircularNotchedRectangle(),
-          color: const Color(0xFF90E0EF),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: [
-              Padding(
-                padding: const EdgeInsets.all(14),
-                child: IconButton(
-                  icon: const Icon(Icons.home, color: Colors.black),
-                  onPressed: () {},
-                ),
-              ),
-              const SizedBox(width: 48),
-              Padding(
-                padding: const EdgeInsets.all(14),
-                child: Builder(
-                  builder: (context) => IconButton(
-                    icon: const Icon(Icons.menu, color: Colors.black),
-                    onPressed: () => Scaffold.of(context).openEndDrawer(),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
       ),
     );
   }
@@ -949,8 +598,7 @@ class EstacionesSheet extends StatelessWidget {
                   itemBuilder: (context, index) {
                     final station = stations[index];
                     final occupiedUmbrellas =
-                        station.totalUmbrellas -
-                            station.availableUmbrellas;
+                        station.totalUmbrellas - station.availableUmbrellas;
                     return _buildEstacionCard(
                       station.placeName,
                       station.description,

@@ -5,28 +5,41 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:nfc_manager/nfc_manager.dart';
 import 'package:nfc_manager/platform_tags.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
+import '../../core/services/voice_command_service.dart';
 import '../../data/models/gps_coord.dart';
 import '../../data/repositories/rental_repository.dart';
-import '../../presentation/blocs/notifications/notifications_bloc.dart';
-import '../../presentation/blocs/notifications/notifications_event.dart';
+import '../../data/repositories/profile_repository.dart';
+
+import '../../presentation/blocs/home/home_bloc.dart';
 import '../../presentation/blocs/rent/rent_bloc.dart';
 import '../../presentation/blocs/rent/rent_event.dart';
 import '../../presentation/blocs/rent/rent_state.dart';
-import '../home/home_page.dart';
-import '../../presentation/blocs/home/home_bloc.dart';
-import '../notifications/notifications_page.dart';
-import '../profile/profile_page.dart';
-import '../../data/repositories/profile_repository.dart';
-import '../../presentation/blocs/profile/profile_bloc.dart';
-import '../../presentation/blocs/profile/profile_event.dart';
-import '../../widgets/app_drawer.dart';
-import '../return/return_page.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+
 import '../../presentation/blocs/return/return_bloc.dart';
 import '../../presentation/blocs/return/return_event.dart';
+
+import '../../presentation/blocs/notifications/notifications_bloc.dart';
+import '../../presentation/blocs/notifications/notifications_event.dart';
+
+import '../../presentation/blocs/profile/profile_bloc.dart';
+import '../../presentation/blocs/profile/profile_event.dart';
+
+import '../../presentation/blocs/voice/voice_bloc.dart';
+import '../../presentation/blocs/voice/voice_event.dart';
+import '../../presentation/blocs/voice/voice_state.dart';
+import '../../domain/voice/voice_intent.dart';
+
+import '../home/home_page.dart';
+import '../notifications/notifications_page.dart';
+import '../profile/profile_page.dart';
+import '../return/return_page.dart';
+
+import '../../widgets/app_drawer.dart';
 import '../../services/location_service.dart';
 
+/// ---------- Utils ----------
 String bytesToHexColonUpper(Uint8List bytes) =>
     bytes.map((b) => b.toRadixString(16).padLeft(2, '0')).join(':').toUpperCase();
 
@@ -53,12 +66,8 @@ Uint8List? _extractRawIdFromTagData(Map<dynamic, dynamic> tagData) {
   }
   return null;
 }
-import '../../core/services/voice_command_service.dart';
-import '../../presentation/blocs/voice/voice_bloc.dart';
-import '../../presentation/blocs/voice/voice_event.dart';
-import '../../presentation/blocs/voice/voice_state.dart';
-import '../../domain/voice/voice_intent.dart';
 
+/// ---------- Page ----------
 class RentPage extends StatefulWidget {
   static const routeName = '/rent';
   final GpsCoord? userPosition;
@@ -75,6 +84,10 @@ class _RentPageState extends State<RentPage> {
   bool _weStoppedScanner = true;
   DateTime? _ignoreDetectionsUntil;
   String? _stationIdFromArgs;
+
+  static const Color _barColor = Color(0xFF90E0EF);
+  static const Color _brandPrimaryDark = Color(0xFF004D63);
+  static const Color _accent = Color(0xFF28BCEF);
 
   @override
   void initState() {
@@ -118,7 +131,9 @@ class _RentPageState extends State<RentPage> {
       await NfcManager.instance.stopSession();
     } catch (_) {}
     await Future.delayed(const Duration(milliseconds: 150));
+
     context.read<RentBloc>().add(const RentClearMessage());
+
     NfcManager.instance.startSession(
       pollingOptions: {NfcPollingOption.iso14443},
       onDiscovered: (NfcTag tag) async {
@@ -128,6 +143,7 @@ class _RentPageState extends State<RentPage> {
           Uint8List? rawId = NfcA.from(tag)?.identifier ?? IsoDep.from(tag)?.identifier;
           rawId ??= _extractRawIdFromTagData(tagData);
           if (rawId == null) {
+            if (!mounted) return;
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(
                 content: Text("No se pudo leer el ID del tag NFC"),
@@ -144,6 +160,7 @@ class _RentPageState extends State<RentPage> {
           context.read<RentBloc>().add(RentStartWithNfc(uid));
           await NfcManager.instance.stopSession();
         } catch (e) {
+          if (!mounted) return;
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text("Error en NFC: $e"),
@@ -158,48 +175,10 @@ class _RentPageState extends State<RentPage> {
     );
   }
 
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    return BlocConsumer<RentBloc, RentState>(
-      listenWhen: (prev, curr) =>
-      prev.loading != curr.loading ||
-          prev.message != curr.message ||
-          prev.error != curr.error ||
-          prev.hasActiveRental != curr.hasActiveRental,
-      listener: (context, state) async {
-        await _ensureScanner(!state.loading && !state.nfcBusy);
-        if (state.message != null) {
-          _ignoreDetectionsUntil = DateTime.now().add(const Duration(milliseconds: 800));
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(state.message!),
-              backgroundColor: Colors.green,
-              duration: const Duration(seconds: 2),
-            ),
-          );
-          context.read<RentBloc>().add(const RentClearMessage());
-          return;
-        }
-        if (state.error != null) {
-          final err = state.error!.toLowerCase();
-          final isAlreadyActive = err.contains('Ya tienes una sombrilla') ||
-              err.contains('Ya tenías una sombrilla') ||
-              err.contains('Already has an active rental');
-          if (isAlreadyActive) {
-            _ignoreDetectionsUntil = DateTime.now().add(const Duration(milliseconds: 800));
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text("Ya tenías una sombrilla activa. Te llevo a devolución."),
   Future<void> _goToReturnFlow() async {
     await _ensureScanner(false);
 
-    GpsCoord position =
-        widget.userPosition ??
-        (() {
-          return GpsCoord(latitude: 0, longitude: 0);
-        }());
-
+    GpsCoord position = widget.userPosition ?? GpsCoord(latitude: 0, longitude: 0);
     if (widget.userPosition == null) {
       final pos = await LocationService.getPosition();
       if (pos != null) {
@@ -213,8 +192,7 @@ class _RentPageState extends State<RentPage> {
         builder: (_) => MultiRepositoryProvider(
           providers: [
             RepositoryProvider(
-              create: (_) =>
-                  RentalRepository(storage: const FlutterSecureStorage()),
+              create: (_) => RentalRepository(storage: const FlutterSecureStorage()),
             ),
             RepositoryProvider(create: (_) => ProfileRepository()),
           ],
@@ -230,9 +208,7 @@ class _RentPageState extends State<RentPage> {
     );
 
     if (reset == "returned") {
-      _ignoreDetectionsUntil = DateTime.now().add(
-        const Duration(milliseconds: 1500),
-      );
+      _ignoreDetectionsUntil = DateTime.now().add(const Duration(milliseconds: 1500));
       context.read<RentBloc>().add(const RentRefreshActive());
       await Future.delayed(const Duration(milliseconds: 350));
     }
@@ -240,155 +216,90 @@ class _RentPageState extends State<RentPage> {
     await _ensureScanner(true);
   }
 
+  /// ---------- UI ----------
   @override
   Widget build(BuildContext context) {
+
     return BlocProvider(
-      create: (_) =>
-          VoiceBloc(VoiceCommandService())..add(const VoiceInitRequested()),
-      child: BlocConsumer<RentBloc, RentState>(
-        listenWhen: (prev, curr) =>
-            prev.loading != curr.loading ||
-            prev.message != curr.message ||
-            prev.error != curr.error ||
-            prev.hasActiveRental != curr.hasActiveRental,
-        listener: (context, state) async {
-          await _ensureScanner(!state.loading && !state.nfcBusy);
-
-          if (state.message != null) {
-            _ignoreDetectionsUntil = DateTime.now().add(
-              const Duration(milliseconds: 800),
-            );
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(state.message!),
-                backgroundColor: Colors.green,
-                duration: const Duration(seconds: 2),
-              ),
-            );
-            context.read<RentBloc>().add(const RentClearMessage());
-            return;
+      create: (_) => VoiceBloc(VoiceCommandService())..add(const VoiceInitRequested()),
+      child: BlocListener<VoiceBloc, VoiceState>(
+        listenWhen: (p, c) => p.intent != c.intent && c.intent != VoiceIntent.none,
+        listener: (context, vstate) async {
+          switch (vstate.intent) {
+            case VoiceIntent.rentDefault:
+            case VoiceIntent.rentQR:
+              await _ensureScanner(true);
+              break;
+            case VoiceIntent.rentNFC:
+              await _handleNfc();
+              break;
+            case VoiceIntent.returnUmbrella:
+              await _goToReturnFlow();
+              break;
+            case VoiceIntent.none:
+              break;
           }
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(state.error!),
-              backgroundColor: Colors.red,
-              duration: const Duration(seconds: 2),
-            ),
-          );
-          context.read<RentBloc>().add(const RentClearMessage());
-        }
-      },
-      builder: (context, state) {
-        return Scaffold(
-          appBar: AppBar(
-            backgroundColor: Color(0xFF90E0EF),
-            centerTitle: true,
-            foregroundColor: Colors.black,
-            title: Text(
-              'Rentar',
-              style: GoogleFonts.cormorantGaramond(
-                fontSize: 22,
-                fontWeight: FontWeight.bold,
-                color: Colors.black,
-              ),
-            ),
-            leading: IconButton(
-              icon: Icon(Icons.notifications_none, color: Colors.black),
-              onPressed: () async {
-                final storage = const FlutterSecureStorage();
-                final userId = await storage.read(key: 'user_id');
-                if (userId == null || !context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('No se pudo identificar al usuario.'),
-                      backgroundColor: Colors.red,
-                    ),
-                  );
-                  return;
-                }
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => BlocProvider(
-                      create: (_) => NotificationsBloc()
-                        ..add(StartRentalPolling(userId))
-                        ..add(const CheckWeather()),
-                      child: const NotificationsPage(),
-                    ),
-                  ),
-                );
-              },
-            ),
-            actions: [
-              IconButton(
-                onPressed: () async {
-                  await _ensureScanner(false);
-                  await Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => BlocProvider(
-                        create: (_) =>
-                        ProfileBloc(repository: ProfileRepository())..add(const LoadProfile('')),
-                        child: const ProfilePage(),
+          context.read<VoiceBloc>().add(const VoiceClearIntent());
+        },
+        child: BlocConsumer<RentBloc, RentState>(
+          listenWhen: (prev, curr) =>
+          prev.loading != curr.loading ||
+              prev.message != curr.message ||
+              prev.error != curr.error ||
+              prev.hasActiveRental != curr.hasActiveRental ||
+              prev.nfcBusy != curr.nfcBusy,
+          listener: (context, state) async {
+            // Control fino del scanner
+            await _ensureScanner(!state.loading && !state.nfcBusy);
 
-          if (state.error != null) {
-            final err = state.error!.toLowerCase();
-            final isAlreadyActive =
-                err.contains('ya tienes una sombrilla') ||
-                err.contains('ya tenías una sombrilla') ||
-                err.contains('already has an active rental');
-
-            if (isAlreadyActive) {
-              _ignoreDetectionsUntil = DateTime.now().add(
-                const Duration(milliseconds: 800),
-              );
+            if (state.message != null && mounted) {
+              _ignoreDetectionsUntil = DateTime.now().add(const Duration(milliseconds: 800));
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text(
-                    "Ya tenías una sombrilla activa. Te llevo a devolución.",
-                  ),
+                SnackBar(
+                  content: Text(state.message!),
                   backgroundColor: Colors.green,
-                  duration: Duration(seconds: 2),
+                  duration: const Duration(seconds: 2),
                 ),
               );
               context.read<RentBloc>().add(const RentClearMessage());
               return;
             }
 
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(state.error!),
-                backgroundColor: Colors.red,
-                duration: const Duration(seconds: 2),
-              ),
-            );
-            context.read<RentBloc>().add(const RentClearMessage());
-          }
-        },
-        builder: (context, state) {
-          return BlocListener<VoiceBloc, VoiceState>(
-            listenWhen: (p, c) =>
-                p.intent != c.intent && c.intent != VoiceIntent.none,
-            listener: (context, vstate) async {
-              switch (vstate.intent) {
-                case VoiceIntent.rentDefault:
-                case VoiceIntent.rentQR:
-                  await _ensureScanner(true);
-                  break;
-                case VoiceIntent.rentNFC:
-                  await _handleNfc();
-                  break;
-                case VoiceIntent.returnUmbrella:
-                  await _goToReturnFlow();
-                  break;
-                case VoiceIntent.none:
-                  break;
+            if (state.error != null && mounted) {
+              final err = state.error!.toLowerCase();
+              final isAlreadyActive =
+                  err.contains('ya tienes una sombrilla') ||
+                      err.contains('ya tenías una sombrilla') ||
+                      err.contains('already has an active rental');
+
+              if (isAlreadyActive) {
+                _ignoreDetectionsUntil = DateTime.now().add(const Duration(milliseconds: 800));
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text("Ya tenías una sombrilla activa. Te llevo a devolución."),
+                    backgroundColor: Colors.green,
+                    duration: Duration(seconds: 2),
+                  ),
+                );
+                context.read<RentBloc>().add(const RentClearMessage());
+                await _goToReturnFlow();
+                return;
               }
-              context.read<VoiceBloc>().add(const VoiceClearIntent());
-            },
-            child: Scaffold(
+
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(state.error!),
+                  backgroundColor: Colors.red,
+                  duration: const Duration(seconds: 2),
+                ),
+              );
+              context.read<RentBloc>().add(const RentClearMessage());
+            }
+          },
+          builder: (context, state) {
+            return Scaffold(
               appBar: AppBar(
-                backgroundColor: const Color(0xFF90E0EF),
+                backgroundColor: _barColor, // Color estático
                 centerTitle: true,
                 foregroundColor: Colors.black,
                 title: Text(
@@ -399,8 +310,9 @@ class _RentPageState extends State<RentPage> {
                     color: Colors.black,
                   ),
                 ),
+                // Campana de notificaciones (leading)
                 leading: IconButton(
-                  icon: const Icon(Icons.notifications_none),
+                  icon: const Icon(Icons.notifications_none, color: Colors.black),
                   onPressed: () async {
                     await _ensureScanner(false);
                     final storage = const FlutterSecureStorage();
@@ -415,7 +327,7 @@ class _RentPageState extends State<RentPage> {
                       await _ensureScanner(true);
                       return;
                     }
-                    Navigator.push(
+                    await Navigator.push(
                       context,
                       MaterialPageRoute(
                         builder: (_) => BlocProvider(
@@ -429,37 +341,7 @@ class _RentPageState extends State<RentPage> {
                     await _ensureScanner(true);
                   },
                 ),
-              ),
-            ],
-          ),
-          endDrawer: AppDrawer(),
-          body: Stack(
-            children: [
-              MobileScanner(
-                controller: _scanner,
-                fit: BoxFit.cover,
-                onDetect: (capture) async {
-                  if (state.loading || state.hasActiveRental) return;
-                  final now = DateTime.now();
-                  if (_ignoreDetectionsUntil != null && now.isBefore(_ignoreDetectionsUntil!)) {
-                    return;
-                  }
-                  final raw = capture.barcodes.isNotEmpty ? capture.barcodes.first.rawValue : null;
-                  if (raw == null) return;
-                  await _ensureScanner(false);
-                  context.read<RentBloc>().add(RentStartWithQr(raw));
-                },
-              ),
-              Align(
-                alignment: Alignment.center,
-                child: Container(
-                  width: MediaQuery.of(context).size.width * 0.78,
-                  height: MediaQuery.of(context).size.width * 0.58,
-                  decoration: BoxDecoration(
-                    color: Colors.transparent,
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: const Color(0xFF28BCEF), width: 3),
-                    boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 8, spreadRadius: 1)],
+                // Avatar de perfil (actions)
                 actions: [
                   IconButton(
                     onPressed: () async {
@@ -468,9 +350,8 @@ class _RentPageState extends State<RentPage> {
                         context,
                         MaterialPageRoute(
                           builder: (_) => BlocProvider(
-                            create: (_) =>
-                                ProfileBloc(repository: ProfileRepository())
-                                  ..add(const LoadProfile('')),
+                            create: (_) => ProfileBloc(repository: ProfileRepository())
+                              ..add(const LoadProfile('')),
                             child: const ProfilePage(),
                           ),
                         ),
@@ -485,10 +366,12 @@ class _RentPageState extends State<RentPage> {
                   ),
                 ],
               ),
-              endDrawer: AppDrawer(),
+
+              endDrawer:  AppDrawer(),
 
               body: Stack(
                 children: [
+                  // Scanner de QR
                   MobileScanner(
                     controller: _scanner,
                     fit: BoxFit.cover,
@@ -510,6 +393,8 @@ class _RentPageState extends State<RentPage> {
                       context.read<RentBloc>().add(RentStartWithQr(raw));
                     },
                   ),
+
+                  // Marco de guía de escaneo
                   Align(
                     alignment: Alignment.center,
                     child: Container(
@@ -518,20 +403,15 @@ class _RentPageState extends State<RentPage> {
                       decoration: BoxDecoration(
                         color: Colors.transparent,
                         borderRadius: BorderRadius.circular(8),
-                        border: Border.all(
-                          color: const Color(0xFF28BCEF),
-                          width: 3,
-                        ),
+                        border: Border.all(color: _accent, width: 3),
                         boxShadow: const [
-                          BoxShadow(
-                            color: Colors.black26,
-                            blurRadius: 8,
-                            spreadRadius: 1,
-                          ),
+                          BoxShadow(color: Colors.black26, blurRadius: 8, spreadRadius: 1),
                         ],
                       ),
                     ),
                   ),
+
+                  // Botones de acción (NFC / Devolución)
                   Positioned(
                     bottom: 120,
                     left: 0,
@@ -545,28 +425,20 @@ class _RentPageState extends State<RentPage> {
                             label: const Text("Ir a devolución"),
                             style: ElevatedButton.styleFrom(
                               backgroundColor: Colors.white60,
-                              foregroundColor: const Color(0xFF004D63),
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 30,
-                                vertical: 15,
-                              ),
+                              foregroundColor: _brandPrimaryDark,
+                              padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 15),
                             ),
-                            onPressed: () async {
-                              await _goToReturnFlow();
-                            },
+                            onPressed: _goToReturnFlow,
                           ),
-                        const SizedBox(width: 12),
+                        if (state.hasActiveRental) const SizedBox(width: 12),
                         if (!state.hasActiveRental)
                           ElevatedButton.icon(
                             icon: const Icon(Icons.contactless, size: 30),
                             label: const Text("Rentar con NFC"),
                             style: ElevatedButton.styleFrom(
                               backgroundColor: Colors.white,
-                              foregroundColor: const Color(0xFF004D63),
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 30,
-                                vertical: 15,
-                              ),
+                              foregroundColor: _brandPrimaryDark,
+                              padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 15),
                             ),
                             onPressed: state.nfcBusy ? null : _handleNfc,
                           ),
@@ -574,11 +446,10 @@ class _RentPageState extends State<RentPage> {
                     ),
                   ),
 
+                  // FAB de voz (mic)
                   Positioned(
                     right: 16,
-                    bottom:
-                        kBottomNavigationBarHeight +
-                        MediaQuery.of(context).padding.bottom,
+                    bottom: kBottomNavigationBarHeight + MediaQuery.of(context).padding.bottom,
                     child: BlocBuilder<VoiceBloc, VoiceState>(
                       builder: (context, vstate) {
                         return FloatingActionButton.extended(
@@ -589,83 +460,24 @@ class _RentPageState extends State<RentPage> {
                                 ? bloc.add(const VoiceStopRequested())
                                 : bloc.add(const VoiceStartRequested());
                           },
-                          icon: Icon(
-                            vstate.isListening ? Icons.mic : Icons.mic_none,
-                          ),
-                          label: Text(
-                            vstate.isListening ? 'Escuchando…' : 'Hablar',
-                          ),
+                          icon: Icon(vstate.isListening ? Icons.mic : Icons.mic_none),
+                          label: Text(vstate.isListening ? 'Escuchando…' : 'Hablar'),
                         );
                       },
                     ),
                   ),
 
-                  if (state.loading)
-                    const Center(child: CircularProgressIndicator()),
+                  if (state.loading) const Center(child: CircularProgressIndicator()),
                 ],
               ),
 
+              // Bottom bar con color estático + botones Home y Menú
               bottomNavigationBar: BottomAppBar(
                 shape: const CircularNotchedRectangle(),
-                color: const Color(0xFF90E0EF),
+                color: _barColor, // Color estático
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceAround,
                   children: [
-                    if (state.hasActiveRental)
-                      ElevatedButton.icon(
-                        icon: const Icon(Icons.assignment_return, size: 30),
-                        label: const Text("Ir a devolución"),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.white60,
-                          foregroundColor: const Color(0xFF004D63),
-                          padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 15),
-                        ),
-                        onPressed: () async {
-                          await _ensureScanner(false);
-                          GpsCoord position = widget.userPosition ?? GpsCoord(latitude: 0, longitude: 0);
-                          if (widget.userPosition == null) {
-                            final pos = await LocationService.getPosition();
-                            if (pos != null) {
-                              position = GpsCoord(latitude: pos.latitude, longitude: pos.longitude);
-                            }
-                          }
-                          final reset = await Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => MultiRepositoryProvider(
-                                providers: [
-                                  RepositoryProvider(
-                                    create: (_) => RentalRepository(storage: const FlutterSecureStorage()),
-                                  ),
-                                  RepositoryProvider(create: (_) => ProfileRepository()),
-                                ],
-                                child: BlocProvider(
-                                  create: (ctx) => ReturnBloc(
-                                    repo: RepositoryProvider.of<RentalRepository>(ctx),
-                                    profileRepo: RepositoryProvider.of<ProfileRepository>(ctx),
-                                  )..add(const ReturnInit()),
-                                  child: ReturnPage(userPosition: position),
-                                ),
-                              ),
-                            ),
-                          );
-                          if (reset == "returned") {
-                            _ignoreDetectionsUntil = DateTime.now().add(const Duration(milliseconds: 1500));
-                            context.read<RentBloc>().add(const RentRefreshActive());
-                            await Future.delayed(const Duration(milliseconds: 350));
-                          }
-                          await _ensureScanner(true);
-                        },
-                      ),
-                    const SizedBox(width: 12),
-                    if (!state.hasActiveRental)
-                      ElevatedButton.icon(
-                        icon: const Icon(Icons.contactless, size: 30),
-                        label: const Text("Rentar con NFC"),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.white,
-                          foregroundColor: const Color(0xFF004D63),
-                          padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 15),
                     Padding(
                       padding: const EdgeInsets.all(14),
                       child: IconButton(
@@ -683,7 +495,7 @@ class _RentPageState extends State<RentPage> {
                         },
                       ),
                     ),
-                    const SizedBox(width: 48),
+                    const SizedBox(width: 48), // espacio para el FAB central
                     Padding(
                       padding: const EdgeInsets.all(14),
                       child: Builder(
@@ -696,56 +508,24 @@ class _RentPageState extends State<RentPage> {
                   ],
                 ),
               ),
-              if (state.loading) const Center(child: CircularProgressIndicator()),
-            ],
-          ),
-          bottomNavigationBar: BottomAppBar(
-            shape: const CircularNotchedRectangle(),
-            color: Color(0xFF90E0EF),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: [
-                Padding(
-                  padding: const EdgeInsets.all(14),
-                  child: IconButton(
-                    icon: Icon(Icons.home, color: Colors.black),
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => BlocProvider(create: (_) => HomeBloc(), child: const HomePage()),
-                        ),
-                      );
-                    },
-                  ),
+
+              // FAB central con la imagen (no tapa el mic)
+              floatingActionButton: SizedBox(
+                width: 76,
+                height: 76,
+                child: FloatingActionButton(
+                  backgroundColor: Colors.transparent,
+                  elevation: 6,
+                  shape: const CircleBorder(),
+                  onPressed: () {}, // acción central si la necesitas
+                  child: Image.asset('assets/images/home_button.png', width: 200, height: 200),
                 ),
-                const SizedBox(width: 48),
-                Padding(
-                  padding: const EdgeInsets.all(14),
-                  child: Builder(
-                    builder: (context) => IconButton(
-                      icon: Icon(Icons.menu, color: Colors.black),
-                      onPressed: () => Scaffold.of(context).openEndDrawer(),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          floatingActionButton: SizedBox(
-            width: 76,
-            height: 76,
-            child: FloatingActionButton(
-              backgroundColor: Colors.transparent,
-              elevation: 6,
-              shape: const CircleBorder(),
-              onPressed: () {},
-              child: Image.asset('assets/images/home_button.png', width: 200, height: 200),
-            ),
-          ),
-          floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
-        );
-      },
+              ),
+              floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
+            );
+          },
+        ),
+      ),
     );
   }
 
