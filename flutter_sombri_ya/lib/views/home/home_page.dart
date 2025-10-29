@@ -22,7 +22,6 @@ import '../../presentation/blocs/notifications/notifications_event.dart';
 
 // BloC Profile
 import '../profile/profile_page.dart';
-import '../../data/repositories/profile_repository.dart';
 
 //BloC Rent and Return
 import '../rent/rent_page.dart';
@@ -71,7 +70,6 @@ class HomeView extends StatefulWidget {
 class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
   GoogleMapController? _mapController;
   BitmapDescriptor? _stationIcon;
-  final PedometerService _pedometer = PedometerService();
 
   @override
   void initState() {
