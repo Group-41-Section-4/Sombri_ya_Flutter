@@ -6,6 +6,8 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 import '../../config/openweather_config.dart';
+// BLoC Home
+import '../../data/repositories/profile_repository.dart';
 import '../../presentation/blocs/home/home_bloc.dart';
 import '../../presentation/blocs/home/home_event.dart';
 import '../../presentation/blocs/home/home_state.dart';
@@ -20,7 +22,6 @@ import '../../presentation/blocs/notifications/notifications_bloc.dart';
 import '../../presentation/blocs/notifications/notifications_event.dart';
 
 import '../profile/profile_page.dart';
-import '../../data/repositories/profile_repository.dart';
 
 import '../../presentation/blocs/weather/weather_cubit.dart';
 import '../../data/models/weather_models.dart';
@@ -29,11 +30,21 @@ import '../../core/theme/weather_theme.dart';
 
 import '../rent/rent_page.dart';
 import '../return/return_page.dart';
-import '../../presentation/blocs/rent/rent_bloc.dart';
 import '../../presentation/blocs/return/return_bloc.dart';
+import '../../presentation/blocs/rent/rent_bloc.dart';
 import '../../presentation/blocs/rent/rent_event.dart';
 import '../../presentation/blocs/return/return_event.dart';
 import '../../data/repositories/rental_repository.dart';
+
+// Voice imports
+import '../../core/services/voice_command_service.dart';
+import '../../presentation/blocs/voice/voice_bloc.dart';
+import '../../presentation/blocs/voice/voice_event.dart';
+import '../../presentation/blocs/voice/voice_state.dart';
+import '../../domain/voice/voice_intent.dart';
+
+// Services
+import '../../../core/services/pedometer_service.dart';
 
 class HomePage extends StatelessWidget {
   const HomePage({super.key});
@@ -47,6 +58,10 @@ class HomePage extends StatelessWidget {
           create: (_) => WeatherCubit(
             weather: WeatherService(apiKey: OpenWeatherConfig.apiKey),
           )..start(every: const Duration(minutes: 10)),
+        BlocProvider(create: (context) => HomeBloc()),
+        BlocProvider(
+          create: (_) =>
+              VoiceBloc(VoiceCommandService())..add(const VoiceInitRequested()),
         ),
       ],
       child: const HomeView(),
@@ -64,6 +79,7 @@ class HomeView extends StatefulWidget {
 class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
   GoogleMapController? _mapController;
   BitmapDescriptor? _stationIcon;
+  final PedometerService _pedometer = PedometerService();
 
   SimpleWeather? _weatherForUI;
 
@@ -227,8 +243,203 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
                         radius: 16,
                         backgroundColor: Colors.black,
                         backgroundImage: AssetImage('assets/images/profile.png'),
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Ubicación Desactivada'),
+          content: const Text(
+            'Para mostrar las estaciones cercanas, por favor activa los servicios de ubicación de tu dispositivo.',
+          ),
+          actions: <Widget>[
+            TextButton(
+              child: const Text('Cancelar'),
+              onPressed: () => Navigator.of(context).pop(),
+            ),
+            TextButton(
+              child: const Text('Activar Ubicación'),
+              onPressed: () {
+                Geolocator.openLocationSettings();
+                Navigator.of(context).pop();
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Future<void> _goToReturnIfActiveOrRentOtherwise() async {
+    final userPosition = context.read<HomeBloc>().state.userPosition;
+    if (userPosition == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Esperando tu ubicación...')),
+      );
+      return;
+    }
+
+    final storage = const FlutterSecureStorage();
+    final rentalId = await storage.read(key: 'rental_id');
+
+    if (rentalId != null && rentalId.isNotEmpty) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => MultiRepositoryProvider(
+            providers: [
+              RepositoryProvider(
+                create: (_) =>
+                    RentalRepository(storage: const FlutterSecureStorage()),
+              ),
+              RepositoryProvider(create: (_) => ProfileRepository()),
+            ],
+
+            child: BlocProvider(
+              create: (ctx) => ReturnBloc(
+                repo: RepositoryProvider.of<RentalRepository>(ctx),
+                profileRepo: RepositoryProvider.of<ProfileRepository>(ctx),
+              )..add(const ReturnInit()),
+              child: ReturnPage(
+                userPosition: GpsCoord(
+                  latitude: userPosition.latitude,
+                  longitude: userPosition.longitude,
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+    } else {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => RepositoryProvider(
+            create: (_) =>
+                RentalRepository(storage: const FlutterSecureStorage()),
+            child: BlocProvider(
+              create: (ctx) =>
+                  RentBloc(repo: RepositoryProvider.of<RentalRepository>(ctx))
+                    ..add(const RentInit()),
+              child: RentPage(
+                userPosition: GpsCoord(
+                  latitude: userPosition.latitude,
+                  longitude: userPosition.longitude,
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+  }
+
+  Future<void> _goToReturnIfActiveElseSnack() async {
+    final storage = const FlutterSecureStorage();
+    final rentalId = await storage.read(key: 'rental_id');
+    if (rentalId == null || rentalId.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('No tienes una renta activa para devolver.'),
+        ),
+      );
+      return;
+    }
+    await _goToReturnIfActiveOrRentOtherwise();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return BlocListener<VoiceBloc, VoiceState>(
+      listenWhen: (p, c) =>
+          p.intent != c.intent && c.intent != VoiceIntent.none,
+      listener: (context, vstate) async {
+        switch (vstate.intent) {
+          case VoiceIntent.rentDefault:
+          case VoiceIntent.rentQR:
+            await _goToReturnIfActiveOrRentOtherwise();
+            break;
+          case VoiceIntent.rentNFC:
+            await _goToReturnIfActiveOrRentOtherwise();
+            break;
+          case VoiceIntent.returnUmbrella:
+            await _goToReturnIfActiveElseSnack();
+            break;
+          case VoiceIntent.none:
+            break;
+        }
+        context.read<VoiceBloc>().add(const VoiceClearIntent());
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          backgroundColor: const Color(0xFF90E0EF),
+          foregroundColor: Colors.black,
+          centerTitle: true,
+          title: ValueListenableBuilder<bool>(
+            valueListenable: _pedometer.isTracking,
+            builder: (context, isTracking, child) {
+              if (!isTracking) {
+                return Text(
+                  '',
+                  style: GoogleFonts.cormorantGaramond(
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black,
+                  ),
+                );
+              }
+
+              return ValueListenableBuilder<int>(
+                valueListenable: _pedometer.sessionSteps,
+                builder: (context, steps, child) {
+                  return Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 8,
+                    ),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF005E7C),
+                      borderRadius: BorderRadius.circular(20),
+                      boxShadow: const [
+                        BoxShadow(
+                          color: Colors.black26,
+                          blurRadius: 4,
+                          offset: Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: Text(
+                      'PASOS: $steps',
+                      style: GoogleFonts.robotoSlab(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
                       ),
                     ),
+                  );
+                },
+              );
+            },
+          ),
+          leading: IconButton(
+            icon: const Icon(Icons.notifications_none),
+            onPressed: () async {
+              final storage = const FlutterSecureStorage();
+              final userId = await storage.read(key: 'user_id');
+              if (userId == null || !context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('No se pudo identificar al usuario.'),
+                    backgroundColor: Colors.red,
+                  ),
+                );
+                return;
+              }
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => BlocProvider(
+                    create: (_) => NotificationsBloc()
+                      ..add(StartRentalPolling(userId))
+                      ..add(const CheckWeather()),
+                    child: const NotificationsPage(),
                   ),
                 ],
               ),
@@ -340,6 +551,98 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
                               ),
                             ),
                           ),
+                ),
+              );
+            },
+          ),
+          actions: [
+            IconButton(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const ProfilePage()),
+                );
+              },
+              icon: const CircleAvatar(
+                radius: 16,
+                backgroundColor: Colors.black,
+                backgroundImage: AssetImage('assets/images/profile.png'),
+              ),
+            ),
+          ],
+        ),
+        endDrawer: AppDrawer(),
+        body: BlocConsumer<HomeBloc, HomeState>(
+          listenWhen: (prev, current) =>
+              prev.locationError != current.locationError ||
+              (prev.cameraTarget != current.cameraTarget &&
+                  current.cameraTarget != null),
+          listener: (context, state) {
+            if (state.locationError == 'disabled') {
+              _showEnableLocationDialog();
+            }
+            if (state.cameraTarget != null) {
+              _mapController?.animateCamera(
+                CameraUpdate.newLatLngZoom(
+                  state.cameraTarget!,
+                  state.cameraZoom,
+                ),
+              );
+            }
+          },
+          builder: (context, state) {
+            return Stack(
+              children: [
+                GoogleMap(
+                  initialCameraPosition: CameraPosition(
+                    target:
+                        state.cameraTarget ??
+                        const LatLng(4.603083, -74.065130),
+                    zoom: state.cameraZoom,
+                  ),
+                  onMapCreated: (controller) {
+                    _mapController = controller;
+                  },
+                  markers: state.markers,
+                  myLocationEnabled: true,
+                  myLocationButtonEnabled: true,
+                  mapToolbarEnabled: false,
+                  zoomControlsEnabled: false,
+                ),
+                if (state.isLoading)
+                  const Center(child: CircularProgressIndicator()),
+                Positioned(
+                  top: 16,
+                  left: 0,
+                  right: 0,
+                  child: Center(
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF005E7C),
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 40,
+                          vertical: 12,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        elevation: 6,
+                      ),
+                      onPressed: () {
+                        showModalBottomSheet(
+                          context: context,
+                          isScrollControlled: true,
+                          backgroundColor: Colors.transparent,
+                          builder: (_) =>
+                              EstacionesSheet(stations: state.nearbyStations),
+                        );
+                      },
+                      child: Text(
+                        'ESTACIONES',
+                        style: GoogleFonts.robotoSlab(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
                         ),
                       ),
                     ],
@@ -458,6 +761,145 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
             ),
           );
         },
+
+                Positioned(
+                  right: 16,
+                  bottom:
+                      kBottomNavigationBarHeight +
+                      MediaQuery.of(context).padding.bottom,
+                  child: BlocBuilder<VoiceBloc, VoiceState>(
+                    builder: (context, vstate) {
+                      return FloatingActionButton.extended(
+                        heroTag: 'home-voice-mic',
+                        onPressed: () {
+                          final bloc = context.read<VoiceBloc>();
+                          vstate.isListening
+                              ? bloc.add(const VoiceStopRequested())
+                              : bloc.add(const VoiceStartRequested());
+                        },
+                        icon: Icon(
+                          vstate.isListening ? Icons.mic : Icons.mic_none,
+                        ),
+                        label: Text(
+                          vstate.isListening ? 'Escuchando…' : 'Hablar',
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ],
+            );
+          },
+        ),
+        floatingActionButton: SizedBox(
+          width: 76,
+          height: 76,
+          child: FloatingActionButton(
+            backgroundColor: Colors.transparent,
+            elevation: 6,
+            shape: const CircleBorder(),
+            onPressed: () async {
+              final userPosition = context.read<HomeBloc>().state.userPosition;
+              if (userPosition == null) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Esperando tu ubicación...')),
+                );
+                return;
+              }
+
+              final storage = const FlutterSecureStorage();
+              final rentalId = await storage.read(key: 'rental_id');
+
+              if (rentalId != null && rentalId.isNotEmpty) {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => MultiRepositoryProvider(
+                      providers: [
+                        RepositoryProvider(
+                          create: (_) => RentalRepository(
+                            storage: const FlutterSecureStorage(),
+                          ),
+                        ),
+                        RepositoryProvider(create: (_) => ProfileRepository()),
+                      ],
+                      child: BlocProvider(
+                        create: (ctx) => ReturnBloc(
+                          repo: RepositoryProvider.of<RentalRepository>(ctx),
+                          profileRepo: RepositoryProvider.of<ProfileRepository>(
+                            ctx,
+                          ),
+                        )..add(const ReturnInit()),
+                        child: ReturnPage(
+                          userPosition: GpsCoord(
+                            latitude: userPosition.latitude,
+                            longitude: userPosition.longitude,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                );
+              } else {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => RepositoryProvider(
+                      create: (_) => RentalRepository(
+                        storage: const FlutterSecureStorage(),
+                      ),
+                      child: BlocProvider(
+                        create: (ctx) => RentBloc(
+                          repo: RepositoryProvider.of<RentalRepository>(ctx),
+                        )..add(const RentInit()),
+                        child: RentPage(
+                          userPosition: GpsCoord(
+                            latitude: userPosition.latitude,
+                            longitude: userPosition.longitude,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                );
+              }
+            },
+            child: Image.asset(
+              'assets/images/home_button.png',
+              width: 100,
+              height: 100,
+              fit: BoxFit.contain,
+            ),
+          ),
+        ),
+
+        floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
+        bottomNavigationBar: BottomAppBar(
+          shape: const CircularNotchedRectangle(),
+          color: const Color(0xFF90E0EF),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: [
+              Padding(
+                padding: const EdgeInsets.all(14),
+                child: IconButton(
+                  icon: const Icon(Icons.home, color: Colors.black),
+                  onPressed: () {},
+                ),
+              ),
+              const SizedBox(width: 48),
+              Padding(
+                padding: const EdgeInsets.all(14),
+                child: Builder(
+                  builder: (context) => IconButton(
+                    icon: const Icon(Icons.menu, color: Colors.black),
+                    onPressed: () => Scaffold.of(context).openEndDrawer(),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
