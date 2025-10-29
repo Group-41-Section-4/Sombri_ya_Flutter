@@ -20,7 +20,6 @@ class NfcService {
           if (uid == null) throw Exception('No se pudo detectar UID');
           await onUid(uid);
         } catch (_) {
-          // dejamos que la capa superior gestione errores
         } finally {
           await stopSession();
         }

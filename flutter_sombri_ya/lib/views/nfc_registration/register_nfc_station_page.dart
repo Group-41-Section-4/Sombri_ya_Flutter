@@ -46,7 +46,7 @@ class _RegisterViewState extends State<_RegisterView> {
       backgroundColor: const Color(0xFFF6FBFF),
       appBar: AppBar(
         title: const Text("Registrar NFC de estación"),
-        backgroundColor: const Color(0xFF90E0EF),
+        backgroundColor: Color(0xFF90E0EF),
         foregroundColor: Colors.black,
         elevation: 0,
         centerTitle: true,
@@ -147,7 +147,7 @@ class _RegisterViewState extends State<_RegisterView> {
                                           style: const TextStyle(fontSize: 16),
                                         ),
                                         style: ElevatedButton.styleFrom(
-                                          backgroundColor: const Color(0xFF90E0EF),
+                                          backgroundColor: Color(0xFF90E0EF),
                                           foregroundColor: Colors.black,
                                           padding: const EdgeInsets.symmetric(
                                             vertical: 14,

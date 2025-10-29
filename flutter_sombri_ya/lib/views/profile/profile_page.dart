@@ -325,6 +325,7 @@ class _ProfilePageState extends State<ProfilePage> {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return BlocProvider.value(
       value: _bloc,
       child: Scaffold(
@@ -339,7 +340,8 @@ class _ProfilePageState extends State<ProfilePage> {
             ),
           ),
           centerTitle: true,
-          backgroundColor: const Color(0xFF90E0EF),
+          backgroundColor: Color(0xFF90E0EF),
+          foregroundColor: Colors.black,
           elevation: 0,
           leading: IconButton(
             icon: const Icon(Icons.arrow_back, color: Colors.black),

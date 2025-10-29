@@ -41,6 +41,7 @@ class _NotificationsViewState extends State<_NotificationsView> {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return BlocBuilder<NotificationsBloc, NotificationsState>(
       builder: (context, state) {
         final List<model.AppNotification> allNotifications = [];
@@ -52,12 +53,14 @@ class _NotificationsViewState extends State<_NotificationsView> {
         return Scaffold(
           backgroundColor: const Color(0xFFFFFDFD),
           appBar: AppBar(
-            backgroundColor: const Color(0xFF90E0EF),
+            backgroundColor: Color(0xFF90E0EF),
+            foregroundColor: Colors.black,
             elevation: 0,
             leading: IconButton(
               icon: const Icon(Icons.arrow_back, color: Colors.black),
               onPressed: () => Navigator.pop(context),
             ),
+            centerTitle: true,
             title: Text(
               'Notificaciones',
               style: GoogleFonts.cormorantGaramond(

@@ -1,4 +1,7 @@
+import 'dart:convert';
+
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:http/http.dart' as http;
 
 import '../providers/api_provider.dart';
 import '../models/rental_model.dart';
@@ -113,16 +116,28 @@ class RentalRepository {
   }
 
 
-  Future<String> stationIdByTagUid(String uid) async {
-    final dynamic data = await _apiProvider.getWithParams(
-      '/stations/by-tag',
-      {'uid': uid},
+  Future<String?> stationIdByTagUid(String uid) async {
+
+    final token = await storage.read(key: 'auth_token');
+    final url = Uri.parse('${_apiProvider.baseUrl}/tags/$uid/station');
+
+    final resp = await http.get(
+      url,
+      headers: {
+        if (token != null) 'Authorization': 'Bearer $token',
+      },
     );
 
-    if (data is Map && data['id'] != null) {
-      return data['id'].toString();
+    if (resp.statusCode == 200) {
+      final data = json.decode(resp.body);
+
+      final id = (data is Map && data['id'] != null) ? data['id'].toString() : null;
+      return (id != null && id.isNotEmpty) ? id : null;
     }
-    throw Exception('Estación no encontrada para el tag NFC.');
+    if (resp.statusCode == 404) {
+      return null;
+    }
+    throw Exception('Error resolviendo tag ($uid): ${resp.statusCode} ${resp.body}');
   }
 
   Future<void> endRental({

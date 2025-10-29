@@ -29,6 +29,7 @@ class AppDrawer extends StatelessWidget {
               padding: EdgeInsets.all(16),
               child: Text(
                 "Menu",
+                textAlign: TextAlign.center,
                 style: GoogleFonts.cormorantGaramond(
                   color: Colors.black,
                   fontSize: 24,
