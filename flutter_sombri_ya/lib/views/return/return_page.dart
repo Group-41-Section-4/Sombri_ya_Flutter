@@ -1,12 +1,18 @@
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:nfc_manager/nfc_manager.dart';
 import 'package:nfc_manager/platform_tags.dart';
 
 import '../../data/models/gps_coord.dart';
+import '../../data/repositories/profile_repository.dart';
+import '../../presentation/blocs/notifications/notifications_bloc.dart';
+import '../../presentation/blocs/notifications/notifications_event.dart';
+import '../../presentation/blocs/profile/profile_bloc.dart';
+import '../../presentation/blocs/profile/profile_event.dart';
 import '../../presentation/blocs/return/return_bloc.dart';
 import '../../presentation/blocs/return/return_event.dart';
 import '../../presentation/blocs/return/return_state.dart';
@@ -15,6 +21,8 @@ import '../home/home_page.dart';
 import '../../presentation/blocs/home/home_bloc.dart';
 import '../notifications/notifications_page.dart';
 import '../../widgets/app_drawer.dart';
+import '../profile/profile_page.dart';
+
 class ReturnPage extends StatefulWidget {
   final GpsCoord userPosition;
   const ReturnPage({super.key, required this.userPosition});
@@ -35,17 +43,23 @@ class _ReturnPageState extends State<ReturnPage> {
 
   Future<void> _ensureScanner(bool shouldRun) async {
     if (shouldRun && !_scannerRunning) {
-      try { await _scanner.start(); } catch (_) {}
+      try {
+        await _scanner.start();
+      } catch (_) {}
       _scannerRunning = true;
     } else if (!shouldRun && _scannerRunning) {
-      try { await _scanner.stop(); } catch (_) {}
+      try {
+        await _scanner.stop();
+      } catch (_) {}
       _scannerRunning = false;
     }
   }
 
   Future<void> _handleNfc() async {
     await _ensureScanner(false);
-    try { await NfcManager.instance.stopSession(); } catch (_) {}
+    try {
+      await NfcManager.instance.stopSession();
+    } catch (_) {}
     await Future.delayed(const Duration(milliseconds: 150));
     context.read<ReturnBloc>().add(ReturnClearMessage());
 
@@ -62,24 +76,31 @@ class _ReturnPageState extends State<ReturnPage> {
             if (iso != null) id = iso.identifier;
           }
           if (id == null) {
-            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-              content: Text("No se pudo leer el ID del tag NFC"),
-              backgroundColor: Colors.red,
-              duration: Duration(seconds: 1),
-            ));
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text("No se pudo leer el ID del tag NFC"),
+                backgroundColor: Colors.red,
+                duration: Duration(seconds: 1),
+              ),
+            );
             await NfcManager.instance.stopSession();
             await _ensureScanner(true);
             return;
           }
 
-          final uid = id.map((b) => b.toRadixString(16).padLeft(2, '0')).join(':').toUpperCase();
+          final uid = id
+              .map((b) => b.toRadixString(16).padLeft(2, '0'))
+              .join(':')
+              .toUpperCase();
           context.read<ReturnBloc>().add(ReturnWithNfc(uid));
         } catch (e) {
-          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-            content: Text("Error en NFC: $e"),
-            backgroundColor: Colors.red,
-            duration: const Duration(seconds: 2),
-          ));
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text("Error en NFC: $e"),
+              backgroundColor: Colors.red,
+              duration: const Duration(seconds: 2),
+            ),
+          );
           await NfcManager.instance.stopSession();
           await _ensureScanner(true);
         }
@@ -99,19 +120,23 @@ class _ReturnPageState extends State<ReturnPage> {
         await _ensureScanner(!state.loading && !state.nfcBusy);
 
         if (state.message != null) {
-          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-            content: Text(state.message!),
-            backgroundColor: Colors.green,
-            duration: const Duration(seconds: 1),
-          ));
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(state.message!),
+              backgroundColor: Colors.green,
+              duration: const Duration(seconds: 1),
+            ),
+          );
           context.read<ReturnBloc>().add(ReturnClearMessage());
         }
         if (state.error != null) {
-          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-            content: Text(state.error!),
-            backgroundColor: Colors.red,
-            duration: const Duration(seconds: 2),
-          ));
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(state.error!),
+              backgroundColor: Colors.red,
+              duration: const Duration(seconds: 2),
+            ),
+          );
           context.read<ReturnBloc>().add(ReturnClearMessage());
         }
 
@@ -125,13 +150,68 @@ class _ReturnPageState extends State<ReturnPage> {
             backgroundColor: const Color(0xFF90E0EF),
             centerTitle: true,
             foregroundColor: Colors.black,
-            title: Text('Devolver sombrilla',
+            title: Text(
+              'Devolver sombrilla',
               style: GoogleFonts.cormorantGaramond(
-                  fontSize: 22, fontWeight: FontWeight.bold, color: Colors.black)),
+                fontSize: 22,
+                fontWeight: FontWeight.bold,
+                color: Colors.black,
+              ),
+            ),
             leading: IconButton(
               icon: const Icon(Icons.notifications_none),
-              onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const NotificationsPage())),
+              onPressed: () async {
+                await _ensureScanner(false);
+                final storage = const FlutterSecureStorage();
+                final userId = await storage.read(key: 'user_id');
+                if (userId == null || !context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('No se pudo identificar al usuario.'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                  await _ensureScanner(true);
+                  return;
+                }
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => BlocProvider(
+                      create: (_) => NotificationsBloc()
+                        ..add(StartRentalPolling(userId))
+                        ..add(const CheckWeather()),
+                      child: const NotificationsPage(),
+                    ),
+                  ),
+                );
+                await _ensureScanner(true);
+              },
             ),
+            actions: [
+              IconButton(
+                onPressed: () async {
+                  await _ensureScanner(false);
+                  await Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => BlocProvider(
+                        create: (_) =>
+                            ProfileBloc(repository: ProfileRepository())
+                              ..add(const LoadProfile('')),
+                        child: const ProfilePage(),
+                      ),
+                    ),
+                  );
+                  await _ensureScanner(true);
+                },
+                icon: const CircleAvatar(
+                  radius: 16,
+                  backgroundColor: Colors.white24,
+                  backgroundImage: AssetImage('assets/images/profile.png'),
+                ),
+              ),
+            ],
           ),
           endDrawer: AppDrawer(),
           body: Stack(
@@ -141,7 +221,9 @@ class _ReturnPageState extends State<ReturnPage> {
                 fit: BoxFit.cover,
                 onDetect: (capture) async {
                   if (state.loading || state.ended) return;
-                  final raw = capture.barcodes.isNotEmpty ? capture.barcodes.first.rawValue : null;
+                  final raw = capture.barcodes.isNotEmpty
+                      ? capture.barcodes.first.rawValue
+                      : null;
                   if (raw == null) return;
                   await _ensureScanner(false);
                   context.read<ReturnBloc>().add(ReturnWithQr(raw));
@@ -154,21 +236,34 @@ class _ReturnPageState extends State<ReturnPage> {
                   height: MediaQuery.of(context).size.width * 0.58,
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: const Color(0xFF28BCEF), width: 3),
+                    border: Border.all(
+                      color: const Color(0xFF28BCEF),
+                      width: 3,
+                    ),
                   ),
                 ),
               ),
               Positioned(
-                bottom: 70, left: 0, right: 0,
+                bottom: 70,
+                left: 0,
+                right: 0,
                 child: Center(
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                        decoration: BoxDecoration(color: Colors.black54, borderRadius: BorderRadius.circular(25)),
-                        child: const Text('Apunta la cámara al QR para devolver',
-                          style: TextStyle(color: Colors.white, fontSize: 16)),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 20,
+                          vertical: 10,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.black54,
+                          borderRadius: BorderRadius.circular(25),
+                        ),
+                        child: const Text(
+                          'Apunta la cámara al QR para devolver',
+                          style: TextStyle(color: Colors.white, fontSize: 16),
+                        ),
                       ),
                       const SizedBox(height: 15),
                       ElevatedButton.icon(
@@ -177,7 +272,10 @@ class _ReturnPageState extends State<ReturnPage> {
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.white,
                           foregroundColor: const Color(0xFF004D63),
-                          padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 15),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 30,
+                            vertical: 15,
+                          ),
                           shape: const StadiumBorder(),
                         ),
                         onPressed: state.nfcBusy ? null : _handleNfc,
@@ -186,7 +284,8 @@ class _ReturnPageState extends State<ReturnPage> {
                   ),
                 ),
               ),
-              if (state.loading) const Center(child: CircularProgressIndicator()),
+              if (state.loading)
+                const Center(child: CircularProgressIndicator()),
             ],
           ),
           bottomNavigationBar: BottomAppBar(
@@ -198,9 +297,15 @@ class _ReturnPageState extends State<ReturnPage> {
                 IconButton(
                   icon: const Icon(Icons.home, color: Colors.black),
                   onPressed: () {
-                    Navigator.push(context, MaterialPageRoute(
-                      builder: (_) => BlocProvider(create: (_) => HomeBloc(), child: const HomePage()),
-                    ));
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => BlocProvider(
+                          create: (_) => HomeBloc(),
+                          child: const HomePage(),
+                        ),
+                      ),
+                    );
                   },
                 ),
                 const SizedBox(width: 48),
@@ -218,9 +323,14 @@ class _ReturnPageState extends State<ReturnPage> {
             elevation: 6,
             shape: const CircleBorder(),
             onPressed: () {},
-            child: Image.asset('assets/images/home_button.png', width: 100, height: 100),
+            child: Image.asset(
+              'assets/images/home_button.png',
+              width: 100,
+              height: 100,
+            ),
           ),
-          floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
+          floatingActionButtonLocation:
+              FloatingActionButtonLocation.centerDocked,
         );
       },
     );
