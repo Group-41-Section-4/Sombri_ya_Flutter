@@ -45,11 +45,7 @@ class RentPage extends StatefulWidget {
 
   final String? suggestedStationId;
 
-  const RentPage({
-    super.key,
-    this.userPosition,
-    this.suggestedStationId,
-  });
+  const RentPage({super.key, this.userPosition, this.suggestedStationId});
 
   @override
   State<RentPage> createState() => _RentPageState();
@@ -298,29 +294,90 @@ class _RentPageState extends State<RentPage> {
                   ),
                 ),
                 actions: [
-                  IconButton(
+                  leading: IconButton(
+                    icon: const Icon(Icons.notifications_none),
                     onPressed: () async {
                       await _ensureScanner(false);
-                      await Navigator.push(
+                      final storage = const FlutterSecureStorage();
+                      final userId = await storage.read(key: 'user_id');
+                      if (userId == null || !context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('No se pudo identificar al usuario.'),
+                            backgroundColor: Colors.red,
+                          ),
+                        );
+                        await _ensureScanner(true);
+                        return;
+                      }
+                      Navigator.push(
                         context,
                         MaterialPageRoute(
                           builder: (_) => BlocProvider(
-                            create: (_) => ProfileBloc(repository: ProfileRepository())
-                              ..add(const LoadProfile('')),
-                            child: const ProfilePage(),
-                          ),
+                          create: (_) => NotificationsBloc()
+                            ..add(StartRentalPolling(userId))
+                            ..add(const CheckWeather()),
+                          child: const NotificationsPage(),
+                         ),
                         ),
                       );
                       await _ensureScanner(true);
                     },
-                    icon: const CircleAvatar(
-                      radius: 16,
-                      backgroundColor: Colors.white24,
-                      backgroundImage: AssetImage('assets/images/profile.png'),
-                    ),
                   ),
-                ],
-              ),
+                  actions: [
+                    IconButton(
+                      onPressed: () async {
+                        await _ensureScanner(false);
+                        final storage = const FlutterSecureStorage();
+                        final userId = await storage.read(key: 'user_id');
+                        if (userId == null || !context.mounted) {
+                          await Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => BlocProvider(
+                                create: (_) =>
+                                    ProfileBloc(repository: ProfileRepository())
+                                      ..add(LoadProfile(userId!)),
+                                child: const ProfilePage(),
+                              ),
+                            ),
+                          );
+                        }
+                        await _ensureScanner(true);
+                      },
+                      icon: const CircleAvatar(
+                        radius: 16,
+                        backgroundColor: Colors.white24,
+                        backgroundImage: AssetImage('assets/images/profile.png'),
+                      ),
+                    ),
+                  ],
+                ),
+                endDrawer: AppDrawer(),
+
+                body: Stack(
+                  children: [
+                    MobileScanner(
+                      controller: _scanner,
+                      fit: BoxFit.cover,
+                      onDetect: (capture) async {
+                        if (state.loading || state.hasActiveRental) return;
+
+                        final now = DateTime.now();
+                        if (_ignoreDetectionsUntil != null &&
+                          now.isBefore(_ignoreDetectionsUntil!)) {
+                          return;
+                        }
+
+                        final raw = capture.barcodes.isNotEmpty
+                            ? capture.barcodes.first.rawValue
+                            : null;
+                        if (raw == null) return;
+
+                        await _ensureScanner(false);
+                        context.read<RentBloc>().add(RentStartWithQr(raw));
+                      },
+                    ),
               endDrawer: AppDrawer(),
 
               body: Stack(
@@ -454,6 +511,65 @@ class _RentPageState extends State<RentPage> {
                         },
                       ),
                     ),
+                    if (state.hasActiveRental)
+                      ElevatedButton.icon(
+                        icon: const Icon(Icons.assignment_return, size: 30),
+                        label: const Text("Ir a devolución"),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.white60,
+                          foregroundColor: const Color(0xFF004D63),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 30,
+                            vertical: 15,
+                          ),
+                        ),
+                        onPressed: () async {
+                          await _ensureScanner(false);
+
+                          GpsCoord position =
+                              widget.userPosition ??
+                              (() {
+                                return GpsCoord(latitude: 0, longitude: 0);
+                              }());
+
+                          if (widget.userPosition == null) {
+                            final pos = await LocationService.getPosition();
+                            if (pos != null) {
+                              position = GpsCoord(
+                                latitude: pos.latitude,
+                                longitude: pos.longitude,
+                              );
+                            }
+                          }
+
+                          final reset = await Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => MultiRepositoryProvider(
+                                providers: [
+                                  RepositoryProvider(
+                                    create: (_) => RentalRepository(
+                                      storage: const FlutterSecureStorage(),
+                                    ),
+                                  ),
+                                  RepositoryProvider(
+                                    create: (_) => ProfileRepository(),
+                                  ),
+                                ],
+                                child: BlocProvider(
+                                  create: (ctx) => ReturnBloc(
+                                    repo:
+                                        RepositoryProvider.of<RentalRepository>(
+                                          ctx,
+                                        ),
+                                    profileRepo:
+                                        RepositoryProvider.of<
+                                          ProfileRepository
+                                        >(ctx),
+                                  )..add(const ReturnInit()),
+                                  child: ReturnPage(userPosition: position),
+                                ),
+
                     const SizedBox(width: 48),
                     Padding(
                       padding: const EdgeInsets.all(14),
