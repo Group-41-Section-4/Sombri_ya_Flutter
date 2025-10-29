@@ -4,6 +4,7 @@ import '../../data/models/chat_message.dart';
 import '../../presentation/blocs/chat/chat_bloc.dart';
 import '../../presentation/blocs/chat/chat_event.dart';
 import '../../presentation/blocs/chat/chat_state.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 class ChatPage extends StatefulWidget {
   const ChatPage({super.key});
@@ -54,15 +55,15 @@ class _ChatPageState extends State<ChatPage> {
 
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: scheme.primary,
-        foregroundColor: scheme.onPrimary,
+        backgroundColor: Color(0xFF90E0EF),
+        foregroundColor: Colors.black,
         centerTitle: true,
         title: Text(
           'Sombri-IA',
-          style: TextStyle(
-            color: scheme.onPrimary,
-            fontSize: 24,
+          style: GoogleFonts.cormorantGaramond(
+            color: Colors.black,
             fontWeight: FontWeight.bold,
+            fontSize: 30,
           ),
         ),
         actions: [

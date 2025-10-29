@@ -53,16 +53,18 @@ class _NotificationsViewState extends State<_NotificationsView> {
         return Scaffold(
           backgroundColor: const Color(0xFFFFFDFD),
           appBar: AppBar(
-            backgroundColor: scheme.primary,
+            backgroundColor: Color(0xFF90E0EF),
+            foregroundColor: Colors.black,
             elevation: 0,
             leading: IconButton(
               icon: const Icon(Icons.arrow_back, color: Colors.black),
               onPressed: () => Navigator.pop(context),
             ),
+            centerTitle: true,
             title: Text(
               'Notificaciones',
               style: GoogleFonts.cormorantGaramond(
-                color: scheme.onPrimary,
+                color: Colors.black,
                 fontWeight: FontWeight.bold,
                 fontSize: 30,
               ),

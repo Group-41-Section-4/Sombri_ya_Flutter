@@ -17,7 +17,6 @@ class AppDrawer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
     return Drawer(
       child: ListView(
         padding: EdgeInsets.zero,
@@ -25,13 +24,14 @@ class AppDrawer extends StatelessWidget {
           SizedBox(
             height: 100,
             child: DrawerHeader(
-              decoration: BoxDecoration(color: scheme.primary),
+              decoration: BoxDecoration(color: Color(0xFF90E0EF)),
               margin: EdgeInsets.zero,
               padding: EdgeInsets.all(16),
               child: Text(
                 "Menu",
+                textAlign: TextAlign.center,
                 style: GoogleFonts.cormorantGaramond(
-                  color: scheme.onPrimary,
+                  color: Colors.black,
                   fontSize: 24,
                   fontWeight: FontWeight.bold,
                 ),

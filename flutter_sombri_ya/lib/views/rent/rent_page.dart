@@ -176,9 +176,9 @@ class _RentPageState extends State<RentPage> {
         }
         if (state.error != null) {
           final err = state.error!.toLowerCase();
-          final isAlreadyActive = err.contains('ya tienes una sombrilla') ||
-              err.contains('ya tenías una sombrilla') ||
-              err.contains('already has an active rental');
+          final isAlreadyActive = err.contains('Ya tienes una sombrilla') ||
+              err.contains('Ya tenías una sombrilla') ||
+              err.contains('Already has an active rental');
           if (isAlreadyActive) {
             _ignoreDetectionsUntil = DateTime.now().add(const Duration(milliseconds: 800));
             ScaffoldMessenger.of(context).showSnackBar(
@@ -204,7 +204,7 @@ class _RentPageState extends State<RentPage> {
       builder: (context, state) {
         return Scaffold(
           appBar: AppBar(
-            backgroundColor: scheme.primary,
+            backgroundColor: Color(0xFF90E0EF),
             centerTitle: true,
             foregroundColor: Colors.black,
             title: Text(
@@ -212,11 +212,11 @@ class _RentPageState extends State<RentPage> {
               style: GoogleFonts.cormorantGaramond(
                 fontSize: 22,
                 fontWeight: FontWeight.bold,
-                color: scheme.onPrimary,
+                color: Colors.black,
               ),
             ),
             leading: IconButton(
-              icon: Icon(Icons.notifications_none, color: scheme.onPrimary),
+              icon: Icon(Icons.notifications_none, color: Colors.black),
               onPressed: () async {
                 final storage = const FlutterSecureStorage();
                 final userId = await storage.read(key: 'user_id');
@@ -370,14 +370,14 @@ class _RentPageState extends State<RentPage> {
           ),
           bottomNavigationBar: BottomAppBar(
             shape: const CircularNotchedRectangle(),
-            color: scheme.primary,
+            color: Color(0xFF90E0EF),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
                 Padding(
                   padding: const EdgeInsets.all(14),
                   child: IconButton(
-                    icon: Icon(Icons.home, color: scheme.onPrimary),
+                    icon: Icon(Icons.home, color: Colors.black),
                     onPressed: () {
                       Navigator.push(
                         context,
@@ -393,7 +393,7 @@ class _RentPageState extends State<RentPage> {
                   padding: const EdgeInsets.all(14),
                   child: Builder(
                     builder: (context) => IconButton(
-                      icon: Icon(Icons.menu, color: scheme.onPrimary),
+                      icon: Icon(Icons.menu, color: Colors.black),
                       onPressed: () => Scaffold.of(context).openEndDrawer(),
                     ),
                   ),

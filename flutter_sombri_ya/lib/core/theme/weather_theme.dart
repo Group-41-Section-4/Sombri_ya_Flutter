@@ -14,14 +14,14 @@ ThemeData themeFor(WeatherCondition c, bool isNight) {
   };
 
   final brightness = isNight ? Brightness.dark : Brightness.light;
-  final scheme = ColorScheme.fromSeed(seedColor: seed, brightness: brightness);
+
+  final base = ColorScheme.fromSeed(seedColor: seed, brightness: brightness);
+  final scheme = base.copyWith(primary: seed);
 
   return ThemeData(
     useMaterial3: true,
     colorScheme: scheme,
-
     scaffoldBackgroundColor: scheme.surface,
-
     appBarTheme: AppBarTheme(
       backgroundColor: scheme.primary,
       foregroundColor: scheme.onPrimary,

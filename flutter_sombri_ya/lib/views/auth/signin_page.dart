@@ -18,7 +18,7 @@ class _SigninPageState extends State<SigninPage> {
   final nameController = TextEditingController();
   final passwordController = TextEditingController();
   final confirmPasswordController = TextEditingController();
-  bool useBiometrics = false;
+  bool useBiometrics = true;
 
   @override
   void dispose() {
@@ -130,6 +130,7 @@ class _SigninPageState extends State<SigninPage> {
 
                         TextFormField(
                           controller: passwordController,
+                          inputFormatters: [LengthLimitingTextInputFormatter(30)],
                           obscureText: true,
                           decoration: _decor('Contraseña', 'Contraseña'),
                           validator: (v) {
@@ -142,16 +143,12 @@ class _SigninPageState extends State<SigninPage> {
 
                         TextFormField(
                           controller: confirmPasswordController,
+                          inputFormatters: [LengthLimitingTextInputFormatter(30)],
                           obscureText: true,
                           decoration: _decor('Confirmar contraseña', 'Contraseña'),
                           validator: (v) => (v == null || v.isEmpty) ? 'Confirma tu contraseña' : null,
                         ),
 
-                        CheckboxListTile(
-                          title: const Text('Habilitar inicio de sesión con biometría'),
-                          value: useBiometrics,
-                          onChanged: (v) => setState(() => useBiometrics = v ?? false),
-                        ),
                       ],
                     ),
                   ),

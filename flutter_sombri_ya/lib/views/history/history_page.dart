@@ -86,12 +86,13 @@ class _HistoryPageState extends State<HistoryPage> {
       value: _bloc,
       child: Scaffold(
         appBar: AppBar(
-          backgroundColor: scheme.primary,
+          backgroundColor: Color(0xFF90E0EF),
+          foregroundColor: Colors.black,
           centerTitle: true,
           title: Text(
             "Historial",
             style: GoogleFonts.cormorantGaramond(
-              color: scheme.onPrimary, fontSize: 24, fontWeight: FontWeight.bold,
+              color: Colors.black, fontSize: 24, fontWeight: FontWeight.bold,
             ),
           ),
           leading: IconButton(

@@ -334,13 +334,14 @@ class _ProfilePageState extends State<ProfilePage> {
           title: Text(
             'Cuenta',
             style: GoogleFonts.cormorantGaramond(
-              color: scheme.onPrimary,
+              color: Colors.black,
               fontSize: 24,
               fontWeight: FontWeight.bold,
             ),
           ),
           centerTitle: true,
-          backgroundColor: scheme.primary,
+          backgroundColor: Color(0xFF90E0EF),
+          foregroundColor: Colors.black,
           elevation: 0,
           leading: IconButton(
             icon: const Icon(Icons.arrow_back, color: Colors.black),
