@@ -9,6 +9,8 @@ import 'package:nfc_manager/platform_tags.dart';
 import '../../data/models/gps_coord.dart';
 import '../../data/repositories/rental_repository.dart';
 
+import '../../presentation/blocs/notifications/notifications_bloc.dart';
+import '../../presentation/blocs/notifications/notifications_event.dart';
 import '../../presentation/blocs/rent/rent_bloc.dart';
 import '../../presentation/blocs/rent/rent_event.dart';
 import '../../presentation/blocs/rent/rent_state.dart';

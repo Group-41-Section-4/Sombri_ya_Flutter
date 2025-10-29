@@ -7,6 +7,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 // BLoC Home
+import '../../data/repositories/profile_repository.dart';
 import '../../presentation/blocs/home/home_bloc.dart';
 import '../../presentation/blocs/home/home_event.dart';
 import '../../presentation/blocs/home/home_state.dart';
@@ -70,6 +71,7 @@ class HomeView extends StatefulWidget {
 class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
   GoogleMapController? _mapController;
   BitmapDescriptor? _stationIcon;
+  final PedometerService _pedometer = PedometerService();
 
   @override
   void initState() {
