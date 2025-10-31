@@ -13,6 +13,9 @@ import 'signin_page.dart';
 import '../home/home_page.dart';
 import 'forgot_password_page.dart';
 
+import '../../presentation/blocs/connectivity/connectivity_cubit.dart';
+import '../../core/connectivity/connectivity_service.dart';
+
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
   @override
@@ -31,8 +34,23 @@ class _LoginPageState extends State<LoginPage> {
     super.dispose();
   }
 
+  void _submitLogin() {
+    if (!_formKey.currentState!.validate()) return;
+    context.read<AuthBloc>().add(
+      LoginWithPasswordSubmitted(
+        email: _emailCtrl.text.trim(),
+        password: _passCtrl.text,
+      ),
+    );
+  }
+
+
   @override
   Widget build(BuildContext context) {
+    final isOnline = context.select<ConnectivityCubit, bool>(
+          (c) => c.state == ConnectivityStatus.online,
+    );
+
     return Scaffold(
       backgroundColor: const Color(0xFF90E0EF),
       body: BlocListener<AuthBloc, AuthState>(
@@ -131,6 +149,19 @@ class _LoginPageState extends State<LoginPage> {
                               : null,
                         ),
 
+                        const SizedBox(height: 16),
+                        if (!isOnline)
+                          const Text(
+                            'Sin conexión. Revisa Wi-Fi/datos.',
+                            style: TextStyle(color: Colors.orange),
+                          ),
+                        const SizedBox(height: 8),
+                        if(!isOnline)
+                        TextButton(
+                          onPressed: () => context.read<ConnectivityCubit>().retry(),
+                          child: const Text('Reintentar conectividad'),
+                        ),
+
                         const SizedBox(height: 10),
 
                         Align(
@@ -203,26 +234,13 @@ class _LoginPageState extends State<LoginPage> {
                             builder: (context, state) {
                               final loading = state is AuthLoading;
                               return ElevatedButton(
-                                onPressed: loading
-                                    ? null
-                                    : () {
-                                        if (_formKey.currentState!.validate()) {
-                                          context.read<AuthBloc>().add(
-                                            LoginWithPasswordSubmitted(
-                                              email: _emailCtrl.text.trim(),
-                                              password: _passCtrl.text,
-                                            ),
-                                          );
-                                        }
-                                      },
+                                onPressed: (isOnline && !loading) ? _submitLogin : null,
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: const Color(0xFF001242),
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(10),
                                   ),
-                                  padding: const EdgeInsets.symmetric(
-                                    vertical: 14,
-                                  ),
+                                  padding: const EdgeInsets.symmetric(vertical: 14),
                                 ),
                                 child: Text(
                                   loading ? 'Ingresando…' : 'Iniciar sesión',
@@ -232,6 +250,7 @@ class _LoginPageState extends State<LoginPage> {
                                   ),
                                 ),
                               );
+
                             },
                           ),
                         ),
