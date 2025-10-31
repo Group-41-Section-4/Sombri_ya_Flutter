@@ -34,7 +34,8 @@ void main() async {
   });
 
   await RainAlertScheduler.cancelAll();
-  await RainAlertScheduler.registerTestEveryFiveMinutes();
+  //await RainAlertScheduler.registerTestEveryFiveMinutes();
+  await RainAlertScheduler.registerPeriodic();
 
   runApp(const MyApp());
 }
