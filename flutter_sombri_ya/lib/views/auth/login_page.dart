@@ -1,13 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../core/services/secure_storage_service.dart';
+import '../../data/repositories/auth_repository.dart';
 import '../../presentation/blocs/auth/auth_bloc.dart';
 import '../../presentation/blocs/auth/auth_event.dart';
 import '../../presentation/blocs/auth/auth_state.dart';
 
 import '../../../core/providers/api_provider.dart';
+import '../../presentation/blocs/auth/forgot_password/forgot_password_bloc.dart';
 import 'signin_page.dart';
 import '../home/home_page.dart';
+import 'forgot_password_page.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -133,7 +137,18 @@ class _LoginPageState extends State<LoginPage> {
                           alignment: Alignment.center,
                           child: GestureDetector(
                             onTap: () {
-                              // Navigator.pushNamed(context, '/forgot');
+                              final api = context.read<ApiProvider>();
+                              final repo = AuthRepository(api: api, storage: const SecureStorageService());
+
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => BlocProvider(
+                                    create: (_) => ForgotPasswordBloc(repo: repo),
+                                    child: const ForgotPasswordPage(),
+                                  ),
+                                ),
+                              );
                             },
                             child: const Text(
                               '¿Olvidaste tu contraseña?',
