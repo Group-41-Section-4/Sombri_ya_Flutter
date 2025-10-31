@@ -1,13 +1,15 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_sombri_ya/presentation/blocs/auth/reset_password/reset_password_bloc.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:nfc_manager/nfc_manager.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
 
 import 'core/providers/api_provider.dart';
 import 'core/services/secure_storage_service.dart';
 import 'data/repositories/auth_repository.dart';
 import 'presentation/blocs/auth/auth_bloc.dart';
+
+import 'presentation/blocs/connectivity/connectivity_cubit.dart';
+import 'core/connectivity/connectivity_service.dart';
 
 import 'services/notification_service.dart';
 import 'services/rain_alert_scheduler.dart';
@@ -34,7 +36,6 @@ void main() async {
   });
 
   await RainAlertScheduler.cancelAll();
-  //await RainAlertScheduler.registerTestEveryFiveMinutes();
   await RainAlertScheduler.registerPeriodic();
 
   runApp(const MyApp());
@@ -42,6 +43,7 @@ void main() async {
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
+
   @override
   Widget build(BuildContext context) {
     return MultiRepositoryProvider(
@@ -55,26 +57,45 @@ class MyApp extends StatelessWidget {
             storage: const SecureStorageService(),
           ),
         ),
-      ],
-      child: MaterialApp(
-        title: 'Sombri-Ya',
-        debugShowCheckedModeBanner: false,
-        navigatorKey: navigatorKey,
-        theme: ThemeData(
-          useMaterial3: true,
-          colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF28BCEF)),
+        RepositoryProvider<ConnectivityService>(
+          create: (_) => ConnectivityService(
+            probeInterval: const Duration(seconds: 4),
+          ),
         ),
-        routes: {
-          RentPage.routeName: (_) => const RentPage(),
-          '/reset': (ctx) {
-            final args   = ModalRoute.of(ctx)!.settings.arguments as Map<String, String>;
-            final userId = args['userId']!;
-            final token  = args['token']!;
-            return ResetPasswordPage(userId: userId, token: token);
+      ],
+      child: MultiBlocProvider(
+        providers: [
+          BlocProvider<AuthBloc>(
+            create: (ctx) => AuthBloc(repo: ctx.read<AuthRepository>()),
+          ),
+          BlocProvider<ConnectivityCubit>(
+            create: (ctx) =>
+            ConnectivityCubit(ctx.read<ConnectivityService>())..start(),
+          ),
+        ],
+        child: MaterialApp(
+          title: 'Sombri-Ya',
+          debugShowCheckedModeBanner: false,
+          navigatorKey: navigatorKey,
+          theme: ThemeData(
+            useMaterial3: true,
+            colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF28BCEF)),
+          ),
+          routes: {
+            RentPage.routeName: (_) => const RentPage(),
+            '/reset': (ctx) {
+              final args =
+              ModalRoute.of(ctx)!.settings.arguments as Map<String, String>;
+              final userId = args['userId']!;
+              final token = args['token']!;
+              return ResetPasswordPage(userId: userId, token: token);
+            },
+            '/login': (_) => const LoginPage(),
           },
-        },
-        builder: (context, child) => AppShell(child: child ?? const SizedBox()),
-        home: const SplashScreen(),
+          builder: (context, child) =>
+              AppShell(child: child ?? const SizedBox()),
+          home: const SplashScreen(),
+        ),
       ),
     );
   }
@@ -121,18 +142,10 @@ class SplashScreen extends StatelessWidget {
                         ),
                       ),
                       onPressed: () {
-                        Navigator.pushReplacement(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => BlocProvider(
-                              create: (ctx) =>
-                                  AuthBloc(repo: ctx.read<AuthRepository>()),
-                              child: const LoginPage(),
-                            ),
-                          ),
-                        );
+                        Navigator.pushReplacementNamed(context, '/login');
                       },
-                      child: const Text('Iniciar Sesión', style: TextStyle(fontSize: 20)),
+                      child: const Text('Iniciar Sesión',
+                          style: TextStyle(fontSize: 20)),
                     ),
                     const Spacer(flex: 3),
                   ],
