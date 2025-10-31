@@ -15,7 +15,9 @@ class RentBloc extends Bloc<RentEvent, RentState> {
     on<RentRefreshActive>(_onRefresh);
     on<RentStartWithQr>(_onStartWithQr);
     on<RentStartWithNfc>(_onStartWithNfc);
-    on<RentClearMessage>((e, emit) => emit(state.copyWith(message: null, error: null)));
+    on<RentClearMessage>(
+      (e, emit) => emit(state.copyWith(message: null, error: null)),
+    );
   }
 
   bool _isAlreadyActiveError(Object e) {
@@ -44,29 +46,42 @@ class RentBloc extends Bloc<RentEvent, RentState> {
   Future<void> _onInit(RentInit event, Emitter<RentState> emit) async {
     emit(state.copyWith(loading: true, message: null, error: null));
     try {
+      // Future Handler + async/await
       final syncedId = await repo.syncLocalWithBackend();
+
+      // Handler
       if (syncedId != null) _pedometer.startListening();
-      emit(state.copyWith(
-        loading: false,
-        hasActiveRental: syncedId != null,
-        rentalId: syncedId,
-      ));
+      emit(
+        state.copyWith(
+          loading: false,
+          hasActiveRental: syncedId != null,
+          rentalId: syncedId,
+        ),
+      );
     } catch (e, st) {
       debugPrint('[RentBloc][_onInit] $e\n$st');
       emit(state.copyWith(loading: false));
     }
   }
 
-  Future<void> _onRefresh(RentRefreshActive event, Emitter<RentState> emit) async {
+  Future<void> _onRefresh(
+    RentRefreshActive event,
+    Emitter<RentState> emit,
+  ) async {
     try {
       final syncedId = await repo.syncLocalWithBackend();
-      emit(state.copyWith(hasActiveRental: syncedId != null, rentalId: syncedId));
+      emit(
+        state.copyWith(hasActiveRental: syncedId != null, rentalId: syncedId),
+      );
     } catch (e) {
       emit(state.copyWith(error: "No se pudo refrescar la renta: $e"));
     }
   }
 
-  Future<void> _onStartWithQr(RentStartWithQr event, Emitter<RentState> emit) async {
+  Future<void> _onStartWithQr(
+    RentStartWithQr event,
+    Emitter<RentState> emit,
+  ) async {
     emit(state.copyWith(loading: true, message: null, error: null));
     try {
       final userId = await repo.readUserId();
@@ -79,35 +94,47 @@ class RentBloc extends Bloc<RentEvent, RentState> {
       if (backId != null && backId.isNotEmpty) {
         await repo.writeLocalRentalId(backId);
         _pedometer.startListening();
-        emit(state.copyWith(
-          loading: false,
-          hasActiveRental: true,
-          rentalId: backId,
-          message: "Ya tenías una sombrilla activa. Te llevo a devolución.",
-        ));
+        emit(
+          state.copyWith(
+            loading: false,
+            hasActiveRental: true,
+            rentalId: backId,
+            message: "Ya tenías una sombrilla activa. Te llevo a devolución.",
+          ),
+        );
         return;
       }
 
       final stationId = _extractStationId(event.rawQr);
       if (stationId == null) {
-        emit(state.copyWith(loading: false, error: "QR inválido (sin station_id)."));
+        emit(
+          state.copyWith(
+            loading: false,
+            error: "QR inválido (sin station_id).",
+          ),
+        );
         return;
       }
 
+      // Future Handler + async/await
       final newId = await repo.startRentalWithStation(
         userId: userId,
         stationId: stationId,
         authType: "qr",
       );
       await repo.writeLocalRentalId(newId);
+
+      // Handler
       _pedometer.startListening();
 
-      emit(state.copyWith(
-        loading: false,
-        hasActiveRental: true,
-        rentalId: newId,
-        message: "Sombrilla rentada con éxito (QR).",
-      ));
+      emit(
+        state.copyWith(
+          loading: false,
+          hasActiveRental: true,
+          rentalId: newId,
+          message: "Sombrilla rentada con éxito (QR).",
+        ),
+      );
     } catch (e, st) {
       debugPrint('[RentBloc][_onStartWithQr][ERROR] $e\n$st');
       if (_isAlreadyActiveError(e)) {
@@ -116,27 +143,43 @@ class RentBloc extends Bloc<RentEvent, RentState> {
           final existing = await repo.getActiveRentalIdFromBackend(userId);
           if (existing != null && existing.isNotEmpty) {
             await repo.writeLocalRentalId(existing);
-            emit(state.copyWith(
-              loading: false,
-              hasActiveRental: true,
-              rentalId: existing,
-              message: "Ya tenías una sombrilla activa. Te llevo a devolución.",
-              error: null,
-            ));
+            emit(
+              state.copyWith(
+                loading: false,
+                hasActiveRental: true,
+                rentalId: existing,
+                message:
+                    "Ya tenías una sombrilla activa. Te llevo a devolución.",
+                error: null,
+              ),
+            );
             return;
           }
         }
       }
-      emit(state.copyWith(loading: false, error: "Error al iniciar la renta: $e"));
+      emit(
+        state.copyWith(loading: false, error: "Error al iniciar la renta: $e"),
+      );
     }
   }
 
-  Future<void> _onStartWithNfc(RentStartWithNfc event, Emitter<RentState> emit) async {
-    emit(state.copyWith(loading: true, nfcBusy: true, message: null, error: null));
+  Future<void> _onStartWithNfc(
+    RentStartWithNfc event,
+    Emitter<RentState> emit,
+  ) async {
+    emit(
+      state.copyWith(loading: true, nfcBusy: true, message: null, error: null),
+    );
     try {
       final userId = await repo.readUserId();
       if (userId == null) {
-        emit(state.copyWith(loading: false, nfcBusy: false, error: "Usuario no encontrado."));
+        emit(
+          state.copyWith(
+            loading: false,
+            nfcBusy: false,
+            error: "Usuario no encontrado.",
+          ),
+        );
         return;
       }
 
@@ -144,41 +187,50 @@ class RentBloc extends Bloc<RentEvent, RentState> {
       if (backId != null && backId.isNotEmpty) {
         await repo.writeLocalRentalId(backId);
         _pedometer.startListening();
-        emit(state.copyWith(
-          loading: false,
-          nfcBusy: false,
-          hasActiveRental: true,
-          rentalId: backId,
-          message: "Ya tenías una sombrilla activa. Te llevo a devolución.",
-        ));
+        emit(
+          state.copyWith(
+            loading: false,
+            nfcBusy: false,
+            hasActiveRental: true,
+            rentalId: backId,
+            message: "Ya tenías una sombrilla activa. Te llevo a devolución.",
+          ),
+        );
         return;
       }
 
       final stationId = await repo.stationIdByTagUid(event.uid);
       if (stationId == null || stationId.isEmpty) {
-        emit(state.copyWith(
-          loading: false,
-          nfcBusy: false,
-          error: "No se encontró estación para la tarjeta NFC.",
-        ));
+        emit(
+          state.copyWith(
+            loading: false,
+            nfcBusy: false,
+            error: "No se encontró estación para la tarjeta NFC.",
+          ),
+        );
         return;
       }
 
+      // Future Handler + async/await
       final newId = await repo.startRentalWithStation(
         userId: userId,
         stationId: stationId,
         authType: "nfc",
       );
+
       await repo.writeLocalRentalId(newId);
+      // Handler
       _pedometer.startListening();
 
-      emit(state.copyWith(
-        loading: false,
-        nfcBusy: false,
-        hasActiveRental: true,
-        rentalId: newId,
-        message: "Sombrilla rentada en $stationId (NFC).",
-      ));
+      emit(
+        state.copyWith(
+          loading: false,
+          nfcBusy: false,
+          hasActiveRental: true,
+          rentalId: newId,
+          message: "Sombrilla rentada en $stationId (NFC).",
+        ),
+      );
     } catch (e, st) {
       debugPrint('[RentBloc][_onStartWithNfc][ERROR] $e\n$st');
       if (_isAlreadyActiveError(e)) {
@@ -187,19 +239,28 @@ class RentBloc extends Bloc<RentEvent, RentState> {
           final existing = await repo.getActiveRentalIdFromBackend(userId);
           if (existing != null && existing.isNotEmpty) {
             await repo.writeLocalRentalId(existing);
-            emit(state.copyWith(
-              loading: false,
-              nfcBusy: false,
-              hasActiveRental: true,
-              rentalId: existing,
-              message: "Ya tenías una sombrilla activa. Te llevo a devolución.",
-              error: null,
-            ));
+            emit(
+              state.copyWith(
+                loading: false,
+                nfcBusy: false,
+                hasActiveRental: true,
+                rentalId: existing,
+                message:
+                    "Ya tenías una sombrilla activa. Te llevo a devolución.",
+                error: null,
+              ),
+            );
             return;
           }
         }
       }
-      emit(state.copyWith(loading: false, nfcBusy: false, error: "Error en renta NFC: $e"));
+      emit(
+        state.copyWith(
+          loading: false,
+          nfcBusy: false,
+          error: "Error en renta NFC: $e",
+        ),
+      );
     }
   }
 }

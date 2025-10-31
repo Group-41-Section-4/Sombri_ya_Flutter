@@ -17,6 +17,7 @@ class PedometerService {
 
   static const double kmPerStep = 0.000762;
 
+  // Future - 'async/await'
   Future<bool> _requestPermission() async {
     final status = await Permission.activityRecognition.request();
     if (status.isGranted) {
@@ -29,6 +30,7 @@ class PedometerService {
 
   void startListening() async {
     if (isTracking.value) return;
+    // Future
     final hasPermission = await _requestPermission();
     if (!hasPermission) {
       return;
@@ -40,6 +42,7 @@ class PedometerService {
     sessionSteps.value = 0;
     isTracking.value = true;
 
+    // Stream
     _stepSubscription = Pedometer.stepCountStream.listen(
       (StepCount event) {
         if (_sessionStartSteps == -1) {

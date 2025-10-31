@@ -15,12 +15,12 @@ class ReturnBloc extends Bloc<ReturnEvent, ReturnState> {
   final PedometerService _pedometer = PedometerService();
 
   ReturnBloc({required this.repo, required this.profileRepo})
-      : super(const ReturnState()) {
+    : super(const ReturnState()) {
     on<ReturnInit>(_onInit);
     on<ReturnWithQr>(_onQr);
     on<ReturnWithNfc>(_onNfc);
     on<ReturnClearMessage>(
-          (e, emit) => emit(state.copyWith(message: null, error: null)),
+      (e, emit) => emit(state.copyWith(message: null, error: null)),
     );
   }
 
@@ -42,7 +42,9 @@ class ReturnBloc extends Bloc<ReturnEvent, ReturnState> {
   }
 
   Future<void> _onInit(ReturnInit event, Emitter<ReturnState> emit) async {
-    emit(state.copyWith(loading: true, ended: false, message: null, error: null));
+    emit(
+      state.copyWith(loading: true, ended: false, message: null, error: null),
+    );
     try {
       final userId = await repo.readUserId();
       if (userId == null) {
@@ -57,10 +59,12 @@ class ReturnBloc extends Bloc<ReturnEvent, ReturnState> {
       }
       emit(state.copyWith(loading: false, activeRentalId: backId));
     } catch (e) {
-      emit(state.copyWith(
-        loading: false,
-        error: 'Error al verificar renta activa: $e',
-      ));
+      emit(
+        state.copyWith(
+          loading: false,
+          error: 'Error al verificar renta activa: $e',
+        ),
+      );
     }
   }
 
@@ -74,12 +78,15 @@ class ReturnBloc extends Bloc<ReturnEvent, ReturnState> {
       return;
     }
 
+    // Future Handler + async/await
     _d('POST /rentals/end userId=$userId stationEndId=$stationEndId');
     await repo.endRental(userId: userId, stationEndId: stationEndId);
-
     await repo.clearLocalRentalId();
 
+    // Handler
     final double distanceKm = _pedometer.stopAndGetDistanceKm();
+
+    // Future + Handler
     if (distanceKm > 0.01) {
       try {
         await profileRepo.addPedometerDistance(distanceKm);
@@ -88,21 +95,30 @@ class ReturnBloc extends Bloc<ReturnEvent, ReturnState> {
       }
     }
 
-    emit(state.copyWith(
-      loading: false,
-      activeRentalId: null,
-      ended: true,
-      message: 'Sombrilla devuelta exitosamente.',
-    ));
+    emit(
+      state.copyWith(
+        loading: false,
+        activeRentalId: null,
+        ended: true,
+        message: 'Sombrilla devuelta exitosamente.',
+      ),
+    );
   }
 
   Future<void> _onQr(ReturnWithQr event, Emitter<ReturnState> emit) async {
-    emit(state.copyWith(loading: true, ended: false, message: null, error: null));
+    emit(
+      state.copyWith(loading: true, ended: false, message: null, error: null),
+    );
     try {
       final stationId = _extractStationId(event.rawQr);
       _d('QR -> stationId=$stationId');
       if (stationId == null) {
-        emit(state.copyWith(loading: false, error: 'QR inválido (sin station_id).'));
+        emit(
+          state.copyWith(
+            loading: false,
+            error: 'QR inválido (sin station_id).',
+          ),
+        );
         return;
       }
 
@@ -116,40 +132,52 @@ class ReturnBloc extends Bloc<ReturnEvent, ReturnState> {
       _d('activeRentalId=$backId');
       if (backId == null) {
         await repo.clearLocalRentalId();
-        emit(state.copyWith(
-          loading: false,
-          activeRentalId: null,
-          ended: true,
-          message: 'No tenías ninguna sombrilla activa.',
-        ));
+        emit(
+          state.copyWith(
+            loading: false,
+            activeRentalId: null,
+            ended: true,
+            message: 'No tenías ninguna sombrilla activa.',
+          ),
+        );
         return;
       }
 
       await _endFlow(emit: emit, stationEndId: stationId);
     } catch (e, st) {
       _d('QR ERROR: $e\n$st');
-      emit(state.copyWith(
-        loading: false,
-        error: 'Error al procesar devolución: $e',
-      ));
+      emit(
+        state.copyWith(
+          loading: false,
+          error: 'Error al procesar devolución: $e',
+        ),
+      );
     }
   }
 
   Future<void> _onNfc(ReturnWithNfc event, Emitter<ReturnState> emit) async {
-    emit(state.copyWith(
-      loading: true,
-      nfcBusy: true,
-      ended: false,
-      message: null,
-      error: null,
-    ));
+    emit(
+      state.copyWith(
+        loading: true,
+        nfcBusy: true,
+        ended: false,
+        message: null,
+        error: null,
+      ),
+    );
 
     try {
       _d('NFC uid="${event.uid}"');
 
       final userId = await repo.readUserId();
       if (userId == null) {
-        emit(state.copyWith(loading: false, nfcBusy: false, error: 'Usuario no encontrado.'));
+        emit(
+          state.copyWith(
+            loading: false,
+            nfcBusy: false,
+            error: 'Usuario no encontrado.',
+          ),
+        );
         return;
       }
 
@@ -157,23 +185,27 @@ class ReturnBloc extends Bloc<ReturnEvent, ReturnState> {
       _d('activeRentalId=$backId');
       if (backId == null) {
         await repo.clearLocalRentalId();
-        emit(state.copyWith(
-          loading: false,
-          nfcBusy: false,
-          activeRentalId: null,
-          ended: true,
-          message: 'No tenías ninguna sombrilla activa.',
-        ));
+        emit(
+          state.copyWith(
+            loading: false,
+            nfcBusy: false,
+            activeRentalId: null,
+            ended: true,
+            message: 'No tenías ninguna sombrilla activa.',
+          ),
+        );
         return;
       }
 
       final sid = await repo.stationIdByTagUid(event.uid);
       if (sid == null || sid.isEmpty) {
-        emit(state.copyWith(
-          loading: false,
-          nfcBusy: false,
-          error: 'No se encontró estación para el tag NFC (${event.uid}).',
-        ));
+        emit(
+          state.copyWith(
+            loading: false,
+            nfcBusy: false,
+            error: 'No se encontró estación para el tag NFC (${event.uid}).',
+          ),
+        );
         return;
       }
       final String stationId = sid;
@@ -183,11 +215,13 @@ class ReturnBloc extends Bloc<ReturnEvent, ReturnState> {
       emit(state.copyWith(nfcBusy: false));
     } catch (e, st) {
       _d('NFC ERROR: $e\n$st');
-      emit(state.copyWith(
-        loading: false,
-        nfcBusy: false,
-        error: 'Error en devolución NFC: $e',
-      ));
+      emit(
+        state.copyWith(
+          loading: false,
+          nfcBusy: false,
+          error: 'Error en devolución NFC: $e',
+        ),
+      );
     }
   }
 }
