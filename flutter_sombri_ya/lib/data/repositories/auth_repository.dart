@@ -92,6 +92,43 @@ class AuthRepository {
     }
   }
 
+  Future<void> requestPasswordReset(String email) async {
+    final res = await api.post(
+      '/auth/password/forgot',
+      body: {'email': email},
+    );
+
+    final ok = res.statusCode == 200 || res.statusCode == 202 || res.statusCode == 204;
+    if (!ok) {
+      final msg = res.body.isNotEmpty ? res.body : 'Error ${res.statusCode}';
+      throw Exception('ForgotPassword failed: $msg');
+    }
+  }
+
+  Future<void> resetPassword({
+    required String token,
+    required String newPassword, required String userId,
+  }) async {
+    final res = await api.post(
+      '/auth/password/reset',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: {
+        'userId': userId,
+        'token': token,
+        'newPassword': newPassword,
+      },
+    );
+
+    final ok = res.statusCode == 200 || res.statusCode == 204;
+    if (!ok) {
+      final msg = res.body.isNotEmpty ? res.body : 'Error ${res.statusCode}';
+      throw Exception('ResetPassword failed: $msg');
+    }
+  }
+
+
   Future<void> logout() => storage.clear();
 }
 

@@ -41,6 +41,9 @@ dependencies:
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.8
 
+  # Deep links manager
+  app_links: ^6.1.1
+
   # Flutter map (OpenStreetMap) and LatLong utils
   flutter_map: ^7.0.2
   latlong2: ^0.9.1
