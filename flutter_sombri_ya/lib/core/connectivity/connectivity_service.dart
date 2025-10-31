@@ -2,7 +2,7 @@ import 'dart:async';
 import 'dart:isolate';
 import 'dart:io';
 
-enum ConnectivityStatus { online, captive, offline }
+enum ConnectivityStatus { online, captive, offline, checking }
 
 class ConnectivityService {
   final Duration probeInterval;
