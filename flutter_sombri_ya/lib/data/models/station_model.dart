@@ -37,4 +37,15 @@ class Station {
       totalUmbrellas: parseNum(json['totalUmbrellas']).toInt(),
     );
   }
+
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'placeName': placeName,
+    'description': description,
+    'latitude': latitude,
+    'longitude': longitude,
+    'distanceMeters': distanceMeters,
+    'availableUmbrellas': availableUmbrellas,
+    'totalUmbrellas': totalUmbrellas,
+  };
 }

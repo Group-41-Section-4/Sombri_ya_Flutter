@@ -20,9 +20,13 @@ class NearestStationService {
   }
 
   Future<Station?> nearest(double userLat, double userLng) async {
-    final List<Station> stations =
-        await stationRepo.findNearbyStations(LatLng(userLat, userLng));
-
+    final stations =
+        await stationRepo.findNearbyStationsCached(
+          LatLng(userLat, userLng),
+          radiusM: 1000000,
+          ttl: const Duration(minutes: 30),
+    );
+    
     if (stations.isEmpty) return null;
 
     stations.sort((a, b) =>
