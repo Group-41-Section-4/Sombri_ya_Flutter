@@ -39,6 +39,8 @@ import '../return/return_page.dart';
 import '../../widgets/app_drawer.dart';
 import '../../services/location_service.dart';
 
+import '../../core/net/is_online.dart';
+
 /// ---------- Utils ----------
 String bytesToHexColonUpper(Uint8List bytes) =>
     bytes.map((b) => b.toRadixString(16).padLeft(2, '0')).join(':').toUpperCase();
@@ -88,6 +90,29 @@ class _RentPageState extends State<RentPage> {
   static const Color _barColor = Color(0xFF90E0EF);
   static const Color _brandPrimaryDark = Color(0xFF004D63);
   static const Color _accent = Color(0xFF28BCEF);
+
+  
+  DateTime? _lastOfflineNoticeAt;
+
+  void _showOfflineSnackOnce({int cooldownSeconds = 4}) {
+    if (!mounted) return;
+    final now = DateTime.now();
+    if (_lastOfflineNoticeAt != null &&
+        now.difference(_lastOfflineNoticeAt!) < Duration(seconds: cooldownSeconds)) {
+      return;
+    }
+
+    _lastOfflineNoticeAt = now;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Sin conexión. Verifica tu internet.'),
+        duration: Duration(seconds: 2),
+      ),
+    );
+
+    _ignoreDetectionsUntil = now.add(const Duration(seconds: 2));
+  }
 
   @override
   void initState() {
@@ -378,6 +403,11 @@ class _RentPageState extends State<RentPage> {
                     onDetect: (capture) async {
                       if (state.loading || state.hasActiveRental) return;
 
+                      if (!isOnline(context)) {
+                        _showOfflineSnackOnce();
+                        return;
+                      }
+
                       final now = DateTime.now();
                       if (_ignoreDetectionsUntil != null &&
                           now.isBefore(_ignoreDetectionsUntil!)) {
@@ -430,7 +460,9 @@ class _RentPageState extends State<RentPage> {
                             ),
                             onPressed: _goToReturnFlow,
                           ),
+
                         if (state.hasActiveRental) const SizedBox(width: 12),
+
                         if (!state.hasActiveRental)
                           ElevatedButton.icon(
                             icon: const Icon(Icons.contactless, size: 30),
@@ -440,11 +472,20 @@ class _RentPageState extends State<RentPage> {
                               foregroundColor: _brandPrimaryDark,
                               padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 15),
                             ),
-                            onPressed: state.nfcBusy ? null : _handleNfc,
+                            onPressed: state.nfcBusy
+                                ? null
+                                : () async {
+                                    if (!isOnline(context)) {
+                                      _showOfflineSnackOnce();
+                                      return;
+                                    }
+                                    await _handleNfc();
+                                  },
                           ),
                       ],
                     ),
                   ),
+
 
                   // FAB de voz (mic)
                   Positioned(

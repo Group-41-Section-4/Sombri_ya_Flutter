@@ -24,6 +24,8 @@ import '../../presentation/blocs/home/home_bloc.dart';
 import '../notifications/notifications_page.dart';
 import '../../widgets/app_drawer.dart';
 
+import '../../core/net/is_online.dart';
+
 String bytesToHexColonUpper(Uint8List bytes) =>
     bytes.map((b) => b.toRadixString(16).padLeft(2, '0')).join(':').toUpperCase();
 
@@ -63,6 +65,30 @@ class ReturnPage extends StatefulWidget {
 class _ReturnPageState extends State<ReturnPage> {
   final MobileScannerController _scanner = MobileScannerController();
   bool _scannerRunning = true;
+  DateTime? _ignoreDetectionsUntil;
+
+  DateTime? _lastOfflineNoticeAt;
+
+  void _showOfflineSnackOnce({int cooldownSeconds =4}) {
+    if (!mounted) return;
+    final now = DateTime.now();
+    if (_lastOfflineNoticeAt != null &&
+        now.difference(_lastOfflineNoticeAt!) < Duration(seconds: cooldownSeconds)) {
+      return;
+    }
+
+    _lastOfflineNoticeAt = now;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Sin conexión a internet. Inténtalo más tarde.'),
+        duration: Duration(seconds: 2),
+      ),
+    );
+
+    _ignoreDetectionsUntil = now.add(const Duration(seconds: 2));
+  }
+
 
   @override
   void initState() {
@@ -239,6 +265,12 @@ class _ReturnPageState extends State<ReturnPage> {
                 fit: BoxFit.cover,
                 onDetect: (capture) async {
                   if (state.loading || state.ended) return;
+
+                  if (!isOnline(context)) {
+                    _showOfflineSnackOnce();
+                    return;
+                  }
+
                   final raw = capture.barcodes.isNotEmpty
                       ? capture.barcodes.first.rawValue
                       : null;
@@ -296,7 +328,15 @@ class _ReturnPageState extends State<ReturnPage> {
                           ),
                           shape: const StadiumBorder(),
                         ),
-                        onPressed: state.nfcBusy ? null : _handleNfc,
+                        onPressed: state.nfcBusy 
+                          ? null 
+                          : () async {
+                            if (!isOnline(context)) {
+                              _showOfflineSnackOnce();
+                              return;
+                            } 
+                            await _handleNfc();
+                          } 
                       ),
                     ],
                   ),
