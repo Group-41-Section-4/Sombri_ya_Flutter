@@ -1,4 +1,3 @@
-import 'dart:io' show Platform;
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -43,7 +42,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
   @override
   void dispose() {
     _emailCtrl.dispose();
-    _offlineGrace?..cancel();
+    _offlineGrace?.cancel();
     _offlineGrace = null;
     super.dispose();
   }
@@ -61,9 +60,9 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
     if (!online) return;
     if (_formKey.currentState!.validate()) {
       setState(() => _submitting = true);
-      context
-          .read<ForgotPasswordBloc>()
-          .add(ForgotPasswordSubmitted(_emailCtrl.text.trim()));
+      context.read<ForgotPasswordBloc>().add(
+        ForgotPasswordSubmitted(_emailCtrl.text.trim()),
+      );
     }
   }
 
@@ -93,18 +92,27 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
                     BlocListener<ConnectivityCubit, ConnectivityStatus>(
                       listener: (context, status) {
                         if (status == ConnectivityStatus.online) {
-                          _offlineGrace?..cancel();
+                          _offlineGrace?.cancel();
                           _offlineGrace = null;
                           if (_effectiveNet != ConnectivityStatus.online) {
-                            setState(() => _effectiveNet = ConnectivityStatus.online);
+                            setState(
+                              () => _effectiveNet = ConnectivityStatus.online,
+                            );
                           }
                         } else {
-                          _offlineGrace?..cancel();
-                          _offlineGrace = Timer(const Duration(milliseconds: 200), () {
-                            if (mounted && _effectiveNet != ConnectivityStatus.offline) {
-                              setState(() => _effectiveNet = ConnectivityStatus.offline);
-                            }
-                          });
+                          _offlineGrace?.cancel();
+                          _offlineGrace = Timer(
+                            const Duration(milliseconds: 200),
+                            () {
+                              if (mounted &&
+                                  _effectiveNet != ConnectivityStatus.offline) {
+                                setState(
+                                  () => _effectiveNet =
+                                      ConnectivityStatus.offline,
+                                );
+                              }
+                            },
+                          );
                         }
                       },
                     ),
@@ -136,8 +144,9 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
                   child: BlocBuilder<ForgotPasswordBloc, ForgotPasswordState>(
                     builder: (context, state) {
                       final isUnknown = _effectiveNet == null;
-                      final online    = _effectiveNet == ConnectivityStatus.online;
-                      final offline   = _effectiveNet == ConnectivityStatus.offline;
+                      final online = _effectiveNet == ConnectivityStatus.online;
+                      final offline =
+                          _effectiveNet == ConnectivityStatus.offline;
 
                       return Column(
                         children: [
@@ -194,10 +203,11 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
                                       ),
                                       filled: true,
                                       fillColor: const Color(0xFFF2F2F2),
-                                      contentPadding: const EdgeInsets.symmetric(
-                                        vertical: 10,
-                                        horizontal: 15,
-                                      ),
+                                      contentPadding:
+                                          const EdgeInsets.symmetric(
+                                            vertical: 10,
+                                            horizontal: 15,
+                                          ),
                                     ),
                                   ),
 
@@ -223,20 +233,24 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
                                       onPressed: isUnknown
                                           ? null
                                           : () async {
-                                        if (online) {
-                                          _submit(context, online: true);
-                                        } else {
-                                          await _retryConnectivity(context);
-                                        }
-                                      },
+                                              if (online) {
+                                                _submit(context, online: true);
+                                              } else {
+                                                await _retryConnectivity(
+                                                  context,
+                                                );
+                                              }
+                                            },
                                       style: ElevatedButton.styleFrom(
                                         backgroundColor: isUnknown
                                             ? Colors.grey[700]
                                             : (online
-                                            ? const Color(0xFF001242)
-                                            : Colors.grey[800]),
+                                                  ? const Color(0xFF001242)
+                                                  : Colors.grey[800]),
                                         shape: RoundedRectangleBorder(
-                                          borderRadius: BorderRadius.circular(10),
+                                          borderRadius: BorderRadius.circular(
+                                            10,
+                                          ),
                                         ),
                                         padding: const EdgeInsets.symmetric(
                                           vertical: 14,
@@ -292,13 +306,18 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
                                           MaterialPageRoute(
                                             builder: (_) =>
                                                 RepositoryProvider<ApiProvider>(
-                                                  create: (_) =>
-                                                      ApiProvider(baseUrl: baseUrl),
+                                                  create: (_) => ApiProvider(
+                                                    baseUrl: baseUrl,
+                                                  ),
                                                   child: BlocProvider<AuthBloc>(
                                                     create: (ctx) => AuthBloc(
                                                       repo: AuthRepository(
-                                                        api: ctx.read<ApiProvider>(),
-                                                        storage: const SecureStorageService(),
+                                                        api: ctx
+                                                            .read<
+                                                              ApiProvider
+                                                            >(),
+                                                        storage:
+                                                            const SecureStorageService(),
                                                       ),
                                                     ),
                                                     child: const LoginPage(),
@@ -310,7 +329,9 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
                                       style: ElevatedButton.styleFrom(
                                         backgroundColor: Colors.grey[600],
                                         shape: RoundedRectangleBorder(
-                                          borderRadius: BorderRadius.circular(10),
+                                          borderRadius: BorderRadius.circular(
+                                            10,
+                                          ),
                                         ),
                                         padding: const EdgeInsets.symmetric(
                                           vertical: 14,
@@ -343,10 +364,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
                           const Text(
                             "Ahorra tiempo y mantente\nseco en cualquier trayecto",
                             textAlign: TextAlign.center,
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 14,
-                            ),
+                            style: TextStyle(color: Colors.white, fontSize: 14),
                           ),
                         ],
                       );

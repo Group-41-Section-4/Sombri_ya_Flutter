@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -34,17 +35,12 @@ class ForecastBrief {
 }
 
 class WeatherService {
-  WeatherService({String? apiKey, this.debug = true})
-      : apiKey = (apiKey ?? kOpenWeatherApiKey).trim();
-
   final String apiKey;
-  final bool debug;
+  WeatherService({String? apiKey})
+    : apiKey = (apiKey ?? kOpenWeatherApiKey).trim();
 
-  void _log(String msg) {
-    if (debug && kDebugMode) debugPrint('[WeatherCache] $msg');
-  }
-
-  static const _forecastUrl = 'https://api.openweathermap.org/data/2.5/forecast';
+  static const _forecastUrl =
+      'https://api.openweathermap.org/data/2.5/forecast';
 
   static String _cacheKey(double lat, double lon) {
     final latKey = lat.toStringAsFixed(3);
@@ -190,7 +186,9 @@ class WeatherService {
       }
 
       final first = Map<String, dynamic>.from(list.first);
-      final pop = (first['pop'] is num) ? (first['pop'] as num).toDouble() : 0.0;
+      final pop = (first['pop'] is num)
+          ? (first['pop'] as num).toDouble()
+          : 0.0;
 
       int code = 800;
       if (first['weather'] is List && (first['weather'] as List).isNotEmpty) {
@@ -200,7 +198,9 @@ class WeatherService {
       double rainMm = 0.0;
       if (first['rain'] is Map && first['rain']['3h'] != null) {
         final r = first['rain']['3h'];
-        rainMm = (r is num) ? r.toDouble() : double.tryParse(r.toString()) ?? 0.0;
+        rainMm = (r is num)
+            ? r.toDouble()
+            : double.tryParse(r.toString()) ?? 0.0;
       }
 
       final will = pop >= 0.20 || rainMm > 0 || (code >= 200 && code < 600);

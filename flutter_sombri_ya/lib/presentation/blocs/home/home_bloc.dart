@@ -41,9 +41,12 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
         state.copyWith(userPosition: userPosition, cameraTarget: userPosition),
       );
 
-      final stations = await _stationRepository.findNearbyStations(
+      final stations = await _stationRepository.findNearbyStationsCached(
         userPosition,
+        radiusM: 1000000,
+        ttl: const Duration(seconds: 10),
       );
+      
       emit(state.copyWith(nearbyStations: stations));
 
       _updateMarkers(emit, userPosition, stations, stationIcon);

@@ -14,20 +14,32 @@ class HistoryBloc extends Bloc<HistoryEvent, HistoryState> {
   Future<void> _onLoad(LoadHistory event, Emitter<HistoryState> emit) async {
     emit(HistoryLoading());
     try {
-      final rentals = await repository.getCompletedRentals(event.userId);
+      final rentals = await repository.getLocalHistory();
       if (rentals.isEmpty) {
-        emit(HistoryEmpty());
+        final apiRentals = await repository.syncHistoryFromApi(event.userId);
+        if (apiRentals.isEmpty) {
+          emit(HistoryEmpty());
+        } else {
+          emit(HistoryLoaded(apiRentals));
+        }
       } else {
         emit(HistoryLoaded(rentals));
       }
     } catch (_) {
-      emit(const HistoryError('Error al cargar el historial. Inténtalo más tarde.'));
+      emit(
+        const HistoryError(
+          'Error al cargar el historial. Inténtalo más tarde.',
+        ),
+      );
     }
   }
 
-  Future<void> _onRefresh(RefreshHistory event, Emitter<HistoryState> emit) async {
+  Future<void> _onRefresh(
+    RefreshHistory event,
+    Emitter<HistoryState> emit,
+  ) async {
     try {
-      final rentals = await repository.getCompletedRentals(event.userId);
+      final rentals = await repository.syncHistoryFromApi(event.userId);
       if (rentals.isEmpty) {
         emit(HistoryEmpty());
       } else {
