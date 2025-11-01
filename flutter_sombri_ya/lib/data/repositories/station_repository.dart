@@ -37,15 +37,15 @@ class StationRepository {
   }
 
   Map<String, dynamic> _stationToMap(Station s) => {
-        'id': s.id,
-        'placeName': s.placeName,
-        'description': s.description,
-        'latitude': s.latitude,
-        'longitude': s.longitude,
-        'distanceMeters': s.distanceMeters,
-        'availableUmbrellas': s.availableUmbrellas,
-        'totalUmbrellas': s.totalUmbrellas,
-      };
+    'id': s.id,
+    'placeName': s.placeName,
+    'description': s.description,
+    'latitude': s.latitude,
+    'longitude': s.longitude,
+    'distanceMeters': s.distanceMeters,
+    'availableUmbrellas': s.availableUmbrellas,
+    'totalUmbrellas': s.totalUmbrellas,
+  };
 
   List<Station> _fromItems(dynamic items) {
     if (items is! List) return const [];
@@ -74,7 +74,7 @@ class StationRepository {
     int radiusM = 1000000,
     Duration? ttl,
   }) async {
-    final _ttl = ttl ?? _defaultTtl;
+    final ttl0 = ttl ?? _defaultTtl;
     final key = _cacheKeyFor(location, radiusM);
 
     final cached = await _loadCacheRaw(key);
@@ -82,8 +82,8 @@ class StationRepository {
       final ts = (cached['ts'] ?? 0) as int;
       final cachedList = _fromItems(cached['items']);
 
-      if (_isFreshTs(ts, _ttl)) {
-        print('[STATIONS] CACHE_HIT key=$key ttl=${_ttl.inSeconds}s');
+      if (_isFreshTs(ts, ttl0)) {
+        print('[STATIONS] CACHE_HIT key=$key ttl=${ttl0.inSeconds}s');
         return cachedList;
       } else {
         try {
@@ -112,15 +112,12 @@ class StationRepository {
     final p = await SharedPreferences.getInstance();
     await p.remove(key);
 
-    final fresh = await findNearbyStations(location); 
+    final fresh = await findNearbyStations(location);
     await _saveCache(key, fresh);
     return fresh;
   }
 
-  Future<void> invalidate(
-    LatLng location, {
-    int radiusM = 1000000,
-  }) async {
+  Future<void> invalidate(LatLng location, {int radiusM = 1000000}) async {
     final key = _cacheKeyFor(location, radiusM);
     final p = await SharedPreferences.getInstance();
     await p.remove(key);
