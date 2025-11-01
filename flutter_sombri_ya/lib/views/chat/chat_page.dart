@@ -41,7 +41,7 @@ class _ChatPageState extends State<ChatPage> {
     _controller.dispose();
     _scrollCtrl.dispose();
     _noFocus.dispose();
-    _offlineGrace?..cancel();
+    _offlineGrace?.cancel();
     _offlineGrace = null;
     super.dispose();
   }
@@ -103,7 +103,8 @@ class _ChatPageState extends State<ChatPage> {
             IconButton(
               tooltip: 'Limpiar',
               icon: const Icon(Icons.delete_outline),
-              onPressed: () => context.read<ChatBloc>().add(const ChatCleared()),
+              onPressed: () =>
+                  context.read<ChatBloc>().add(const ChatCleared()),
             ),
           ],
         ),
@@ -113,7 +114,7 @@ class _ChatPageState extends State<ChatPage> {
             Expanded(
               child: BlocConsumer<ChatBloc, ChatState>(
                 listenWhen: (p, c) =>
-                p.history.length != c.history.length ||
+                    p.history.length != c.history.length ||
                     p.streamingBuffer != c.streamingBuffer,
                 listener: (_, __) => _scrollToEnd(),
                 builder: (context, state) {
@@ -129,17 +130,22 @@ class _ChatPageState extends State<ChatPage> {
                     itemCount: items.length,
                     itemBuilder: (_, i) {
                       final isLastStreaming =
-                          state.streamingBuffer.isNotEmpty && i == items.length - 1;
+                          state.streamingBuffer.isNotEmpty &&
+                          i == items.length - 1;
 
                       final m = isLastStreaming
                           ? const ChatMessage(role: 'assistant', content: '')
                           : items[i];
 
-                      final content = isLastStreaming ? state.streamingBuffer : m.content;
+                      final content = isLastStreaming
+                          ? state.streamingBuffer
+                          : m.content;
                       final isUser = m.role == 'user';
 
                       return Align(
-                        alignment: isUser ? Alignment.centerRight : Alignment.centerLeft,
+                        alignment: isUser
+                            ? Alignment.centerRight
+                            : Alignment.centerLeft,
                         child: Container(
                           margin: const EdgeInsets.symmetric(vertical: 6),
                           padding: const EdgeInsets.all(12),
@@ -167,19 +173,26 @@ class _ChatPageState extends State<ChatPage> {
                 child: BlocListener<ConnectivityCubit, ConnectivityStatus>(
                   listener: (context, net) {
                     if (net == ConnectivityStatus.online) {
-
-                      _offlineGrace?..cancel();
+                      _offlineGrace?.cancel();
                       _offlineGrace = null;
                       if (_effectiveNet != ConnectivityStatus.online) {
-                        setState(() => _effectiveNet = ConnectivityStatus.online);
+                        setState(
+                          () => _effectiveNet = ConnectivityStatus.online,
+                        );
                       }
                     } else {
-                      _offlineGrace?..cancel();
-                      _offlineGrace = Timer(const Duration(milliseconds: 200), () {
-                        if (mounted && _effectiveNet != ConnectivityStatus.offline) {
-                          setState(() => _effectiveNet = ConnectivityStatus.offline);
-                        }
-                      });
+                      _offlineGrace?.cancel();
+                      _offlineGrace = Timer(
+                        const Duration(milliseconds: 200),
+                        () {
+                          if (mounted &&
+                              _effectiveNet != ConnectivityStatus.offline) {
+                            setState(
+                              () => _effectiveNet = ConnectivityStatus.offline,
+                            );
+                          }
+                        },
+                      );
                     }
                   },
 
@@ -189,8 +202,10 @@ class _ChatPageState extends State<ChatPage> {
                       return Builder(
                         builder: (context) {
                           final isUnknown = _effectiveNet == null;
-                          final online    = _effectiveNet == ConnectivityStatus.online;
-                          final offline   = _effectiveNet == ConnectivityStatus.offline;
+                          final online =
+                              _effectiveNet == ConnectivityStatus.online;
+                          final offline =
+                              _effectiveNet == ConnectivityStatus.offline;
 
                           final blocked = chatState.isStreaming || !online;
 
@@ -210,7 +225,8 @@ class _ChatPageState extends State<ChatPage> {
                                       maxLines: 4,
                                       readOnly: blocked,
                                       focusNode: blocked ? _noFocus : null,
-                                      onTapOutside: (_) => FocusScope.of(context).unfocus(),
+                                      onTapOutside: (_) =>
+                                          FocusScope.of(context).unfocus(),
                                       onSubmitted: (_) => online
                                           ? _send(context)
                                           : _retryConnectivity(context),
@@ -218,18 +234,23 @@ class _ChatPageState extends State<ChatPage> {
                                         hintText: chatState.isStreaming
                                             ? 'Generando…'
                                             : (isUnknown
-                                            ? 'Conectando…'
-                                            : (online ? 'Escribe tu mensaje…' : 'Sin conexión')),
+                                                  ? 'Conectando…'
+                                                  : (online
+                                                        ? 'Escribe tu mensaje…'
+                                                        : 'Sin conexión')),
                                         border: const OutlineInputBorder(),
                                         suffixIcon: chatState.isStreaming
                                             ? const Padding(
-                                          padding: EdgeInsets.all(10),
-                                          child: SizedBox(
-                                            width: 18,
-                                            height: 18,
-                                            child: CircularProgressIndicator(strokeWidth: 2),
-                                          ),
-                                        )
+                                                padding: EdgeInsets.all(10),
+                                                child: SizedBox(
+                                                  width: 18,
+                                                  height: 18,
+                                                  child:
+                                                      CircularProgressIndicator(
+                                                        strokeWidth: 2,
+                                                      ),
+                                                ),
+                                              )
                                             : null,
                                       ),
                                     ),
@@ -242,31 +263,42 @@ class _ChatPageState extends State<ChatPage> {
                                       onPressed: () => context
                                           .read<ChatBloc>()
                                           .add(const ChatStopRequested()),
-                                      icon: const Icon(Icons.stop_circle_outlined),
+                                      icon: const Icon(
+                                        Icons.stop_circle_outlined,
+                                      ),
                                     )
                                   else
                                     ElevatedButton.icon(
                                       onPressed: isUnknown
                                           ? null
                                           : (online
-                                          ? () => _send(context)
-                                          : () => _retryConnectivity(context)),
+                                                ? () => _send(context)
+                                                : () => _retryConnectivity(
+                                                    context,
+                                                  )),
                                       icon: online
                                           ? const Icon(Icons.send)
                                           : (isUnknown
-                                          ? const Icon(Icons.more_horiz)
-                                          : (_retrying
-                                          ? const SizedBox(
-                                        width: 18,
-                                        height: 18,
-                                        child: CircularProgressIndicator(strokeWidth: 2),
-                                      )
-                                          : const Icon(Icons.refresh))),
+                                                ? const Icon(Icons.more_horiz)
+                                                : (_retrying
+                                                      ? const SizedBox(
+                                                          width: 18,
+                                                          height: 18,
+                                                          child:
+                                                              CircularProgressIndicator(
+                                                                strokeWidth: 2,
+                                                              ),
+                                                        )
+                                                      : const Icon(
+                                                          Icons.refresh,
+                                                        ))),
                                       label: Text(buttonLabel),
                                       style: ElevatedButton.styleFrom(
                                         backgroundColor: online
                                             ? const Color(0xFFFAF9F6)
-                                            : (isUnknown ? Colors.grey[700] : Colors.grey[800]),
+                                            : (isUnknown
+                                                  ? Colors.grey[700]
+                                                  : Colors.grey[800]),
                                       ),
                                     ),
                                 ],
@@ -276,17 +308,23 @@ class _ChatPageState extends State<ChatPage> {
                                 duration: const Duration(milliseconds: 200),
                                 child: offline
                                     ? Padding(
-                                  key: const ValueKey('offline'),
-                                  padding: const EdgeInsets.only(top: 8.0, left: 4),
-                                  child: Text(
-                                    'Sin conexión a internet. Verifica tu red y toca “Reintentar”.',
-                                    style: TextStyle(
-                                      color: Colors.red.shade700,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
-                                )
-                                    : const SizedBox(key: ValueKey('ok'), height: 0),
+                                        key: const ValueKey('offline'),
+                                        padding: const EdgeInsets.only(
+                                          top: 8.0,
+                                          left: 4,
+                                        ),
+                                        child: Text(
+                                          'Sin conexión a internet. Verifica tu red y toca “Reintentar”.',
+                                          style: TextStyle(
+                                            color: Colors.red.shade700,
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                        ),
+                                      )
+                                    : const SizedBox(
+                                        key: ValueKey('ok'),
+                                        height: 0,
+                                      ),
                               ),
                             ],
                           );

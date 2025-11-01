@@ -27,12 +27,12 @@ class _HistoryPageState extends State<HistoryPage> {
   void initState() {
     super.initState();
     _bloc = HistoryBloc(repository: HistoryRepository());
-    _initAndLoad(); 
+    _initAndLoad();
   }
 
   @override
   void dispose() {
-    _bloc.close(); 
+    _bloc.close();
     super.dispose();
   }
 
@@ -70,7 +70,7 @@ class _HistoryPageState extends State<HistoryPage> {
           DateFormat('d \'de\' MMMM, yyyy', 'es_ES').format(item.startTime),
           style: const TextStyle(fontWeight: FontWeight.bold),
         ),
-      subtitle: Text(_formatDuration(item.durationMinutes)),
+        subtitle: Text(_formatDuration(item.durationMinutes)),
         trailing: Text(
           DateFormat('hh:mm a').format(item.startTime),
           style: const TextStyle(fontSize: 12),
@@ -92,7 +92,9 @@ class _HistoryPageState extends State<HistoryPage> {
           title: Text(
             "Historial",
             style: GoogleFonts.cormorantGaramond(
-              color: Colors.black, fontSize: 24, fontWeight: FontWeight.bold,
+              color: Colors.black,
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
             ),
           ),
           leading: IconButton(
@@ -104,7 +106,7 @@ class _HistoryPageState extends State<HistoryPage> {
         body: RefreshIndicator(
           onRefresh: () async {
             if (_userId != null && _userId!.isNotEmpty) {
-              _bloc.add(RefreshHistory(_userId!)); 
+              _bloc.add(RefreshHistory(_userId!));
             }
           },
           child: BlocBuilder<HistoryBloc, HistoryState>(
@@ -128,7 +130,9 @@ class _HistoryPageState extends State<HistoryPage> {
                 );
               }
               if (state is HistoryEmpty) {
-                return const Center(child: Text('No tienes alquileres en tu historial.'));
+                return const Center(
+                  child: Text('No tienes alquileres en tu historial.'),
+                );
               }
               if (state is HistoryLoaded) {
                 final history = state.rentals;

@@ -24,7 +24,6 @@ class _SigninPageState extends State<SigninPage> {
   final confirmPasswordController = TextEditingController();
   bool useBiometrics = true;
 
-
   ConnectivityStatus? _effectiveNet;
   Timer? _offlineGrace;
 
@@ -52,7 +51,7 @@ class _SigninPageState extends State<SigninPage> {
     nameController.dispose();
     passwordController.dispose();
     confirmPasswordController.dispose();
-    _offlineGrace?..cancel();
+    _offlineGrace?.cancel();
     _offlineGrace = null;
     super.dispose();
   }
@@ -62,7 +61,11 @@ class _SigninPageState extends State<SigninPage> {
 
     if (isOffline) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Sin conexión. Revisa tu internet e inténtalo de nuevo.')),
+        const SnackBar(
+          content: Text(
+            'Sin conexión. Revisa tu internet e inténtalo de nuevo.',
+          ),
+        ),
       );
       return;
     }
@@ -100,13 +103,13 @@ class _SigninPageState extends State<SigninPage> {
         effectiveNet: _effectiveNet,
         onConnectivity: (status) {
           if (status == ConnectivityStatus.online) {
-            _offlineGrace?..cancel();
+            _offlineGrace?.cancel();
             _offlineGrace = null;
             if (_effectiveNet != ConnectivityStatus.online) {
               setState(() => _effectiveNet = ConnectivityStatus.online);
             }
           } else {
-            _offlineGrace?..cancel();
+            _offlineGrace?.cancel();
             _offlineGrace = Timer(const Duration(milliseconds: 700), () {
               if (mounted && _effectiveNet != ConnectivityStatus.offline) {
                 setState(() => _effectiveNet = ConnectivityStatus.offline);
@@ -143,7 +146,7 @@ class _SigninScaffold extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isUnknown = effectiveNet == null;
-    final offline   = effectiveNet == ConnectivityStatus.offline;
+    final offline = effectiveNet == ConnectivityStatus.offline;
 
     return Scaffold(
       backgroundColor: const Color(0xFF90E0EF),
@@ -158,14 +161,19 @@ class _SigninScaffold extends StatelessWidget {
               if (state is RegistrationSuccess) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
-                    content: Text('Usuario registrado correctamente. Inicia sesión'),
+                    content: Text(
+                      'Usuario registrado correctamente. Inicia sesión',
+                    ),
                     backgroundColor: Colors.green,
                   ),
                 );
                 Navigator.pop(context);
               } else if (state is AuthFailure) {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text(state.message), backgroundColor: Colors.red),
+                  SnackBar(
+                    content: Text(state.message),
+                    backgroundColor: Colors.red,
+                  ),
                 );
               }
             },
@@ -179,8 +187,14 @@ class _SigninScaffold extends StatelessWidget {
                 children: [
                   if (!isUnknown && offline)
                     Container(
-                      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                      margin: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 8,
+                      ),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 10,
+                      ),
                       decoration: BoxDecoration(
                         color: Colors.amber.shade100,
                         borderRadius: BorderRadius.circular(12),
@@ -231,17 +245,28 @@ class _SigninScaffold extends StatelessWidget {
                                 ),
                               ),
                               const SizedBox(height: 20),
-                              const Icon(Icons.person, size: 50, color: Color(0xFF001242)),
+                              const Icon(
+                                Icons.person,
+                                size: 50,
+                                color: Color(0xFF001242),
+                              ),
                               const SizedBox(height: 15),
 
                               TextFormField(
                                 controller: emailController,
                                 keyboardType: TextInputType.emailAddress,
-                                decoration: _decor('Correo electrónico', 'correo@ejemplo.com'),
+                                decoration: _decor(
+                                  'Correo electrónico',
+                                  'correo@ejemplo.com',
+                                ),
                                 validator: (v) {
-                                  if (v == null || v.isEmpty) return 'Ingresa tu correo';
-                                  final re = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
-                                  if (!re.hasMatch(v)) return 'Ingresa un correo válido';
+                                  if (v == null || v.isEmpty)
+                                    return 'Ingresa tu correo';
+                                  final re = RegExp(
+                                    r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$',
+                                  );
+                                  if (!re.hasMatch(v))
+                                    return 'Ingresa un correo válido';
                                   return null;
                                 },
                               ),
@@ -249,20 +274,28 @@ class _SigninScaffold extends StatelessWidget {
 
                               TextFormField(
                                 controller: nameController,
-                                inputFormatters: [LengthLimitingTextInputFormatter(30)],
+                                inputFormatters: [
+                                  LengthLimitingTextInputFormatter(30),
+                                ],
                                 decoration: _decor('Nombre', 'Nombre'),
-                                validator: (v) => (v == null || v.isEmpty) ? 'Ingresa tu nombre' : null,
+                                validator: (v) => (v == null || v.isEmpty)
+                                    ? 'Ingresa tu nombre'
+                                    : null,
                               ),
                               const SizedBox(height: 15),
 
                               TextFormField(
                                 controller: passwordController,
-                                inputFormatters: [LengthLimitingTextInputFormatter(30)],
+                                inputFormatters: [
+                                  LengthLimitingTextInputFormatter(30),
+                                ],
                                 obscureText: true,
                                 decoration: _decor('Contraseña', 'Contraseña'),
                                 validator: (v) {
-                                  if (v == null || v.isEmpty) return 'Ingresa tu contraseña';
-                                  if (v.length < 6) return 'Debe tener al menos 6 caracteres';
+                                  if (v == null || v.isEmpty)
+                                    return 'Ingresa tu contraseña';
+                                  if (v.length < 6)
+                                    return 'Debe tener al menos 6 caracteres';
                                   return null;
                                 },
                               ),
@@ -270,10 +303,17 @@ class _SigninScaffold extends StatelessWidget {
 
                               TextFormField(
                                 controller: confirmPasswordController,
-                                inputFormatters: [LengthLimitingTextInputFormatter(30)],
+                                inputFormatters: [
+                                  LengthLimitingTextInputFormatter(30),
+                                ],
                                 obscureText: true,
-                                decoration: _decor('Confirmar contraseña', 'Contraseña'),
-                                validator: (v) => (v == null || v.isEmpty) ? 'Confirma tu contraseña' : null,
+                                decoration: _decor(
+                                  'Confirmar contraseña',
+                                  'Contraseña',
+                                ),
+                                validator: (v) => (v == null || v.isEmpty)
+                                    ? 'Confirma tu contraseña'
+                                    : null,
                               ),
                               const SizedBox(height: 8),
                             ],
@@ -289,21 +329,30 @@ class _SigninScaffold extends StatelessWidget {
                     builder: (context, state) {
                       final loading = state is AuthLoading;
 
-
                       final disable = loading || isUnknown || offline;
                       final label = isUnknown
                           ? 'Conectando…'
-                          : (offline ? 'Sin conexión' : (loading ? 'Registrando…' : 'Registrar'));
+                          : (offline
+                                ? 'Sin conexión'
+                                : (loading ? 'Registrando…' : 'Registrar'));
 
                       return ElevatedButton(
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFF001242),
                           foregroundColor: Colors.white,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
-                          padding: const EdgeInsets.symmetric(horizontal: 70, vertical: 15),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(30),
+                          ),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 70,
+                            vertical: 15,
+                          ),
                         ),
                         onPressed: disable ? null : submit,
-                        child: Text(label, style: const TextStyle(fontSize: 20)),
+                        child: Text(
+                          label,
+                          style: const TextStyle(fontSize: 20),
+                        ),
                       );
                     },
                   ),

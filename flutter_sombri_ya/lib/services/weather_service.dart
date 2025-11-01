@@ -1,11 +1,7 @@
-
 import 'dart:convert';
 import 'package:flutter/cupertino.dart';
-import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
-
-import '../data/models/weather_models.dart';
 
 const String kOpenWeatherApiKey = "64a018d01eba547f998be6d43c606c80";
 
@@ -41,13 +37,12 @@ class ForecastBrief {
 }
 
 class WeatherService {
-
   final String apiKey;
   WeatherService({String? apiKey})
-      : apiKey = (apiKey ?? kOpenWeatherApiKey).trim() {
-  }
+    : apiKey = (apiKey ?? kOpenWeatherApiKey).trim();
 
-  static const _forecastUrl = 'https://api.openweathermap.org/data/2.5/forecast';
+  static const _forecastUrl =
+      'https://api.openweathermap.org/data/2.5/forecast';
 
   static const _kForecastBrief = 'ow_forecast_brief_v1';
   static const _kForecastSavedAt = 'ow_forecast_saved_at_epoch';
@@ -65,14 +60,15 @@ class WeatherService {
   }
 
   Future<ForecastBrief?> fetchAndCacheForecast(double lat, double lng) async {
-    final url = Uri.parse(_forecastUrl).replace(queryParameters: {
-      'lat': '$lat',
-      'lon': '$lng',
-      'appid': apiKey,
-      'lang': 'es',
-      'units': 'metric',
-    });
-
+    final url = Uri.parse(_forecastUrl).replace(
+      queryParameters: {
+        'lat': '$lat',
+        'lon': '$lng',
+        'appid': apiKey,
+        'lang': 'es',
+        'units': 'metric',
+      },
+    );
 
     try {
       final resp = await http.get(url).timeout(const Duration(seconds: 10));
@@ -86,7 +82,9 @@ class WeatherService {
       if (list.isEmpty) return null;
 
       final first = Map<String, dynamic>.from(list.first);
-      final pop = (first['pop'] is num) ? (first['pop'] as num).toDouble() : 0.0;
+      final pop = (first['pop'] is num)
+          ? (first['pop'] as num).toDouble()
+          : 0.0;
 
       int code = 800;
       if (first['weather'] is List && (first['weather'] as List).isNotEmpty) {
@@ -96,12 +94,18 @@ class WeatherService {
       double rainMm = 0.0;
       if (first['rain'] is Map && first['rain']['3h'] != null) {
         final r = first['rain']['3h'];
-        rainMm = (r is num) ? r.toDouble() : double.tryParse(r.toString()) ?? 0.0;
+        rainMm = (r is num)
+            ? r.toDouble()
+            : double.tryParse(r.toString()) ?? 0.0;
       }
 
       final will = pop >= 0.20 || rainMm > 0 || (code >= 200 && code < 600);
-      final brief =
-      ForecastBrief(pop: pop, code: code, rainMm: rainMm, willRain: will);
+      final brief = ForecastBrief(
+        pop: pop,
+        code: code,
+        rainMm: rainMm,
+        willRain: will,
+      );
 
       await _saveForecastBrief(brief);
       return brief;
