@@ -1,6 +1,5 @@
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
-import 'package:flutter/cupertino.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -35,22 +34,27 @@ class ForecastBrief {
 }
 
 class WeatherService {
-  final String apiKey;
-  WeatherService({String? apiKey})
-    : apiKey = (apiKey ?? kOpenWeatherApiKey).trim();
+  WeatherService({String? apiKey, this.debug = true})
+      : apiKey = (apiKey ?? kOpenWeatherApiKey).trim();
 
-  static const _forecastUrl =
-      'https://api.openweathermap.org/data/2.5/forecast';
+  final String apiKey;
+  final bool debug;
+
+  void _log(String msg) {
+    if (debug && kDebugMode) debugPrint('[WeatherCache] $msg');
+  }
+
+  static const _forecastUrl = 'https://api.openweathermap.org/data/2.5/forecast';
 
   static String _cacheKey(double lat, double lon) {
     final latKey = lat.toStringAsFixed(3);
     final lonKey = lon.toStringAsFixed(3);
     return 'cache:weather:fb:$latKey,$lonKey';
   }
-
   static String _tsKey(String base) => '$base#ts';
 
-  Future<ForecastBrief?> getForecastBrief(double lat,
+  Future<ForecastBrief?> getForecastBrief(
+      double lat,
       double lon, {
         Duration ttl = const Duration(minutes: 10),
         bool forceRefresh = false,
@@ -68,11 +72,10 @@ class WeatherService {
         final age = DateTime.now()
             .difference(DateTime.fromMillisecondsSinceEpoch(ts * 1000));
         if (age <= ttl) {
-          _log('HIT (fresh) key=$key  age=${age.inSeconds}s  ️pop=${cached
-              .pop}  code=${cached.code}');
+          _log('HIT (fresh) key=$key age=${age.inSeconds}s  pop=${cached.pop}  code=${cached.code}');
           return cached;
         } else {
-          _log('🕰HIT (stale) key=$key  age=${age.inMinutes}m → fetching…');
+          _log('HIT (stale) key=$key  age=${age.inMinutes}m → fetching…');
         }
       } else {
         _log('MISS key=$key (no cache entry)');
@@ -84,26 +87,29 @@ class WeatherService {
     final net = await _fetch(lat, lon, lang: lang, units: units);
     if (net != null) {
       await _saveBrief(prefs, key, net);
+      _log('SAVE key=$key  pop=${net.pop}  code=${net.code}');
       return net;
     }
 
     final fallback = _readBrief(prefs, key);
     if (fallback != null) {
-      _log('↩FALLBACK STALE key=$key (serving cached data while offline)');
+      _log('FALLBACK STALE key=$key (serving cached data while offline)');
     } else {
       _log('NO CACHE AVAILABLE key=$key (network failed & no local)');
     }
     return fallback;
   }
 
-  Future<ForecastBrief?> refreshForecast(double lat,
+  Future<ForecastBrief?> refreshForecast(
+      double lat,
       double lon, {
         String lang = 'es',
         String units = 'metric',
       }) =>
       getForecastBrief(lat, lon, forceRefresh: true, lang: lang, units: units);
 
-  Future<bool> willRainNextHour(double lat,
+  Future<bool> willRainNextHour(
+      double lat,
       double lon, {
         Duration ttl = const Duration(minutes: 10),
       }) async {
@@ -128,6 +134,7 @@ class WeatherService {
       await sp.remove(_tsKey(k));
       n++;
     }
+    _log('CLEAR ALL (${n} entries removed)');
   }
 
   Future<void> dumpCacheSummary() async {
@@ -135,6 +142,7 @@ class WeatherService {
     final now = DateTime.now();
     final keys = sp.getKeys().where((k) => k.startsWith('cache:weather:fb:')).toList()
       ..sort();
+    _log('DUMP (${keys.length} items)');
     for (final k in keys) {
       final ts = sp.getInt(_tsKey(k));
       final age = ts == null
@@ -155,6 +163,7 @@ class WeatherService {
     final key = _cacheKey(lat, lon);
     final ts = sp.getInt(_tsKey(key));
     final present = sp.getString(key) != null;
+    _log('PEEK key=$key  present=$present  ts=$ts');
   }
 
 
@@ -182,13 +191,12 @@ class WeatherService {
       final data = json.decode(resp.body) as Map<String, dynamic>;
       final list = (data['list'] as List?) ?? const [];
       if (list.isEmpty) {
+        _log('Empty forecast list');
         return null;
       }
 
       final first = Map<String, dynamic>.from(list.first);
-      final pop = (first['pop'] is num)
-          ? (first['pop'] as num).toDouble()
-          : 0.0;
+      final pop = (first['pop'] is num) ? (first['pop'] as num).toDouble() : 0.0;
 
       int code = 800;
       if (first['weather'] is List && (first['weather'] as List).isNotEmpty) {
@@ -198,9 +206,7 @@ class WeatherService {
       double rainMm = 0.0;
       if (first['rain'] is Map && first['rain']['3h'] != null) {
         final r = first['rain']['3h'];
-        rainMm = (r is num)
-            ? r.toDouble()
-            : double.tryParse(r.toString()) ?? 0.0;
+        rainMm = (r is num) ? r.toDouble() : double.tryParse(r.toString()) ?? 0.0;
       }
 
       final will = pop >= 0.20 || rainMm > 0 || (code >= 200 && code < 600);
@@ -229,5 +235,6 @@ class WeatherService {
     await sp.setString(key, json.encode(brief.toJson()));
     final nowSec = DateTime.now().millisecondsSinceEpoch ~/ 1000;
     await sp.setInt(_tsKey(key), nowSec);
+    _log('TS SET key=${_tsKey(key)} ts=$nowSec');
   }
 }
