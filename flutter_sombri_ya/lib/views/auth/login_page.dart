@@ -17,6 +17,8 @@ import 'forgot_password_page.dart';
 import '../../presentation/blocs/connectivity/connectivity_cubit.dart';
 import '../../core/connectivity/connectivity_service.dart';
 
+import '../../core/services/local_prefs.dart';
+
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
   @override
@@ -27,6 +29,7 @@ class _LoginPageState extends State<LoginPage> {
   final _formKey = GlobalKey<FormState>();
   final _emailCtrl = TextEditingController();
   final _passCtrl = TextEditingController();
+  bool _rememberEmail = true;
 
   ConnectivityStatus? _effectiveNet;
   Timer? _offlineGrace;
@@ -34,6 +37,13 @@ class _LoginPageState extends State<LoginPage> {
   @override
   void initState() {
     super.initState();
+
+    final prefs = context.read<LocalPrefs>();
+    _rememberEmail = prefs.getRememberEmail();
+    final last = prefs.getLastEmail();
+    if (_rememberEmail && last != null && last.isNotEmpty) {
+      _emailCtrl.text = last;
+    }
     _effectiveNet = null;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final cubit = context.read<ConnectivityCubit?>();
@@ -58,6 +68,12 @@ class _LoginPageState extends State<LoginPage> {
 
   void _submitLogin() {
     if (!_formKey.currentState!.validate()) return;
+
+    //DEBUG:
+    assert(() {
+      print('[DEBUG] AuthBloc encontrado en LoginPage: OK');
+      return true;
+    }());
     context.read<AuthBloc>().add(
       LoginWithPasswordSubmitted(
         email: _emailCtrl.text.trim(),
@@ -92,6 +108,14 @@ class _LoginPageState extends State<LoginPage> {
             });
           }
         },
+
+        rememberEmail: _rememberEmail,
+        onRememberChanged: (val) async {
+          setState(() => _rememberEmail = val);
+          final prefs = context.read<LocalPrefs>();
+          await prefs.setRememberEmail(val);
+          if (!val) await prefs.clearLastEmail();
+        },
       ),
     );
   }
@@ -105,6 +129,8 @@ class _LoginScaffold extends StatelessWidget {
     required this.submitLogin,
     required this.effectiveNet,
     required this.onConnectivity,
+    required this.rememberEmail,
+    required this.onRememberChanged,
   });
 
   final GlobalKey<FormState> formKey;
@@ -114,6 +140,10 @@ class _LoginScaffold extends StatelessWidget {
 
   final ConnectivityStatus? effectiveNet;
   final void Function(ConnectivityStatus) onConnectivity;
+
+  final bool rememberEmail;
+  final void Function(bool) onRememberChanged;
+
 
   @override
   Widget build(BuildContext context) {
@@ -126,10 +156,22 @@ class _LoginScaffold extends StatelessWidget {
       body: MultiBlocListener(
         listeners: [
           BlocListener<AuthBloc, AuthState>(
+            listener: (context, state) {
+              debugPrint('[AuthBloc] state => ${state.runtimeType}');
+            },
+          ),
+          BlocListener<AuthBloc, AuthState>(
             listenWhen: (prev, curr) =>
                 curr is AuthAuthenticated || curr is AuthFailure,
             listener: (context, state) {
               if (state is AuthAuthenticated) {
+                final prefs = context.read<LocalPrefs>();
+                if (prefs.getRememberEmail()) {
+                  final email = emailCtrl.text.trim();
+                  if (email.isNotEmpty) {
+                    prefs.setLastEmail(email);
+                  }
+                }
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
                     content: Text('Inicio de sesión exitoso'),
@@ -223,6 +265,17 @@ class _LoginScaffold extends StatelessWidget {
                           validator: (v) => (v == null || v.isEmpty)
                               ? 'Ingresa tu contraseña'
                               : null,
+                        ),
+
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.start,
+                          children: [
+                            Checkbox(
+                              value: rememberEmail,
+                              onChanged: (v) => onRememberChanged(v ?? true),
+                            ),
+                            const Text('Recordar correo'),
+                          ],
                         ),
 
                         const SizedBox(height: 16),
