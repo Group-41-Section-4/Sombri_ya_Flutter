@@ -75,7 +75,9 @@ class RentPage extends StatefulWidget {
   final GpsCoord? userPosition;
   final String? suggestedStationId;
 
-  const RentPage({super.key, this.userPosition, this.suggestedStationId});
+  final bool startInNfc;
+
+  const RentPage({super.key, this.userPosition, this.suggestedStationId, this.startInNfc = false});
 
   @override
   State<RentPage> createState() => _RentPageState();
@@ -93,6 +95,9 @@ class _RentPageState extends State<RentPage> {
 
   
   DateTime? _lastOfflineNoticeAt;
+
+  bool _launchedNfcFromArgs = false;
+  bool _qrVisible = true;
 
   void _showOfflineSnackOnce({int cooldownSeconds = 4}) {
     if (!mounted) return;
@@ -127,6 +132,23 @@ class _RentPageState extends State<RentPage> {
       final args = ModalRoute.of(context)?.settings.arguments;
       if (args is Map && args['stationId'] is String) {
         _stationIdFromArgs = args['stationId'] as String;
+      }
+    }
+
+    if (!_launchedNfcFromArgs) {
+      final args = ModalRoute.of(context)?.settings.arguments;
+      final modeArg = (args is Map) ? (args['mode'] ?? '').toSrting().toLowerCase().trim() : '';
+      final shouldStarNfc = widget.startInNfc || modeArg == 'nfc';
+      debugPrint('[RentPage] startInNFC=${widget.startInNfc} modeArg=$modeArg shouldStartNfc=$shouldStarNfc');
+      if (shouldStarNfc && !_launchedNfcFromArgs) {
+        _launchedNfcFromArgs = true;
+        setState(() => _qrVisible = false);
+        Future.microtask(() async {
+          debugPrint('[RentPage] launching NFC from didChangeDependencies()');
+          if (!mounted) return;
+          await _ensureScanner(false);
+          await _handleNfc();
+        });
       }
     }
   }
@@ -256,6 +278,7 @@ class _RentPageState extends State<RentPage> {
               await _ensureScanner(true);
               break;
             case VoiceIntent.rentNFC:
+              await _ensureScanner(false);
               await _handleNfc();
               break;
             case VoiceIntent.returnUmbrella:
@@ -397,32 +420,31 @@ class _RentPageState extends State<RentPage> {
               body: Stack(
                 children: [
                   // Scanner de QR
-                  MobileScanner(
-                    controller: _scanner,
-                    fit: BoxFit.cover,
-                    onDetect: (capture) async {
-                      if (state.loading || state.hasActiveRental) return;
+                  if (_qrVisible)
+                    MobileScanner(
+                      controller: _scanner,
+                      fit: BoxFit.cover,
+                      onDetect: (capture) async {
+                        if (state.loading || state.hasActiveRental) return;
 
-                      if (!isOnline(context)) {
-                        _showOfflineSnackOnce();
-                        return;
-                      }
+                        if (!isOnline(context)) {
+                          _showOfflineSnackOnce();
+                          return;
+                        }
 
-                      final now = DateTime.now();
-                      if (_ignoreDetectionsUntil != null &&
-                          now.isBefore(_ignoreDetectionsUntil!)) {
-                        return;
-                      }
+                        final now = DateTime.now();
+                        if (_ignoreDetectionsUntil != null && now.isBefore(_ignoreDetectionsUntil!)) {
+                          return;
+                        }
 
-                      final raw = capture.barcodes.isNotEmpty
-                          ? capture.barcodes.first.rawValue
-                          : null;
-                      if (raw == null) return;
+                        final raw = capture.barcodes.isNotEmpty ? capture.barcodes.first.rawValue : null;
+                        
+                        if (raw == null) return;
 
-                      await _ensureScanner(false);
-                      context.read<RentBloc>().add(RentStartWithQr(raw));
-                    },
-                  ),
+                        await _ensureScanner(false);
+                        context.read<RentBloc>().add(RentStartWithQr(raw));
+                      },
+                    ),
 
                   // Marco de guía de escaneo
                   Align(

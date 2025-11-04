@@ -151,7 +151,7 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
     );
   }
 
-  Future<void> _goToReturnIfActiveOrRentOtherwise() async {
+  Future<void> _goToReturnIfActiveOrRentOtherwise({bool preferNfc = false}) async {
     final userPosition = context.read<HomeBloc>().state.userPosition;
     if (userPosition == null) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -208,6 +208,7 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
                   latitude: userPosition.latitude,
                   longitude: userPosition.longitude,
                 ),
+                startInNfc: preferNfc,
               ),
             ),
           ),
@@ -250,8 +251,11 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
             switch (vstate.intent) {
               case VoiceIntent.rentDefault:
               case VoiceIntent.rentQR:
+                await _goToReturnIfActiveOrRentOtherwise(preferNfc: false);
+                break;
               case VoiceIntent.rentNFC:
-                await _goToReturnIfActiveOrRentOtherwise();
+                debugPrint('[HomeVoice] intent=NFC -> preferNfc=true');
+                await _goToReturnIfActiveOrRentOtherwise(preferNfc: true);
                 break;
               case VoiceIntent.returnUmbrella:
                 await _goToReturnIfActiveElseSnack();
