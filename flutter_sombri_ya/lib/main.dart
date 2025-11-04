@@ -19,8 +19,11 @@ import 'views/auth/login_page.dart';
 import 'views/auth/reset_password_page.dart';
 import 'app_shell.dart';
 
+import 'core/services/local_prefs.dart';
+
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 const String kBaseUrl = 'https://sombri-ya-back-4def07fa1804.herokuapp.com';
+late LocalPrefs gLocalPrefs;
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -37,6 +40,8 @@ void main() async {
 
   await RainAlertScheduler.cancelAll();
   await RainAlertScheduler.registerPeriodic();
+
+  gLocalPrefs = await LocalPrefs.create();
 
   runApp(const MyApp());
 }
@@ -61,6 +66,9 @@ class MyApp extends StatelessWidget {
           create: (_) => ConnectivityService(
             probeInterval: const Duration(seconds: 4),
           ),
+        ),
+        RepositoryProvider<LocalPrefs>.value(
+          value: gLocalPrefs,
         ),
       ],
       child: MultiBlocProvider(
