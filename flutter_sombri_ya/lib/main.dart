@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_sombri_ya/presentation/blocs/weather/weather_cubit.dart';
+import 'package:flutter_sombri_ya/services/weather_service.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:nfc_manager/nfc_manager.dart';
 
@@ -70,6 +72,11 @@ class MyApp extends StatelessWidget {
         RepositoryProvider<LocalPrefs>.value(
           value: gLocalPrefs,
         ),
+        RepositoryProvider<WeatherService>(
+          create: (_) => WeatherService(
+            jsonStalePeriod: const Duration(hours: 12),
+          ),
+        ),
       ],
       child: MultiBlocProvider(
         providers: [
@@ -79,6 +86,9 @@ class MyApp extends StatelessWidget {
           BlocProvider<ConnectivityCubit>(
             create: (ctx) =>
             ConnectivityCubit(ctx.read<ConnectivityService>())..start(),
+          ),
+          BlocProvider<WeatherCubit>(
+            create: (ctx) => WeatherCubit(weather: ctx.read<WeatherService>()),
           ),
         ],
         child: MaterialApp(

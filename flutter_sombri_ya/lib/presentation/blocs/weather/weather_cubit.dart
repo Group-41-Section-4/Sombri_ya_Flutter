@@ -17,7 +17,12 @@ class WeatherCubit extends Cubit<SimpleWeather?> {
 
   static const _kWxPrefix = 'cache:weather:fb:';
 
+  static const String _kLang  = 'es';
+  static const String _kUnits = 'metric';
+
   Duration _ttl = const Duration(minutes: 10);
+
+  bool _busy = false;
 
   WeatherCubit({required this.weather}) : super(null) {
     _restoreFromLocalPrefs();
@@ -33,16 +38,35 @@ class WeatherCubit extends Cubit<SimpleWeather?> {
   }) async {
     _ttl = ttl;
     _log('start(every=${every.inMinutes}m, ttl=${ttl.inMinutes}m)');
+
     await _tickCacheFirst();
 
     _timer?.cancel();
-    _timer = Timer.periodic(every, (_) => _tickCacheFirst());
+    _timer = Timer.periodic(every, (_) => _guardedTick());
+  }
+
+  Future<void> _guardedTick() async {
+    if (_busy) {
+      _log('skip tick (busy)');
+      return;
+    }
+    _busy = true;
+    try {
+      await _tickCacheFirst();
+    } finally {
+      _busy = false;
+    }
   }
 
   Future<void> refreshAt({required double lat, required double lon}) async {
+    if (_busy) {
+      _log('refreshAt skipped (busy)');
+      return;
+    }
+    _busy = true;
     try {
       _log('refreshAt(lat=${lat.toStringAsFixed(3)}, lon=${lon.toStringAsFixed(3)}) → FORCE network');
-      final brief = await weather.refreshForecast(lat, lon);
+      final brief = await weather.refreshForecast(lat, lon, lang: _kLang, units: _kUnits);
       if (brief == null) {
         _log('refreshAt → brief=null');
         return;
@@ -64,10 +88,11 @@ class WeatherCubit extends Cubit<SimpleWeather?> {
       emit(effective);
     } catch (e, st) {
       _log('refreshAt error: $e\n$st');
+    } finally {
+      _busy = false;
     }
   }
 
-  /// Try to emit from current state; else from local prefs.
   Future<void> emitFromCachedForecastOrState() async {
     if (state != null) {
       _log('emitFromCachedForecastOrState → using in-memory state');
@@ -101,7 +126,7 @@ class WeatherCubit extends Cubit<SimpleWeather?> {
       final lon = pos.longitude;
       _log('tick at lat=${lat.toStringAsFixed(3)}, lon=${lon.toStringAsFixed(3)}, ttl=${_ttl.inMinutes}m');
 
-      final brief = await weather.getForecastBrief(lat, lon, ttl: _ttl);
+      final brief = await weather.getForecastBrief(lat, lon, ttl: _ttl, lang: _kLang, units: _kUnits);
       if (brief == null) {
         _log(' brief=null (no forecast)');
         return;
@@ -159,7 +184,7 @@ class WeatherCubit extends Cubit<SimpleWeather?> {
     final sp = await SharedPreferences.getInstance();
     final code = sp.getInt(_kCode);
     final night = sp.getBool(_kNight);
-    _log('🗃️ LOCAL PREFS → code=$code night=$night');
+    _log('LOCAL PREFS → code=$code night=$night');
   }
 
   Future<void> debugDumpWeatherCache({double? lat, double? lon}) async {
@@ -179,6 +204,7 @@ class WeatherCubit extends Cubit<SimpleWeather?> {
       final age = ts == null
           ? 'no-ts'
           : '${DateTime.now().difference(DateTime.fromMillisecondsSinceEpoch(ts * 1000)).inSeconds}s';
+      _log('WX SP: $k → $mini age=$age');
     }
 
     if (lat != null && lon != null) {
@@ -186,6 +212,7 @@ class WeatherCubit extends Cubit<SimpleWeather?> {
       final lonKey = lon.toStringAsFixed(3);
       final k = '$_kWxPrefix$latKey,$lonKey';
       final hit = sp.getString(k) != null;
+      _log('WX SP specific ($latKey,$lonKey): present=$hit ts=${sp.getInt("$k#ts")}');
     }
   }
 

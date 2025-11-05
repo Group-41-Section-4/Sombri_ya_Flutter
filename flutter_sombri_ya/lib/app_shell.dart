@@ -1,7 +1,9 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:app_links/app_links.dart';
 import 'main.dart';
+import 'presentation/blocs/weather/weather_cubit.dart';
 
 class AppShell extends StatefulWidget {
   final Widget child;
@@ -20,6 +22,16 @@ class _AppShellState extends State<AppShell> {
   @override
   void initState() {
     super.initState();
+
+    Future.microtask(() async {
+      final wx = context.read<WeatherCubit>();
+      await wx.emitFromCachedForecastOrState();
+      unawaited(wx.start(
+        every: const Duration(minutes: 15),
+        ttl: const Duration(minutes: 10),
+      ));
+    });
+
     _setupLinks();
   }
 
@@ -27,7 +39,6 @@ class _AppShellState extends State<AppShell> {
     _appLinks = AppLinks();
 
     try {
-
       Uri? initialUri = await _appLinks.getInitialLink();
       initialUri ??= await _appLinks.getLatestLink();
 
@@ -53,7 +64,6 @@ class _AppShellState extends State<AppShell> {
       return;
     }
 
-    debugPrint('[DeepLink] ($source) received: $uri');
 
     final isCustom = uri.scheme == 'sombri-ya' && uri.host == 'reset-password';
 
