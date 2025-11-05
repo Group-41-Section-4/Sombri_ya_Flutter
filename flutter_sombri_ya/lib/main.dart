@@ -20,6 +20,7 @@ import 'views/auth/reset_password_page.dart';
 import 'app_shell.dart';
 
 import 'core/services/local_prefs.dart';
+import 'core/images/app_image_cache.dart';
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 const String kBaseUrl = 'https://sombri-ya-back-4def07fa1804.herokuapp.com';
@@ -109,8 +110,21 @@ class MyApp extends StatelessWidget {
   }
 }
 
-class SplashScreen extends StatelessWidget {
+class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
+  @override
+  State<SplashScreen> createState() => _SplashScreenState();
+}
+
+class _SplashScreenState extends State<SplashScreen> {
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // 1) Ajusta el LRU del cache global (una vez al inicio)
+    tuneImageCache(maxEntries: 300, maxBytesMB: 120);
+    // 2) Precarga en segundo plano después del primer frame
+    scheduleWarmUp(context);
+  }
 
   @override
   Widget build(BuildContext context) {
