@@ -26,8 +26,10 @@ import '../../widgets/app_drawer.dart';
 
 import '../../core/net/is_online.dart';
 
-String bytesToHexColonUpper(Uint8List bytes) =>
-    bytes.map((b) => b.toRadixString(16).padLeft(2, '0')).join(':').toUpperCase();
+String bytesToHexColonUpper(Uint8List bytes) => bytes
+    .map((b) => b.toRadixString(16).padLeft(2, '0'))
+    .join(':')
+    .toUpperCase();
 
 Uint8List? _extractRawIdFromTagData(Map<dynamic, dynamic> tagData) {
   if (tagData.containsKey('nfca')) {
@@ -53,7 +55,6 @@ Uint8List? _extractRawIdFromTagData(Map<dynamic, dynamic> tagData) {
   return null;
 }
 
-
 class ReturnPage extends StatefulWidget {
   final GpsCoord userPosition;
   const ReturnPage({super.key, required this.userPosition});
@@ -69,11 +70,12 @@ class _ReturnPageState extends State<ReturnPage> {
 
   DateTime? _lastOfflineNoticeAt;
 
-  void _showOfflineSnackOnce({int cooldownSeconds =4}) {
+  void _showOfflineSnackOnce({int cooldownSeconds = 4}) {
     if (!mounted) return;
     final now = DateTime.now();
     if (_lastOfflineNoticeAt != null &&
-        now.difference(_lastOfflineNoticeAt!) < Duration(seconds: cooldownSeconds)) {
+        now.difference(_lastOfflineNoticeAt!) <
+            Duration(seconds: cooldownSeconds)) {
       return;
     }
 
@@ -88,7 +90,6 @@ class _ReturnPageState extends State<ReturnPage> {
 
     _ignoreDetectionsUntil = now.add(const Duration(seconds: 2));
   }
-
 
   @override
   void initState() {
@@ -123,14 +124,17 @@ class _ReturnPageState extends State<ReturnPage> {
         try {
           await _ensureScanner(false);
           final tagData = tag.data;
-          Uint8List? rawId = NfcA.from(tag)?.identifier ?? IsoDep.from(tag)?.identifier;
+          Uint8List? rawId =
+              NfcA.from(tag)?.identifier ?? IsoDep.from(tag)?.identifier;
           rawId ??= _extractRawIdFromTagData(tagData);
           if (rawId == null) {
-            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-              content: Text("No se pudo leer el ID del tag NFC"),
-              backgroundColor: Colors.red,
-              duration: Duration(seconds: 1),
-            ));
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text("No se pudo leer el ID del tag NFC"),
+                backgroundColor: Colors.red,
+                duration: Duration(seconds: 1),
+              ),
+            );
             await NfcManager.instance.stopSession();
             await _ensureScanner(true);
             return;
@@ -157,7 +161,7 @@ class _ReturnPageState extends State<ReturnPage> {
   Widget build(BuildContext context) {
     return BlocConsumer<ReturnBloc, ReturnState>(
       listenWhen: (prev, curr) =>
-      prev.loading != curr.loading ||
+          prev.loading != curr.loading ||
           prev.ended != curr.ended ||
           prev.message != curr.message ||
           prev.error != curr.error,
@@ -328,15 +332,15 @@ class _ReturnPageState extends State<ReturnPage> {
                           ),
                           shape: const StadiumBorder(),
                         ),
-                        onPressed: state.nfcBusy 
-                          ? null 
-                          : () async {
-                            if (!isOnline(context)) {
-                              _showOfflineSnackOnce();
-                              return;
-                            } 
-                            await _handleNfc();
-                          } 
+                        onPressed: state.nfcBusy
+                            ? null
+                            : () async {
+                                if (!isOnline(context)) {
+                                  _showOfflineSnackOnce();
+                                  return;
+                                }
+                                await _handleNfc();
+                              },
                       ),
                     ],
                   ),
@@ -357,9 +361,7 @@ class _ReturnPageState extends State<ReturnPage> {
                   onPressed: () {
                     Navigator.push(
                       context,
-                      MaterialPageRoute(
-                        builder: (_) => BlocProvider(create: (_) => HomeBloc(), child: const HomePage()),
-                      ),
+                      MaterialPageRoute(builder: (_) => const HomePage()),
                     );
                   },
                 ),

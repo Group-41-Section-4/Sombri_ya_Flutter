@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:bloc/bloc.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
 import 'home_event.dart';
 import 'home_state.dart';
@@ -9,20 +10,48 @@ import '../../../core/services/location_service.dart';
 import '../../../data/models/station_model.dart';
 import '../../../data/repositories/station_repository.dart';
 
+import '../connectivity/connectivity_cubit.dart';
+import '../../../core/connectivity/connectivity_service.dart';
+
 class HomeBloc extends Bloc<HomeEvent, HomeState> {
   final StationRepository _stationRepository;
   final LocationService _locationService;
+  final ConnectivityCubit _connectivityCubit;
+  late final StreamSubscription _connectivitySubscription;
 
   HomeBloc({
     StationRepository? stationRepository,
     LocationService? locationService,
+    required ConnectivityCubit connectivityCubit,
   }) : _stationRepository = stationRepository ?? StationRepository(),
        _locationService = locationService ?? LocationService(),
+       _connectivityCubit = connectivityCubit,
        super(const HomeState()) {
     on<InitializeHome>(_onInitializeHome);
     on<RefreshHome>(_onInitializeHome);
     on<RecenterMap>(_onRecenter);
     on<ToggleMapType>(_onToggleMapType);
+    on<UpdateConnectivity>(_onUpdateConnectivity);
+
+    _connectivitySubscription = _connectivityCubit.stream.listen((status) {
+      add(UpdateConnectivity(status));
+    });
+
+    add(UpdateConnectivity(_connectivityCubit.state));
+  }
+
+  void _onUpdateConnectivity(
+    UpdateConnectivity event,
+    Emitter<HomeState> emit,
+  ) {
+    final oldStatus = state.connectivityStatus;
+    final newStatus = event.status;
+
+    emit(state.copyWith(connectivityStatus: newStatus));
+    if (oldStatus != ConnectivityStatus.online &&
+        newStatus == ConnectivityStatus.online) {
+      add(const RefreshHome());
+    }
   }
 
   Future<void> _onInitializeHome(
@@ -46,7 +75,7 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
         radiusM: 1000000,
         ttl: const Duration(seconds: 10),
       );
-      
+
       emit(state.copyWith(nearbyStations: stations));
 
       _updateMarkers(emit, userPosition, stations, stationIcon);

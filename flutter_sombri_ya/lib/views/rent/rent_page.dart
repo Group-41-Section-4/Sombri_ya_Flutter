@@ -12,6 +12,7 @@ import '../../data/models/gps_coord.dart';
 import '../../data/repositories/rental_repository.dart';
 import '../../data/repositories/profile_repository.dart';
 
+import '../../presentation/blocs/connectivity/connectivity_cubit.dart';
 import '../../presentation/blocs/home/home_bloc.dart';
 import '../../presentation/blocs/rent/rent_bloc.dart';
 import '../../presentation/blocs/rent/rent_event.dart';
@@ -42,8 +43,10 @@ import '../../services/location_service.dart';
 import '../../core/net/is_online.dart';
 
 /// ---------- Utils ----------
-String bytesToHexColonUpper(Uint8List bytes) =>
-    bytes.map((b) => b.toRadixString(16).padLeft(2, '0')).join(':').toUpperCase();
+String bytesToHexColonUpper(Uint8List bytes) => bytes
+    .map((b) => b.toRadixString(16).padLeft(2, '0'))
+    .join(':')
+    .toUpperCase();
 
 Uint8List? _extractRawIdFromTagData(Map<dynamic, dynamic> tagData) {
   if (tagData.containsKey('nfca')) {
@@ -77,7 +80,12 @@ class RentPage extends StatefulWidget {
 
   final bool startInNfc;
 
-  const RentPage({super.key, this.userPosition, this.suggestedStationId, this.startInNfc = false});
+  const RentPage({
+    super.key,
+    this.userPosition,
+    this.suggestedStationId,
+    this.startInNfc = false,
+  });
 
   @override
   State<RentPage> createState() => _RentPageState();
@@ -93,7 +101,6 @@ class _RentPageState extends State<RentPage> {
   static const Color _brandPrimaryDark = Color(0xFF004D63);
   static const Color _accent = Color(0xFF28BCEF);
 
-  
   DateTime? _lastOfflineNoticeAt;
 
   bool _launchedNfcFromArgs = false;
@@ -103,7 +110,8 @@ class _RentPageState extends State<RentPage> {
     if (!mounted) return;
     final now = DateTime.now();
     if (_lastOfflineNoticeAt != null &&
-        now.difference(_lastOfflineNoticeAt!) < Duration(seconds: cooldownSeconds)) {
+        now.difference(_lastOfflineNoticeAt!) <
+            Duration(seconds: cooldownSeconds)) {
       return;
     }
 
@@ -137,9 +145,13 @@ class _RentPageState extends State<RentPage> {
 
     if (!_launchedNfcFromArgs) {
       final args = ModalRoute.of(context)?.settings.arguments;
-      final modeArg = (args is Map) ? (args['mode'] ?? '').toSrting().toLowerCase().trim() : '';
+      final modeArg = (args is Map)
+          ? (args['mode'] ?? '').toSrting().toLowerCase().trim()
+          : '';
       final shouldStarNfc = widget.startInNfc || modeArg == 'nfc';
-      debugPrint('[RentPage] startInNFC=${widget.startInNfc} modeArg=$modeArg shouldStartNfc=$shouldStarNfc');
+      debugPrint(
+        '[RentPage] startInNFC=${widget.startInNfc} modeArg=$modeArg shouldStartNfc=$shouldStarNfc',
+      );
       if (shouldStarNfc && !_launchedNfcFromArgs) {
         _launchedNfcFromArgs = true;
         setState(() => _qrVisible = false);
@@ -187,7 +199,8 @@ class _RentPageState extends State<RentPage> {
         try {
           await _ensureScanner(false);
           final tagData = tag.data;
-          Uint8List? rawId = NfcA.from(tag)?.identifier ?? IsoDep.from(tag)?.identifier;
+          Uint8List? rawId =
+              NfcA.from(tag)?.identifier ?? IsoDep.from(tag)?.identifier;
           rawId ??= _extractRawIdFromTagData(tagData);
           if (rawId == null) {
             if (!mounted) return;
@@ -225,7 +238,8 @@ class _RentPageState extends State<RentPage> {
   Future<void> _goToReturnFlow() async {
     await _ensureScanner(false);
 
-    GpsCoord position = widget.userPosition ?? GpsCoord(latitude: 0, longitude: 0);
+    GpsCoord position =
+        widget.userPosition ?? GpsCoord(latitude: 0, longitude: 0);
     if (widget.userPosition == null) {
       final pos = await LocationService.getPosition();
       if (pos != null) {
@@ -239,7 +253,8 @@ class _RentPageState extends State<RentPage> {
         builder: (_) => MultiRepositoryProvider(
           providers: [
             RepositoryProvider(
-              create: (_) => RentalRepository(storage: const FlutterSecureStorage()),
+              create: (_) =>
+                  RentalRepository(storage: const FlutterSecureStorage()),
             ),
             RepositoryProvider(create: (_) => ProfileRepository()),
           ],
@@ -255,7 +270,9 @@ class _RentPageState extends State<RentPage> {
     );
 
     if (reset == "returned") {
-      _ignoreDetectionsUntil = DateTime.now().add(const Duration(milliseconds: 1500));
+      _ignoreDetectionsUntil = DateTime.now().add(
+        const Duration(milliseconds: 1500),
+      );
       context.read<RentBloc>().add(const RentRefreshActive());
       await Future.delayed(const Duration(milliseconds: 350));
     }
@@ -266,11 +283,12 @@ class _RentPageState extends State<RentPage> {
   /// ---------- UI ----------
   @override
   Widget build(BuildContext context) {
-
     return BlocProvider(
-      create: (_) => VoiceBloc(VoiceCommandService())..add(const VoiceInitRequested()),
+      create: (_) =>
+          VoiceBloc(VoiceCommandService())..add(const VoiceInitRequested()),
       child: BlocListener<VoiceBloc, VoiceState>(
-        listenWhen: (p, c) => p.intent != c.intent && c.intent != VoiceIntent.none,
+        listenWhen: (p, c) =>
+            p.intent != c.intent && c.intent != VoiceIntent.none,
         listener: (context, vstate) async {
           switch (vstate.intent) {
             case VoiceIntent.rentDefault:
@@ -291,7 +309,7 @@ class _RentPageState extends State<RentPage> {
         },
         child: BlocConsumer<RentBloc, RentState>(
           listenWhen: (prev, curr) =>
-          prev.loading != curr.loading ||
+              prev.loading != curr.loading ||
               prev.message != curr.message ||
               prev.error != curr.error ||
               prev.hasActiveRental != curr.hasActiveRental ||
@@ -301,7 +319,9 @@ class _RentPageState extends State<RentPage> {
             await _ensureScanner(!state.loading && !state.nfcBusy);
 
             if (state.message != null && mounted) {
-              _ignoreDetectionsUntil = DateTime.now().add(const Duration(milliseconds: 800));
+              _ignoreDetectionsUntil = DateTime.now().add(
+                const Duration(milliseconds: 800),
+              );
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
                   content: Text(state.message!),
@@ -317,14 +337,18 @@ class _RentPageState extends State<RentPage> {
               final err = state.error!.toLowerCase();
               final isAlreadyActive =
                   err.contains('ya tienes una sombrilla') ||
-                      err.contains('ya tenías una sombrilla') ||
-                      err.contains('already has an active rental');
+                  err.contains('ya tenías una sombrilla') ||
+                  err.contains('already has an active rental');
 
               if (isAlreadyActive) {
-                _ignoreDetectionsUntil = DateTime.now().add(const Duration(milliseconds: 800));
+                _ignoreDetectionsUntil = DateTime.now().add(
+                  const Duration(milliseconds: 800),
+                );
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
-                    content: Text("Ya tenías una sombrilla activa. Te llevo a devolución."),
+                    content: Text(
+                      "Ya tenías una sombrilla activa. Te llevo a devolución.",
+                    ),
                     backgroundColor: Colors.green,
                     duration: Duration(seconds: 2),
                   ),
@@ -360,7 +384,10 @@ class _RentPageState extends State<RentPage> {
                 ),
                 // Campana de notificaciones (leading)
                 leading: IconButton(
-                  icon: const Icon(Icons.notifications_none, color: Colors.black),
+                  icon: const Icon(
+                    Icons.notifications_none,
+                    color: Colors.black,
+                  ),
                   onPressed: () async {
                     await _ensureScanner(false);
                     final storage = const FlutterSecureStorage();
@@ -398,8 +425,9 @@ class _RentPageState extends State<RentPage> {
                         context,
                         MaterialPageRoute(
                           builder: (_) => BlocProvider(
-                            create: (_) => ProfileBloc(repository: ProfileRepository())
-                              ..add(const LoadProfile('')),
+                            create: (_) =>
+                                ProfileBloc(repository: ProfileRepository())
+                                  ..add(const LoadProfile('')),
                             child: const ProfilePage(),
                           ),
                         ),
@@ -415,7 +443,7 @@ class _RentPageState extends State<RentPage> {
                 ],
               ),
 
-              endDrawer:  AppDrawer(),
+              endDrawer: AppDrawer(),
 
               body: Stack(
                 children: [
@@ -433,12 +461,15 @@ class _RentPageState extends State<RentPage> {
                         }
 
                         final now = DateTime.now();
-                        if (_ignoreDetectionsUntil != null && now.isBefore(_ignoreDetectionsUntil!)) {
+                        if (_ignoreDetectionsUntil != null &&
+                            now.isBefore(_ignoreDetectionsUntil!)) {
                           return;
                         }
 
-                        final raw = capture.barcodes.isNotEmpty ? capture.barcodes.first.rawValue : null;
-                        
+                        final raw = capture.barcodes.isNotEmpty
+                            ? capture.barcodes.first.rawValue
+                            : null;
+
                         if (raw == null) return;
 
                         await _ensureScanner(false);
@@ -457,7 +488,11 @@ class _RentPageState extends State<RentPage> {
                         borderRadius: BorderRadius.circular(8),
                         border: Border.all(color: _accent, width: 3),
                         boxShadow: const [
-                          BoxShadow(color: Colors.black26, blurRadius: 8, spreadRadius: 1),
+                          BoxShadow(
+                            color: Colors.black26,
+                            blurRadius: 8,
+                            spreadRadius: 1,
+                          ),
                         ],
                       ),
                     ),
@@ -478,7 +513,10 @@ class _RentPageState extends State<RentPage> {
                             style: ElevatedButton.styleFrom(
                               backgroundColor: Colors.white60,
                               foregroundColor: _brandPrimaryDark,
-                              padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 15),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 30,
+                                vertical: 15,
+                              ),
                             ),
                             onPressed: _goToReturnFlow,
                           ),
@@ -492,7 +530,10 @@ class _RentPageState extends State<RentPage> {
                             style: ElevatedButton.styleFrom(
                               backgroundColor: Colors.white,
                               foregroundColor: _brandPrimaryDark,
-                              padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 15),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 30,
+                                vertical: 15,
+                              ),
                             ),
                             onPressed: state.nfcBusy
                                 ? null
@@ -508,11 +549,12 @@ class _RentPageState extends State<RentPage> {
                     ),
                   ),
 
-
                   // FAB de voz (mic)
                   Positioned(
                     right: 16,
-                    bottom: kBottomNavigationBarHeight + MediaQuery.of(context).padding.bottom,
+                    bottom:
+                        kBottomNavigationBarHeight +
+                        MediaQuery.of(context).padding.bottom,
                     child: BlocBuilder<VoiceBloc, VoiceState>(
                       builder: (context, vstate) {
                         return FloatingActionButton.extended(
@@ -523,21 +565,25 @@ class _RentPageState extends State<RentPage> {
                                 ? bloc.add(const VoiceStopRequested())
                                 : bloc.add(const VoiceStartRequested());
                           },
-                          icon: Icon(vstate.isListening ? Icons.mic : Icons.mic_none),
-                          label: Text(vstate.isListening ? 'Escuchando…' : 'Hablar'),
+                          icon: Icon(
+                            vstate.isListening ? Icons.mic : Icons.mic_none,
+                          ),
+                          label: Text(
+                            vstate.isListening ? 'Escuchando…' : 'Hablar',
+                          ),
                         );
                       },
                     ),
                   ),
 
-                  if (state.loading) const Center(child: CircularProgressIndicator()),
+                  if (state.loading)
+                    const Center(child: CircularProgressIndicator()),
                 ],
               ),
 
-              // Bottom bar con color estático + botones Home y Menú
               bottomNavigationBar: BottomAppBar(
                 shape: const CircularNotchedRectangle(),
-                color: _barColor, // Color estático
+                color: _barColor,
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceAround,
                   children: [
@@ -546,11 +592,22 @@ class _RentPageState extends State<RentPage> {
                       child: IconButton(
                         icon: const Icon(Icons.home, color: Colors.black),
                         onPressed: () {
+                          final connectivityCubit = context
+                              .read<ConnectivityCubit>();
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (_) => BlocProvider(
-                                create: (_) => HomeBloc(),
+                              builder: (_) => MultiBlocProvider(
+                                providers: [
+                                  BlocProvider<ConnectivityCubit>.value(
+                                    value: connectivityCubit,
+                                  ),
+                                  BlocProvider<HomeBloc>(
+                                    create: (ctx) => HomeBloc(
+                                      connectivityCubit: connectivityCubit,
+                                    ),
+                                  ),
+                                ],
                                 child: const HomePage(),
                               ),
                             ),
@@ -558,7 +615,7 @@ class _RentPageState extends State<RentPage> {
                         },
                       ),
                     ),
-                    const SizedBox(width: 48), // espacio para el FAB central
+                    const SizedBox(width: 48),
                     Padding(
                       padding: const EdgeInsets.all(14),
                       child: Builder(
@@ -572,7 +629,6 @@ class _RentPageState extends State<RentPage> {
                 ),
               ),
 
-              // FAB central con la imagen (no tapa el mic)
               floatingActionButton: SizedBox(
                 width: 76,
                 height: 76,
@@ -580,11 +636,16 @@ class _RentPageState extends State<RentPage> {
                   backgroundColor: Colors.transparent,
                   elevation: 6,
                   shape: const CircleBorder(),
-                  onPressed: () {}, // acción central si la necesitas
-                  child: Image.asset('assets/images/home_button.png', width: 200, height: 200),
+                  onPressed: () {},
+                  child: Image.asset(
+                    'assets/images/home_button.png',
+                    width: 200,
+                    height: 200,
+                  ),
                 ),
               ),
-              floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
+              floatingActionButtonLocation:
+                  FloatingActionButtonLocation.centerDocked,
             );
           },
         ),

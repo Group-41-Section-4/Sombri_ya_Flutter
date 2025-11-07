@@ -1,6 +1,7 @@
 import 'package:equatable/equatable.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import '../../../data/models/station_model.dart';
+import '../../../core/connectivity/connectivity_service.dart';
 
 class HomeState extends Equatable {
   final bool isLoading;
@@ -13,6 +14,7 @@ class HomeState extends Equatable {
   final double cameraZoom;
   final MapType mapType;
   final Set<Marker> markers;
+  final ConnectivityStatus connectivityStatus;
 
   // Stations
   final List<Station> nearbyStations;
@@ -29,6 +31,7 @@ class HomeState extends Equatable {
     this.markers = const {},
     this.nearbyStations = const [],
     this.selectedStationId,
+    this.connectivityStatus = ConnectivityStatus.offline,
   });
 
   HomeState copyWith({
@@ -42,6 +45,7 @@ class HomeState extends Equatable {
     Set<Marker>? markers,
     List<Station>? nearbyStations,
     String? selectedStationId,
+    ConnectivityStatus? connectivityStatus,
   }) {
     return HomeState(
       isLoading: isLoading ?? this.isLoading,
@@ -54,6 +58,7 @@ class HomeState extends Equatable {
       markers: markers ?? this.markers,
       nearbyStations: nearbyStations ?? this.nearbyStations,
       selectedStationId: selectedStationId ?? this.selectedStationId,
+      connectivityStatus: connectivityStatus ?? this.connectivityStatus,
     );
   }
 
@@ -69,5 +74,6 @@ class HomeState extends Equatable {
     markers,
     nearbyStations,
     selectedStationId,
+    connectivityStatus,
   ];
 }

@@ -47,14 +47,21 @@ import '../../widgets/app_drawer.dart';
 import '../../data/models/gps_coord.dart';
 import '../../data/models/station_model.dart';
 
+import '../../../core/connectivity/connectivity_service.dart';
+import '../../presentation/blocs/connectivity/connectivity_cubit.dart';
+
 class HomePage extends StatelessWidget {
   const HomePage({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final connectivityCubit = ConnectivityCubit(ConnectivityService())..start();
     return MultiBlocProvider(
       providers: [
-        BlocProvider(create: (_) => HomeBloc()),
+        BlocProvider<ConnectivityCubit>(create: (_) => connectivityCubit),
+        BlocProvider<HomeBloc>(
+          create: (_) => HomeBloc(connectivityCubit: connectivityCubit),
+        ),
         BlocProvider(
           create: (_) => WeatherCubit(
             weather: WeatherService(apiKey: OpenWeatherConfig.apiKey),
@@ -62,7 +69,7 @@ class HomePage extends StatelessWidget {
         ),
         BlocProvider(
           create: (_) =>
-          VoiceBloc(VoiceCommandService())..add(const VoiceInitRequested()),
+              VoiceBloc(VoiceCommandService())..add(const VoiceInitRequested()),
         ),
       ],
       child: const HomeView(),
@@ -151,7 +158,9 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
     );
   }
 
-  Future<void> _goToReturnIfActiveOrRentOtherwise({bool preferNfc = false}) async {
+  Future<void> _goToReturnIfActiveOrRentOtherwise({
+    bool preferNfc = false,
+  }) async {
     final userPosition = context.read<HomeBloc>().state.userPosition;
     if (userPosition == null) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -164,7 +173,6 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
     final rentalId = await storage.read(key: 'rental_id');
 
     if (rentalId != null && rentalId.isNotEmpty) {
-
       Navigator.push(
         context,
         MaterialPageRoute(
@@ -192,7 +200,6 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
         ),
       );
     } else {
-
       Navigator.push(
         context,
         MaterialPageRoute(
@@ -201,8 +208,8 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
                 RentalRepository(storage: const FlutterSecureStorage()),
             child: BlocProvider(
               create: (ctx) =>
-              RentBloc(repo: RepositoryProvider.of<RentalRepository>(ctx))
-                ..add(const RentInit()),
+                  RentBloc(repo: RepositoryProvider.of<RentalRepository>(ctx))
+                    ..add(const RentInit()),
               child: RentPage(
                 userPosition: GpsCoord(
                   latitude: userPosition.latitude,
@@ -235,10 +242,10 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
   Widget build(BuildContext context) {
     return MultiBlocListener(
       listeners: [
-
         BlocListener<WeatherCubit, SimpleWeather?>(
           listenWhen: (prev, curr) =>
-          prev?.condition != curr?.condition || prev?.isNight != curr?.isNight,
+              prev?.condition != curr?.condition ||
+              prev?.isNight != curr?.isNight,
           listener: (context, w) {
             if (!mounted) return;
             setState(() => _weatherForUI = w);
@@ -246,7 +253,8 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
         ),
 
         BlocListener<VoiceBloc, VoiceState>(
-          listenWhen: (p, c) => p.intent != c.intent && c.intent != VoiceIntent.none,
+          listenWhen: (p, c) =>
+              p.intent != c.intent && c.intent != VoiceIntent.none,
           listener: (context, vstate) async {
             switch (vstate.intent) {
               case VoiceIntent.rentDefault:
@@ -283,7 +291,6 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
                 backgroundColor: scheme.primary,
                 foregroundColor: scheme.onPrimary,
                 centerTitle: true,
-                // En el AppBar.title
                 title: ValueListenableBuilder<bool>(
                   valueListenable: _pedometer.isTracking,
                   builder: (context, isTracking, _) {
@@ -294,16 +301,24 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
                       valueListenable: _pedometer.sessionSteps,
                       builder: (context, steps, _) {
                         return Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 8,
+                          ),
                           decoration: BoxDecoration(
-                            color: Theme.of(context).colorScheme.inversePrimary.withOpacity(0.9),
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.inversePrimary.withOpacity(0.9),
                             borderRadius: BorderRadius.circular(20),
                           ),
                           child: Text(
                             'PASOS: $steps',
                             style: GoogleFonts.robotoSlab(
-                              fontSize: 16, fontWeight: FontWeight.bold,
-                              color: Theme.of(context).colorScheme.onInverseSurface,
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.onInverseSurface,
                             ),
                           ),
                         );
@@ -315,7 +330,10 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
                 leading: Builder(
                   builder: (ctx) => IconButton(
                     tooltip: 'Notificaciones',
-                    icon: Icon(Icons.notifications_none, color: scheme.onPrimary),
+                    icon: Icon(
+                      Icons.notifications_none,
+                      color: scheme.onPrimary,
+                    ),
                     onPressed: () async {
                       final storage = const FlutterSecureStorage();
                       final userId = await storage.read(key: 'user_id');
@@ -350,13 +368,17 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
                       tooltip: 'Perfil',
                       onPressed: () {
                         Navigator.of(ctx, rootNavigator: true).push(
-                          MaterialPageRoute(builder: (_) => const ProfilePage()),
+                          MaterialPageRoute(
+                            builder: (_) => const ProfilePage(),
+                          ),
                         );
                       },
                       icon: const CircleAvatar(
                         radius: 16,
                         backgroundColor: Colors.black,
-                        backgroundImage: AssetImage('assets/images/profile.png'),
+                        backgroundImage: AssetImage(
+                          'assets/images/profile.png',
+                        ),
                       ),
                     ),
                   ),
@@ -367,7 +389,7 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
 
               body: BlocConsumer<HomeBloc, HomeState>(
                 listenWhen: (prev, current) =>
-                prev.locationError != current.locationError ||
+                    prev.locationError != current.locationError ||
                     (prev.cameraTarget != current.cameraTarget &&
                         current.cameraTarget != null) ||
                     prev.userPosition != current.userPosition,
@@ -378,7 +400,8 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
                   if (state.cameraTarget != null) {
                     _mapController?.animateCamera(
                       CameraUpdate.newLatLngZoom(
-                        state.cameraTarget!, state.cameraZoom,
+                        state.cameraTarget!,
+                        state.cameraZoom,
                       ),
                     );
                   }
@@ -390,11 +413,50 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
                   }
                 },
                 builder: (context, state) {
+                  final isOffline =
+                      state.connectivityStatus != ConnectivityStatus.online;
+
+                  if (isOffline) {
+                    return Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          SizedBox(
+                            width: 300,
+                            height: 300,
+                            child: Image.asset(
+                              'assets/images/gato.jpeg',
+                              fit: BoxFit.contain,
+                            ),
+                          ),
+                          const SizedBox(height: 20),
+                          Text(
+                            '¡Miau! Parece que perdimos la conexión...',
+                            style: GoogleFonts.robotoSlab(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.grey.shade700,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                          const SizedBox(height: 8),
+                          const Text(
+                            'Esperando a que vuelva el internet para mostrar el mapa.',
+                            style: TextStyle(color: Colors.grey),
+                          ),
+                          const SizedBox(height: 20),
+                          if (state.isLoading)
+                            const CircularProgressIndicator(),
+                        ],
+                      ),
+                    );
+                  }
                   return Stack(
                     children: [
                       GoogleMap(
                         initialCameraPosition: CameraPosition(
-                          target: state.cameraTarget ??
+                          target:
+                              state.cameraTarget ??
                               const LatLng(4.603083, -74.065130),
                           zoom: state.cameraZoom,
                         ),
@@ -410,8 +472,6 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
 
                       if (state.isLoading)
                         const Center(child: CircularProgressIndicator()),
-
-                      // Ícono del clima arriba-izquierda
                       Positioned(
                         top: 12,
                         left: 12,
@@ -426,7 +486,8 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
                                 padding: const EdgeInsets.all(6),
                                 child: WeatherIcon(
                                   condition:
-                                  _weatherForUI?.condition ?? WeatherCondition.unknown,
+                                      _weatherForUI?.condition ??
+                                      WeatherCondition.unknown,
                                   isNight: _weatherForUI?.isNight ?? false,
                                   size: 30,
                                 ),
@@ -436,7 +497,6 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
                         ),
                       ),
 
-                      // Botón ESTACIONES (arriba-centro)
                       Positioned(
                         top: 16,
                         left: 0,
@@ -447,7 +507,8 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
                               backgroundColor: const Color(0xFF005E7C),
                               foregroundColor: Colors.white,
                               padding: const EdgeInsets.symmetric(
-                                horizontal: 40, vertical: 12,
+                                horizontal: 40,
+                                vertical: 12,
                               ),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(20),
@@ -467,17 +528,17 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
                             child: Text(
                               'ESTACIONES',
                               style: GoogleFonts.robotoSlab(
-                                fontSize: 16, fontWeight: FontWeight.bold,
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
                               ),
                             ),
                           ),
                         ),
                       ),
-
-                      // FAB de voz (derecha, sobre la BottomBar)
                       Positioned(
                         right: 16,
-                        bottom: kBottomNavigationBarHeight +
+                        bottom:
+                            kBottomNavigationBarHeight +
                             MediaQuery.of(context).padding.bottom +
                             12,
                         child: BlocBuilder<VoiceBloc, VoiceState>(
@@ -504,8 +565,6 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
                   );
                 },
               ),
-
-              // FAB central (rentar/devolver)
               floatingActionButton: SizedBox(
                 width: 76,
                 height: 76,
@@ -522,7 +581,8 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
                   ),
                 ),
               ),
-              floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
+              floatingActionButtonLocation:
+                  FloatingActionButtonLocation.centerDocked,
 
               bottomNavigationBar: BottomAppBar(
                 shape: const CircularNotchedRectangle(),
@@ -593,26 +653,27 @@ class EstacionesSheet extends StatelessWidget {
               Expanded(
                 child: stations.isEmpty
                     ? const Center(
-                  child: Text("No se encontraron estaciones cercanas."),
-                )
+                        child: Text("No se encontraron estaciones cercanas."),
+                      )
                     : ListView.builder(
-                  controller: scrollController,
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  itemCount: stations.length,
-                  itemBuilder: (context, index) {
-                    final station = stations[index];
-                    final occupiedUmbrellas =
-                        station.totalUmbrellas - station.availableUmbrellas;
-                    return _buildEstacionCard(
-                      station.placeName,
-                      station.description,
-                      "",
-                      "${station.distanceMeters} mts",
-                      station.availableUmbrellas,
-                      occupiedUmbrellas,
-                    );
-                  },
-                ),
+                        controller: scrollController,
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        itemCount: stations.length,
+                        itemBuilder: (context, index) {
+                          final station = stations[index];
+                          final occupiedUmbrellas =
+                              station.totalUmbrellas -
+                              station.availableUmbrellas;
+                          return _buildEstacionCard(
+                            station.placeName,
+                            station.description,
+                            "",
+                            "${station.distanceMeters} mts",
+                            station.availableUmbrellas,
+                            occupiedUmbrellas,
+                          );
+                        },
+                      ),
               ),
             ],
           ),
@@ -622,13 +683,13 @@ class EstacionesSheet extends StatelessWidget {
   }
 
   Widget _buildEstacionCard(
-      String titulo,
-      String direccion,
-      String tiempo,
-      String distancia,
-      int disponibles,
-      int ocupadas,
-      ) {
+    String titulo,
+    String direccion,
+    String tiempo,
+    String distancia,
+    int disponibles,
+    int ocupadas,
+  ) {
     return Card(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       elevation: 3,

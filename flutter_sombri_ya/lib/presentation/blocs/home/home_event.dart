@@ -1,5 +1,6 @@
 import 'package:equatable/equatable.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import '../../../core/connectivity/connectivity_service.dart';
 
 abstract class HomeEvent extends Equatable {
   const HomeEvent();
@@ -31,4 +32,11 @@ class RecenterMap extends HomeEvent {
 
 class ToggleMapType extends HomeEvent {
   const ToggleMapType();
+}
+
+class UpdateConnectivity extends HomeEvent {
+  final ConnectivityStatus status;
+  const UpdateConnectivity(this.status);
+  @override
+  List<Object?> get props => [status];
 }
