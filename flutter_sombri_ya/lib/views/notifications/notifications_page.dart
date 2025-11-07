@@ -10,12 +10,75 @@ import '../../presentation/blocs/notifications/notifications_state.dart';
 
 import '../../data/models/notification_model.dart' as model;
 
+// **CAMBIOS MÍNIMOS: Importaciones de conectividad**
+import '../../../core/connectivity/connectivity_service.dart';
+import '../../presentation/blocs/connectivity/connectivity_cubit.dart';
+
 class NotificationsPage extends StatelessWidget {
   const NotificationsPage({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return const _NotificationsView();
+    return BlocBuilder<ConnectivityCubit, ConnectivityStatus>(
+      builder: (context, connectivityStatus) {
+        final isOffline = connectivityStatus != ConnectivityStatus.online;
+
+        if (isOffline) {
+          return Scaffold(
+            backgroundColor: const Color(0xFFF6FBFF),
+            appBar: AppBar(
+              title: Text(
+                'Notificaciones',
+                style: GoogleFonts.cormorantGaramond(
+                  color: Colors.black,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 30,
+                ),
+              ),
+              backgroundColor: const Color(0xFF90E0EF),
+              foregroundColor: Colors.black,
+              elevation: 0,
+              centerTitle: true,
+            ),
+            body: Center(
+              child: Padding(
+                padding: const EdgeInsets.all(24.0),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    SizedBox(
+                      width: 300,
+                      height: 300,
+                      child: Image.asset(
+                        'assets/images/gato.jpeg',
+                        fit: BoxFit.contain,
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    Text(
+                      '¡Miau! Conexión perdida.',
+                      style: GoogleFonts.robotoSlab(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.grey.shade700,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 8),
+                    const Text(
+                      'Necesitas internet para ver y recibir notificaciones.',
+                      style: TextStyle(color: Colors.grey),
+                      textAlign: TextAlign.center,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        }
+        return const _NotificationsView();
+      },
+    );
   }
 }
 
@@ -44,75 +107,63 @@ class _NotificationsViewState extends State<_NotificationsView> {
     final scheme = Theme.of(context).colorScheme;
     return BlocBuilder<NotificationsBloc, NotificationsState>(
       builder: (context, state) {
-        final List<model.AppNotification> allNotifications = [];
-        if (state.latestWeatherNotification != null) {
-          allNotifications.add(state.latestWeatherNotification!);
-        }
-        allNotifications.addAll(state.rentalNotifications);
+        final allNotifications = [
+          if (state.latestWeatherNotification != null)
+            state.latestWeatherNotification!,
+          ...state.rentalNotifications.reversed,
+        ];
 
         return Scaffold(
-          backgroundColor: const Color(0xFFFFFDFD),
+          backgroundColor: const Color(0xFFF6FBFF),
           appBar: AppBar(
-            backgroundColor: Color(0xFF90E0EF),
+            title: const Text("Notificaciones"),
+            backgroundColor: const Color(0xFF90E0EF),
             foregroundColor: Colors.black,
             elevation: 0,
-            leading: IconButton(
-              icon: const Icon(Icons.arrow_back, color: Colors.black),
-              onPressed: () => Navigator.pop(context),
-            ),
             centerTitle: true,
-            title: Text(
-              'Notificaciones',
-              style: GoogleFonts.cormorantGaramond(
-                color: Colors.black,
-                fontWeight: FontWeight.bold,
-                fontSize: 30,
-              ),
-            ),
-          ),
-          body: Column(
-            children: [
-              Expanded(
-                child: allNotifications.isEmpty
-                    ? const Center(
-                        child: Text(
-                          'No tienes notificaciones',
-                          style: TextStyle(fontSize: 18),
-                        ),
-                      )
-                    : ListView.builder(
-                        padding: const EdgeInsets.all(16.0),
-                        itemCount: allNotifications.length,
-                        itemBuilder: (context, index) {
-                          return _NotificationCard(
-                            notification: allNotifications[index],
-                          );
-                        },
-                      ),
-              ),
+            actions: [
               if (allNotifications.isNotEmpty)
-                Padding(
-                  padding: const EdgeInsets.all(20.0),
-                  child: SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton(
-                      onPressed: _clearNotifications,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFFFF4645),
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(30),
-                        ),
-                      ),
-                      child: const Text(
-                        'Borrar Notificaciones',
-                        style: TextStyle(color: Colors.white, fontSize: 16),
-                      ),
-                    ),
-                  ),
+                IconButton(
+                  icon: const Icon(Icons.delete_forever),
+                  onPressed: _clearNotifications,
+                  tooltip: 'Borrar todas',
                 ),
             ],
           ),
+          body: allNotifications.isEmpty
+              ? Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(
+                        Icons.notifications_none,
+                        size: 80,
+                        color: Colors.grey,
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        '¡Todo despejado!',
+                        style: GoogleFonts.robotoSlab(
+                          fontSize: 20,
+                          color: Colors.grey,
+                        ),
+                      ),
+                      const Text(
+                        'No tienes notificaciones pendientes.',
+                        style: TextStyle(color: Colors.grey),
+                      ),
+                    ],
+                  ),
+                )
+              : ListView.builder(
+                  padding: const EdgeInsets.all(15),
+                  itemCount: allNotifications.length,
+                  itemBuilder: (context, index) {
+                    return _NotificationCard(
+                      notification: allNotifications[index],
+                    );
+                  },
+                ),
         );
       },
     );

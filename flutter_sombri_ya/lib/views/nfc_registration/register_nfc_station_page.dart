@@ -10,6 +10,9 @@ import '../../presentation/blocs/nfc_register/nfc_register_bloc.dart';
 import '../../presentation/blocs/nfc_register/nfc_register_event.dart';
 import '../../presentation/blocs/nfc_register/nfc_register_state.dart';
 
+import '../../../core/connectivity/connectivity_service.dart';
+import '../../presentation/blocs/connectivity/connectivity_cubit.dart';
+
 class RegisterNfcStationPage extends StatelessWidget {
   final String authToken;
   const RegisterNfcStationPage({super.key, required this.authToken});
@@ -19,13 +22,66 @@ class RegisterNfcStationPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return BlocProvider(
-      create: (_) => NfcRegisterBloc(
-        stationRepo: StationRepository(),
-        tagRepo: TagRepository(baseUrl: baseUrl, authToken: authToken),
-        nfc: NfcService(),
-      )..add(const LoadStationsRequested(lat: 4.6030837, lng: -74.0651307)),
-      child: const _RegisterView(),
+    return BlocBuilder<ConnectivityCubit, ConnectivityStatus>(
+      builder: (context, connectivityStatus) {
+        final isOffline = connectivityStatus != ConnectivityStatus.online;
+
+        if (isOffline) {
+          final theme = Theme.of(context);
+          return Scaffold(
+            backgroundColor: const Color(0xFFF6FBFF),
+            appBar: AppBar(
+              title: const Text("Registrar NFC de estación"),
+              backgroundColor: const Color(0xFF90E0EF),
+              foregroundColor: Colors.black,
+              elevation: 0,
+              centerTitle: true,
+            ),
+            body: Center(
+              child: Padding(
+                padding: const EdgeInsets.all(24.0),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    SizedBox(
+                      width: 300,
+                      height: 300,
+                      child: Image.asset(
+                        'assets/images/gato.jpeg',
+                        fit: BoxFit.contain,
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    Text(
+                      '¡Miau! Conexión perdida.',
+                      style: theme.textTheme.headlineSmall?.copyWith(
+                        fontWeight: FontWeight.w700,
+                        color: Colors.grey.shade700,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 8),
+                    const Text(
+                      'Necesitas internet para gestionar estaciones NFC.',
+                      style: TextStyle(color: Colors.grey),
+                      textAlign: TextAlign.center,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        }
+
+        return BlocProvider(
+          create: (_) => NfcRegisterBloc(
+            stationRepo: StationRepository(),
+            tagRepo: TagRepository(baseUrl: baseUrl, authToken: authToken),
+            nfc: NfcService(),
+          )..add(const LoadStationsRequested(lat: 4.6030837, lng: -74.0651307)),
+          child: const _RegisterView(),
+        );
+      },
     );
   }
 }
@@ -46,14 +102,14 @@ class _RegisterViewState extends State<_RegisterView> {
       backgroundColor: const Color(0xFFF6FBFF),
       appBar: AppBar(
         title: const Text("Registrar NFC de estación"),
-        backgroundColor: Color(0xFF90E0EF),
+        backgroundColor: const Color(0xFF90E0EF),
         foregroundColor: Colors.black,
         elevation: 0,
         centerTitle: true,
       ),
       body: BlocConsumer<NfcRegisterBloc, NfcRegisterState>(
         listenWhen: (prev, curr) =>
-        prev.status != curr.status || prev.message != curr.message,
+            prev.status != curr.status || prev.message != curr.message,
         listener: (context, state) async {
           if (state.status == NfcRegisterStatus.needsAssignment &&
               state.stations.isNotEmpty &&
@@ -64,7 +120,9 @@ class _RegisterViewState extends State<_RegisterView> {
               stations: state.stations,
             );
             if (selected != null) {
-              bloc.add(AssignRequested(uid: state.lastUid!, stationId: selected.id));
+              bloc.add(
+                AssignRequested(uid: state.lastUid!, stationId: selected.id),
+              );
             }
           }
 
@@ -77,7 +135,9 @@ class _RegisterViewState extends State<_RegisterView> {
         builder: (context, state) {
           final bloc = context.read<NfcRegisterBloc>();
 
-          final title = state.isScanning ? "Ready to scan" : "Acerca tu tarjeta NFC";
+          final title = state.isScanning
+              ? "Ready to scan"
+              : "Acerca tu tarjeta NFC";
           final subtitle = state.message;
 
           return LayoutBuilder(
@@ -87,7 +147,10 @@ class _RegisterViewState extends State<_RegisterView> {
                   constraints: BoxConstraints(minHeight: constraints.maxHeight),
                   child: Center(
                     child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 20,
+                        vertical: 24,
+                      ),
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
@@ -99,7 +162,12 @@ class _RegisterViewState extends State<_RegisterView> {
                                 borderRadius: BorderRadius.circular(20),
                               ),
                               child: Padding(
-                                padding: const EdgeInsets.fromLTRB(24, 28, 24, 24),
+                                padding: const EdgeInsets.fromLTRB(
+                                  24,
+                                  28,
+                                  24,
+                                  24,
+                                ),
                                 child: Column(
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
@@ -120,17 +188,17 @@ class _RegisterViewState extends State<_RegisterView> {
                                     Text(
                                       title,
                                       textAlign: TextAlign.center,
-                                      style: theme.textTheme.headlineSmall?.copyWith(
-                                        fontWeight: FontWeight.w700,
-                                      ),
+                                      style: theme.textTheme.headlineSmall
+                                          ?.copyWith(
+                                            fontWeight: FontWeight.w700,
+                                          ),
                                     ),
                                     const SizedBox(height: 8),
                                     Text(
                                       subtitle,
                                       textAlign: TextAlign.center,
-                                      style: theme.textTheme.bodyMedium?.copyWith(
-                                        color: Colors.black54,
-                                      ),
+                                      style: theme.textTheme.bodyMedium
+                                          ?.copyWith(color: Colors.black54),
                                     ),
                                     const SizedBox(height: 24),
                                     SizedBox(
@@ -138,7 +206,9 @@ class _RegisterViewState extends State<_RegisterView> {
                                       child: ElevatedButton.icon(
                                         onPressed: state.isScanning
                                             ? null
-                                            : () => bloc.add(const ScanRequested()),
+                                            : () => bloc.add(
+                                                const ScanRequested(),
+                                              ),
                                         icon: const Icon(Icons.nfc),
                                         label: Text(
                                           state.isScanning
@@ -147,19 +217,22 @@ class _RegisterViewState extends State<_RegisterView> {
                                           style: const TextStyle(fontSize: 16),
                                         ),
                                         style: ElevatedButton.styleFrom(
-                                          backgroundColor: Color(0xFF90E0EF),
+                                          backgroundColor: const Color(
+                                            0xFF90E0EF,
+                                          ),
                                           foregroundColor: Colors.black,
                                           padding: const EdgeInsets.symmetric(
                                             vertical: 14,
                                             horizontal: 16,
                                           ),
                                           shape: RoundedRectangleBorder(
-                                            borderRadius: BorderRadius.circular(14),
+                                            borderRadius: BorderRadius.circular(
+                                              14,
+                                            ),
                                           ),
                                         ),
                                       ),
                                     ),
-
                                   ],
                                 ),
                               ),
@@ -171,16 +244,20 @@ class _RegisterViewState extends State<_RegisterView> {
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
                               TextButton.icon(
-                                onPressed: () => bloc.add(const RefreshStationsRequested()),
+                                onPressed: () =>
+                                    bloc.add(const RefreshStationsRequested()),
                                 icon: const Icon(Icons.refresh),
                                 label: const Text("Recargar estaciones"),
                               ),
                               const SizedBox(width: 12),
-                              if (state.status == NfcRegisterStatus.loadingStations)
+                              if (state.status ==
+                                  NfcRegisterStatus.loadingStations)
                                 const SizedBox(
                                   width: 18,
                                   height: 18,
-                                  child: CircularProgressIndicator(strokeWidth: 2),
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                  ),
                                 )
                               else
                                 Opacity(
@@ -226,10 +303,10 @@ class _RegisterViewState extends State<_RegisterView> {
                 hint: const Text("Selecciona una estación"),
                 onChanged: (st) => setModalState(() => tempSelected = st),
                 items: stations
-                    .map((s) => DropdownMenuItem(
-                  value: s,
-                  child: Text(s.placeName),
-                ))
+                    .map(
+                      (s) =>
+                          DropdownMenuItem(value: s, child: Text(s.placeName)),
+                    )
                     .toList(),
               ),
             ],
