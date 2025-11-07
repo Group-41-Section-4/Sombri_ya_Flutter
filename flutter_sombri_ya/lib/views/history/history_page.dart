@@ -81,7 +81,6 @@ class _HistoryPageState extends State<HistoryPage> {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
     return BlocProvider.value(
       value: _bloc,
       child: Scaffold(
