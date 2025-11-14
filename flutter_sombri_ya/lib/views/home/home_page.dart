@@ -88,6 +88,7 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
   GoogleMapController? _mapController;
   BitmapDescriptor? _stationIcon;
   final PedometerService _pedometer = PedometerService();
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
   SimpleWeather? _weatherForUI;
 
@@ -238,6 +239,23 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
     await _goToReturnIfActiveOrRentOtherwise();
   }
 
+  Future<void> _goToProfile(BuildContext context) async {
+    await Navigator.of(context)..push(
+      MaterialPageRoute(builder: (_) => const ProfilePage()),
+    );
+  }
+
+  Future<void> _goToNotifications(BuildContext context) async {
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => BlocProvider(
+          create: (_) =>  NotificationsBloc(),
+          child: const NotificationsPage(),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return MultiBlocListener(
@@ -268,6 +286,17 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
               case VoiceIntent.returnUmbrella:
                 await _goToReturnIfActiveElseSnack();
                 break;
+              case VoiceIntent.openMenu:
+                _scaffoldKey.currentState?.openEndDrawer();
+                break;
+
+              case VoiceIntent.openProfile:
+                await _goToProfile(context);
+                break;
+              
+              case VoiceIntent.openNotifications:
+                await _goToNotifications(context);
+                break;
               case VoiceIntent.none:
                 break;
             }
@@ -287,6 +316,7 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
           return Theme(
             data: theme,
             child: Scaffold(
+              key: _scaffoldKey,
               appBar: AppBar(
                 backgroundColor: scheme.primary,
                 foregroundColor: scheme.onPrimary,

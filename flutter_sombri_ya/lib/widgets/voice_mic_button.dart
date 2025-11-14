@@ -10,6 +10,8 @@ import '../../domain/voice/voice_intent.dart';
 
 import '../../views/rent/rent_page.dart';
 import '../../views/return/return_page.dart';
+import '../../views/profile/profile_page.dart';
+import '../../views/notifications/notifications_page.dart';
 
 import '../../data/repositories/rental_repository.dart';
 import '../../presentation/blocs/return/return_bloc.dart';
@@ -42,15 +44,10 @@ class VoiceMicButton extends StatelessWidget {
         switch (state.intent) {
           case VoiceIntent.rentDefault:
           case VoiceIntent.rentQR:
-            Navigator.of(
-              context,
-            ).push(MaterialPageRoute(builder: (_) => const RentPage()));
-            break;
-
           case VoiceIntent.rentNFC:
-            Navigator.of(
-              context,
-            ).push(MaterialPageRoute(builder: (_) => const RentPage()));
+            Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => const RentPage()),
+            );
             break;
 
           case VoiceIntent.returnUmbrella:
@@ -74,9 +71,8 @@ class VoiceMicButton extends StatelessWidget {
                     child: BlocProvider(
                       create: (ctx) => ReturnBloc(
                         repo: RepositoryProvider.of<RentalRepository>(ctx),
-                        profileRepo: RepositoryProvider.of<ProfileRepository>(
-                          ctx,
-                        ),
+                        profileRepo:
+                            RepositoryProvider.of<ProfileRepository>(ctx),
                       )..add(const ReturnInit()),
                       child: ReturnPage(userPosition: userGps),
                     ),
@@ -85,6 +81,23 @@ class VoiceMicButton extends StatelessWidget {
               );
               break;
             }
+
+          case VoiceIntent.openMenu:
+            final scaffold = Scaffold.maybeOf(context);
+            scaffold?.openDrawer(); 
+            break;
+
+          case VoiceIntent.openProfile:
+            Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => const ProfilePage()),
+            );
+            break;
+
+          case VoiceIntent.openNotifications:
+            Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => const NotificationsPage()),
+            );
+            break;
 
           case VoiceIntent.none:
             break;
@@ -110,7 +123,9 @@ class VoiceMicButton extends StatelessWidget {
                 );
               } else {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('Permiso de micrófono: $status')),
+                  SnackBar(
+                    content: Text('Permiso de micrófono: $status'),
+                  ),
                 );
               }
               return;

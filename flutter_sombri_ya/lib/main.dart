@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_sombri_ya/presentation/blocs/weather/weather_cubit.dart';
 import 'package:flutter_sombri_ya/services/weather_service.dart';
 import 'package:intl/date_symbol_data_local.dart';
@@ -23,6 +24,8 @@ import 'app_shell.dart';
 
 import 'core/services/local_prefs.dart';
 import 'core/images/app_image_cache.dart';
+import 'data/repositories/rental_repository.dart';
+import 'presentation/blocs/rent/rent_bloc.dart';
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 const String kBaseUrl = 'https://sombri-ya-back-4def07fa1804.herokuapp.com';
@@ -101,15 +104,26 @@ class MyApp extends StatelessWidget {
             colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF28BCEF)),
           ),
           routes: {
-            RentPage.routeName: (_) => const RentPage(),
+            RentPage.routeName: (ctx) {
+              return RepositoryProvider(
+                create: (_) => RentalRepository(
+                  storage: const FlutterSecureStorage(),
+                ),
+                child: BlocProvider(
+                  create: (blocCtx) =>
+                      RentBloc(repo: blocCtx.read<RentalRepository>()),
+                  child: const RentPage(),
+                ),
+              );
+            },
             '/reset': (ctx) {
               final args =
-              ModalRoute.of(ctx)!.settings.arguments as Map<String, String>;
+                  ModalRoute.of(ctx)!.settings.arguments as Map<String, String>;
               final userId = args['userId']!;
               final token = args['token']!;
               return ResetPasswordPage(userId: userId, token: token);
             },
-            '/login': (_) => const LoginPage(),
+            '/login': (ctx) => const LoginPage(),
           },
           builder: (context, child) =>
               AppShell(child: child ?? const SizedBox()),
