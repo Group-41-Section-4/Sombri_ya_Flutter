@@ -16,6 +16,7 @@ class VoiceBloc extends Bloc<VoiceEvent, VoiceState> {
     on<VoiceStopRequested>(_onStop);
     on<VoicePartialResult>(_onPartial);
     on<VoiceClearIntent>(_onClear);
+    on<VoiceEngineStopped>(_onEngineStopped);
   }
 
   Future<void> _onInit(VoiceInitRequested e, Emitter<VoiceState> emit) async {
@@ -50,10 +51,17 @@ class VoiceBloc extends Bloc<VoiceEvent, VoiceState> {
 
   void _onPartial(VoicePartialResult e, Emitter<VoiceState> emit) {
     final intent = parseIntent(e.transcript);
+    print('[VoiceBloc] "$e.transcript" -> $intent');
     emit(state.copyWith(transcript: e.transcript, intent: intent));
   }
 
   void _onClear(VoiceClearIntent e, Emitter<VoiceState> emit) {
     emit(state.copyWith(intent: VoiceIntent.none));
+  }
+
+  void _onEngineStopped(VoiceEngineStopped e, Emitter<VoiceState> emit) {
+    if (state.isListening) {
+        emit(state.copyWith(isListening: false));
+    }
   }
 }

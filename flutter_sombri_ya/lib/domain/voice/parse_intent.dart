@@ -10,19 +10,89 @@ String _normalize(String s) {
   return out.trim();
 }
 
+// helper pequeño para no repetir contains en todo lado
+bool _containsAny(String text, List<String> patterns) {
+  for (final p in patterns) {
+    if (text.contains(p)) return true;
+  }
+  return false;
+}
+
 VoiceIntent parseIntent(String raw) {
   final p = _normalize(raw);
 
-  final hasRentar = RegExp(
-    r'\b(rentar|alquilar|arrendar|alquiler)\b',
-  ).hasMatch(p);
-  final hasSombr = RegExp(r'\b(sombrilla|paraguas|umbrella)\b').hasMatch(p);
-  final hasNfc = RegExp(r'\b(nfc|ene efe ce)\b').hasMatch(p);
-  final hasQr = RegExp(r'\b(qr|codigo qr|c[oó]digo qr)\b').hasMatch(p);
-  final hasDev = RegExp(r'\b(devolver|retornar|regresar)\b').hasMatch(p);
+  // ====== NUEVOS: MENÚ, PERFIL, NOTIFICACIONES ======
+  final hasMenu = _containsAny(p, [
+    ' menu',         // espacio antes para evitar cosas raras
+    'menu ',         // o espacio después
+    'menú',          // por si acaso
+    'ir al menu',
+    'ir a menu',
+    'abrir menu',
+    'abrir el menu',
+    'opciones',
+  ]);
 
-  if (RegExp(r'^\s*nfc\s*$').hasMatch(p)) return VoiceIntent.rentNFC;
-  if (RegExp(r'^\s*qr\s*$').hasMatch(p)) return VoiceIntent.rentQR;
+  final hasProfile = _containsAny(p, [
+    'perfil',
+    'mi perfil',
+    'mi cuenta',
+    'cuenta',
+    'datos personales',
+  ]);
+
+  final hasNotif = _containsAny(p, [
+    'notificacion',
+    'notificaciones',
+    'ir a notificacion',
+    'ir a las notificaciones',
+    'ir a notificaciones',
+    'ver notificaciones',
+    'mis notificaciones',
+    'mis mensajes',
+    'alertas',
+    'alerta',
+    'avisos',
+  ]);
+
+  // 👉 Priorizar comandos de navegación si aparecen
+  if (hasMenu) return VoiceIntent.openMenu;
+  if (hasProfile) return VoiceIntent.openProfile;
+  if (hasNotif) return VoiceIntent.openNotifications;
+
+  // ====== LO QUE YA TENÍAS: RENTAR / DEVOLVER ======
+  final hasRentar = _containsAny(p, [
+    'rentar',
+    'alquilar',
+    'arrendar',
+    'alquiler',
+  ]);
+
+  final hasSombr = _containsAny(p, [
+    'sombrilla',
+    'paraguas',
+    'umbrella',
+  ]);
+
+  final hasNfc = _containsAny(p, [
+    'nfc',
+    'ene efe ce',
+  ]);
+
+  final hasQr = _containsAny(p, [
+    'qr',
+    'codigo qr',
+    'c0digo qr', 
+  ]);
+
+  final hasDev = _containsAny(p, [
+    'devolver',
+    'retornar',
+    'regresar',
+  ]);
+
+  if (p == 'nfc') return VoiceIntent.rentNFC;
+  if (p == 'qr') return VoiceIntent.rentQR;
 
   if (hasDev) return VoiceIntent.returnUmbrella;
 

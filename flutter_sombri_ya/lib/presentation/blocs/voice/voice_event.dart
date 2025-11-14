@@ -29,3 +29,7 @@ class VoicePartialResult extends VoiceEvent {
 class VoiceClearIntent extends VoiceEvent {
   const VoiceClearIntent();
 }
+
+class VoiceEngineStopped extends VoiceEvent {
+  const VoiceEngineStopped();
+}

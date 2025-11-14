@@ -106,6 +106,8 @@ class _RentPageState extends State<RentPage> {
   bool _launchedNfcFromArgs = false;
   bool _qrVisible = true;
 
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
+
   void _showOfflineSnackOnce({int cooldownSeconds = 4}) {
     if (!mounted) return;
     final now = DateTime.now();
@@ -279,6 +281,23 @@ class _RentPageState extends State<RentPage> {
 
     await _ensureScanner(true);
   }
+  
+  Future<void> _goToProfile(BuildContext context) async {
+    await Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => const ProfilePage()),
+    );
+  }
+
+  Future<void> _goToNotifications(BuildContext context) async {
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => BlocProvider(
+          create: (_) => NotificationsBloc(),
+          child: const NotificationsPage(),
+        ),
+      ),
+    );
+  }
 
   /// ---------- UI ----------
   @override
@@ -301,6 +320,15 @@ class _RentPageState extends State<RentPage> {
               break;
             case VoiceIntent.returnUmbrella:
               await _goToReturnFlow();
+              break;
+            case VoiceIntent.openMenu:
+              _scaffoldKey.currentState?.openEndDrawer();
+              break;
+            case VoiceIntent.openProfile:
+              await _goToProfile(context);
+              break;
+            case VoiceIntent.openNotifications:
+              await _goToNotifications(context);
               break;
             case VoiceIntent.none:
               break;
@@ -370,6 +398,7 @@ class _RentPageState extends State<RentPage> {
           },
           builder: (context, state) {
             return Scaffold(
+              key: _scaffoldKey,
               appBar: AppBar(
                 backgroundColor: _barColor, // Color estático
                 centerTitle: true,
