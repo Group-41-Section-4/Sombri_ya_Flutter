@@ -9,6 +9,8 @@ import '../../presentation/blocs/history/history_event.dart';
 import '../../presentation/blocs/history/history_state.dart';
 import '../../../data/models/rental_model.dart';
 import '../../../data/repositories/history_repository.dart';
+import '../../../core/connectivity/connectivity_service.dart';
+import '../../presentation/blocs/connectivity/connectivity_cubit.dart';
 
 class HistoryPage extends StatefulWidget {
   const HistoryPage({super.key});
@@ -79,74 +81,138 @@ class _HistoryPageState extends State<HistoryPage> {
     );
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return BlocProvider.value(
-      value: _bloc,
-      child: Scaffold(
-        appBar: AppBar(
-          backgroundColor: Color(0xFF90E0EF),
-          foregroundColor: Colors.black,
-          centerTitle: true,
-          title: Text(
-            "Historial",
-            style: GoogleFonts.cormorantGaramond(
-              color: Colors.black,
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          leading: IconButton(
-            icon: const Icon(Icons.arrow_back, color: Colors.black),
-            onPressed: () => Navigator.pop(context),
+  Widget _offlineCat(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        backgroundColor: const Color(0xFF90E0EF),
+        foregroundColor: Colors.black,
+        centerTitle: true,
+        title: Text(
+          "Historial",
+          style: GoogleFonts.cormorantGaramond(
+            color: Colors.black,
+            fontSize: 24,
+            fontWeight: FontWeight.bold,
           ),
         ),
-        backgroundColor: const Color(0xFFFFFDFD),
-        body: RefreshIndicator(
-          onRefresh: () async {
-            if (_userId != null && _userId!.isNotEmpty) {
-              _bloc.add(RefreshHistory(_userId!));
-            }
-          },
-          child: BlocBuilder<HistoryBloc, HistoryState>(
-            builder: (context, state) {
-              if (_userId == null || _userId!.isEmpty) {
-                return const Center(child: CircularProgressIndicator());
-              }
-              if (state is HistoryInitial || state is HistoryLoading) {
-                return const Center(child: CircularProgressIndicator());
-              }
-              if (state is HistoryError) {
-                return Center(
-                  child: Padding(
-                    padding: const EdgeInsets.all(20),
-                    child: Text(
-                      state.message,
-                      textAlign: TextAlign.center,
-                      style: TextStyle(color: Colors.red[700]),
-                    ),
-                  ),
-                );
-              }
-              if (state is HistoryEmpty) {
-                return const Center(
-                  child: Text('No tienes alquileres en tu historial.'),
-                );
-              }
-              if (state is HistoryLoaded) {
-                final history = state.rentals;
-                return ListView.builder(
-                  physics: const AlwaysScrollableScrollPhysics(),
-                  padding: const EdgeInsets.all(16),
-                  itemCount: history.length,
-                  itemBuilder: (_, i) => _historyTile(history[i]),
-                );
-              }
-              return const SizedBox.shrink();
-            },
-          ),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.black),
+          onPressed: () => Navigator.pop(context),
         ),
       ),
+      backgroundColor: const Color(0xFFFFFDFD),
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            SizedBox(
+              width: 300,
+              height: 300,
+              child: Image.asset(
+                'assets/images/gato.jpeg',
+                fit: BoxFit.contain,
+              ),
+            ),
+            const SizedBox(height: 20),
+            Text(
+              '¡Miau! Parece que perdimos la conexión...',
+              style: GoogleFonts.robotoSlab(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Colors.grey.shade700,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              'Esperando a que vuelva el internet para mostrar el historial.',
+              style: TextStyle(color: Colors.grey),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return BlocBuilder<ConnectivityCubit, ConnectivityStatus>(
+      builder: (context, connectivityStatus) {
+        final isOffline = connectivityStatus != ConnectivityStatus.online;
+
+        if (isOffline) {
+          return _offlineCat(context);
+        }
+
+        return BlocProvider.value(
+          value: _bloc,
+          child: Scaffold(
+            appBar: AppBar(
+              backgroundColor: Color(0xFF90E0EF),
+              foregroundColor: Colors.black,
+              centerTitle: true,
+              title: Text(
+                "Historial",
+                style: GoogleFonts.cormorantGaramond(
+                  color: Colors.black,
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              leading: IconButton(
+                icon: const Icon(Icons.arrow_back, color: Colors.black),
+                onPressed: () => Navigator.pop(context),
+              ),
+            ),
+            backgroundColor: const Color(0xFFFFFDFD),
+            body: RefreshIndicator(
+              onRefresh: () async {
+                if (_userId != null && _userId!.isNotEmpty) {
+                  _bloc.add(RefreshHistory(_userId!));
+                }
+              },
+              child: BlocBuilder<HistoryBloc, HistoryState>(
+                builder: (context, state) {
+                  if (_userId == null || _userId!.isEmpty) {
+                    return const Center(child: CircularProgressIndicator());
+                  }
+                  if (state is HistoryInitial || state is HistoryLoading) {
+                    return const Center(child: CircularProgressIndicator());
+                  }
+                  if (state is HistoryError) {
+                    return Center(
+                      child: Padding(
+                        padding: const EdgeInsets.all(20),
+                        child: Text(
+                          state.message,
+                          textAlign: TextAlign.center,
+                          style: TextStyle(color: Colors.red[700]),
+                        ),
+                      ),
+                    );
+                  }
+                  if (state is HistoryEmpty) {
+                    return const Center(
+                      child: Text('No tienes alquileres en tu historial.'),
+                    );
+                  }
+                  if (state is HistoryLoaded) {
+                    final history = state.rentals;
+                    return ListView.builder(
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      padding: const EdgeInsets.all(16),
+                      itemCount: history.length,
+                      itemBuilder: (_, i) => _historyTile(history[i]),
+                    );
+                  }
+                  return const SizedBox.shrink();
+                },
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 }

@@ -5,15 +5,74 @@ import 'package:flutter_sombri_ya/data/models/payment_card_model.dart';
 import 'package:flutter_sombri_ya/presentation/blocs/payment/payment_bloc.dart';
 import 'package:flutter_sombri_ya/presentation/blocs/payment/payment_event.dart';
 import 'package:flutter_sombri_ya/presentation/blocs/payment/payment_state.dart';
+import 'package:flutter_sombri_ya/core/connectivity/connectivity_service.dart';
+import 'package:flutter_sombri_ya/presentation/blocs/connectivity/connectivity_cubit.dart';
 
 class PaymentMethodsPage extends StatelessWidget {
   const PaymentMethodsPage({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return BlocProvider(
-      create: (context) => PaymentBloc()..add(const LoadPaymentMethods()),
-      child: const _PaymentMethodsView(),
+    return BlocBuilder<ConnectivityCubit, ConnectivityStatus>(
+      builder: (context, connectivityStatus) {
+        final isOffline = connectivityStatus != ConnectivityStatus.online;
+
+        if (isOffline) {
+          return Scaffold(
+            appBar: AppBar(
+              centerTitle: true,
+              title: Text(
+                "Métodos de Pago",
+                style: GoogleFonts.cormorantGaramond(
+                  color: Colors.black,
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              backgroundColor: const Color(0xFF90E0EF),
+              foregroundColor: Colors.black,
+              elevation: 0,
+            ),
+            body: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  SizedBox(
+                    width: 300,
+                    height: 300,
+                    child: Image.asset(
+                      'assets/images/gato.jpeg',
+                      fit: BoxFit.contain,
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  Text(
+                    '¡Miau! Parece que perdimos la conexión...',
+                    style: GoogleFonts.robotoSlab(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.grey.shade700,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 8),
+                  const Text(
+                    'Esperando a que vuelva el internet para mostrar los métodos de pago.',
+                    style: TextStyle(color: Colors.grey),
+                    textAlign: TextAlign.center,
+                  ),
+                ],
+              ),
+            ),
+          );
+        }
+
+        return BlocProvider(
+          create: (context) =>
+              PaymentBloc()..add(const LoadPaymentMethods()),
+          child: const _PaymentMethodsView(),
+        );
+      },
     );
   }
 }
@@ -72,8 +131,8 @@ class _PaymentMethodsView extends StatelessWidget {
                   itemCount: cardCount,
                   onPageChanged: (newIndex) {
                     context.read<PaymentBloc>().add(
-                      SelectPaymentMethod(newIndex),
-                    );
+                          SelectPaymentMethod(newIndex),
+                        );
                   },
                   itemBuilder: (context, index) {
                     final card = state.cards[index];
@@ -150,8 +209,8 @@ class _PaymentMethodsView extends StatelessWidget {
                   onPressed: () {
                     final selectedCard = state.cards[state.currentIndex];
                     context.read<PaymentBloc>().add(
-                      SelectPaymentMethod(state.currentIndex),
-                    );
+                          SelectPaymentMethod(state.currentIndex),
+                        );
 
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(

@@ -144,9 +144,7 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    // 1) Ajusta el LRU del cache global (una vez al inicio)
     tuneImageCache(maxEntries: 300, maxBytesMB: 120);
-    // 2) Precarga en segundo plano después del primer frame
     scheduleWarmUp(context);
   }
 
