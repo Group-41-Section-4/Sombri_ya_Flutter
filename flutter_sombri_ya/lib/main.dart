@@ -36,12 +36,14 @@ void main() async {
   await initializeDateFormatting('es_ES', null);
   await NfcManager.instance.isAvailable();
 
-  await NotificationService.init(onTap: (payload) async {
-    if (payload == null) return;
-    navigatorKey.currentState?.pushNamed(
-      RentPage.routeName,
-      arguments: {'stationId': payload},
-    );
+  await NotificationService.init(
+    onTap: (payload) {
+      navigatorKey.currentState?.pushAndRemoveUntil(
+        MaterialPageRoute(
+          builder: (_) => const RentPage(),
+        ),
+        (route) => false,
+      );
   });
 
   await RainAlertScheduler.cancelAll();

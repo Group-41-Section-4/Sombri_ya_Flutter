@@ -12,8 +12,13 @@ class SecureStorageService {
   Future<String?> readToken() => _storage.read(key: 'auth_token');
   Future<String?> readUserId() => _storage.read(key: 'user_id');
 
+  Future<void> saveUserName(String userName) => _storage.write(key: 'user_name', value: userName);
+      
+  Future<String?> readUserName() => _storage.read(key: 'user_name');
+
   Future<void> clear() async {
     await _storage.delete(key: 'auth_token');
     await _storage.delete(key: 'user_id');
+    await _storage.delete(key: 'user_name');
   }
 }

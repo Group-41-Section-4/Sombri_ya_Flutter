@@ -29,7 +29,7 @@ class RainAlertScheduler {
     await Workmanager().registerOneOffTask(
       'rain_alert_test_loop',         
       _testTaskName,                   
-      initialDelay: const Duration(minutes: 90),
+      initialDelay: const Duration(minutes: 5),
       constraints: Constraints(networkType: NetworkType.connected),
       existingWorkPolicy: ExistingWorkPolicy.replace,
       backoffPolicy: BackoffPolicy.linear,

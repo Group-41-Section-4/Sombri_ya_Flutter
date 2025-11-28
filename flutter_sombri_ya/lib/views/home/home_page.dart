@@ -42,6 +42,8 @@ import '../../presentation/blocs/rent/rent_event.dart';
 import '../../presentation/blocs/return/return_event.dart';
 import '../../data/repositories/rental_repository.dart';
 
+import 'package:flutter_sombri_ya/views/menu/menu_page.dart';
+
 // Other UI
 import '../../widgets/app_drawer.dart';
 import '../../data/models/gps_coord.dart';
@@ -357,59 +359,42 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
                   },
                 ),
 
-                leading: Builder(
-                  builder: (ctx) => IconButton(
-                    tooltip: 'Notificaciones',
-                    icon: Icon(
-                      Icons.notifications_none,
-                      color: scheme.onPrimary,
-                    ),
-                    onPressed: () async {
-                      final storage = const FlutterSecureStorage();
-                      final userId = await storage.read(key: 'user_id');
-                      if (userId == null || userId.isEmpty) {
-                        if (!ctx.mounted) return;
-                        ScaffoldMessenger.of(ctx).showSnackBar(
-                          const SnackBar(
-                            content: Text('No se pudo identificar al usuario.'),
-                            backgroundColor: Colors.red,
-                          ),
-                        );
-                        return;
-                      }
-                      if (!ctx.mounted) return;
-                      Navigator.push(
-                        ctx,
-                        MaterialPageRoute(
-                          builder: (_) => BlocProvider(
-                            create: (_) => NotificationsBloc()
-                              ..add(StartRentalPolling(userId))
-                              ..add(const CheckWeather()),
-                            child: const NotificationsPage(),
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-                ),
+                leading: null,
+
                 actions: [
                   Builder(
                     builder: (ctx) => IconButton(
-                      tooltip: 'Perfil',
-                      onPressed: () {
-                        Navigator.of(ctx, rootNavigator: true).push(
+                      tooltip: 'Notificaciones',
+                      icon: Icon(
+                        Icons.notifications,
+                        color: scheme.onPrimary,
+                      ),
+                      onPressed: () async {
+                        final storage = const FlutterSecureStorage();
+                        final userId = await storage.read(key: 'user_id');
+                        if (userId == null || userId.isEmpty) {
+                          if (!ctx.mounted) return;
+                          ScaffoldMessenger.of(ctx).showSnackBar(
+                            const SnackBar(
+                              content: Text('No se pudo identificar al usuario.'),
+                              backgroundColor: Colors.red,
+                              ),
+                            );
+                            return;
+                        }
+                        if (!ctx.mounted) return;
+                        Navigator.push(
+                          ctx,
                           MaterialPageRoute(
-                            builder: (_) => const ProfilePage(),
+                            builder: (_) => BlocProvider(
+                              create: (_) => NotificationsBloc()
+                                ..add(StartRentalPolling(userId))
+                                ..add(const CheckWeather()),
+                              child: const NotificationsPage(),
+                            ),
                           ),
                         );
                       },
-                      icon: const CircleAvatar(
-                        radius: 16,
-                        backgroundColor: Colors.black,
-                        backgroundImage: AssetImage(
-                          'assets/images/profile.png',
-                        ),
-                      ),
                     ),
                   ),
                 ],
@@ -630,11 +615,14 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
                     const SizedBox(width: 48),
                     Padding(
                       padding: const EdgeInsets.all(14),
-                      child: Builder(
-                        builder: (context) => IconButton(
-                          icon: Icon(Icons.menu, color: scheme.onPrimary),
-                          onPressed: () => Scaffold.of(context).openEndDrawer(),
-                        ),
+                      child: IconButton(
+                        icon: Icon(Icons.menu, color: scheme.onPrimary),
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (_) => MenuPage()),
+                          );
+                        },
                       ),
                     ),
                   ],
