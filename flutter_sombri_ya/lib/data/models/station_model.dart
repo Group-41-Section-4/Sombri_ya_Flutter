@@ -1,3 +1,4 @@
+import '../providers/api_provider.dart';
 class Station {
   final String id;
   final String placeName;
@@ -7,6 +8,8 @@ class Station {
   final int distanceMeters;
   final int availableUmbrellas;
   final int totalUmbrellas;
+  static final ApiProvider _api = ApiProvider();
+  String get imageUrl => '${_api.baseUrl}/stations/$id/image';
 
   Station({
     required this.id,

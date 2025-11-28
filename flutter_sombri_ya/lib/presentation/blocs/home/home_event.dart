@@ -1,6 +1,7 @@
 import 'package:equatable/equatable.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import '../../../core/connectivity/connectivity_service.dart';
+import '../../../data/models/station_model.dart';
 
 abstract class HomeEvent extends Equatable {
   const HomeEvent();
@@ -39,4 +40,13 @@ class UpdateConnectivity extends HomeEvent {
   const UpdateConnectivity(this.status);
   @override
   List<Object?> get props => [status];
+}
+
+class StationMarkerTapped extends HomeEvent {
+  final Station station;
+  const StationMarkerTapped(this.station);
+}
+
+class ClearSelectedStation extends HomeEvent {
+  const ClearSelectedStation();
 }
