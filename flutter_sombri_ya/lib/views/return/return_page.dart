@@ -25,6 +25,7 @@ import '../notifications/notifications_page.dart';
 import '../../widgets/app_drawer.dart';
 
 import '../../core/net/is_online.dart';
+import '../menu/menu_page.dart';
 
 import '../rental_format/rental_format_page.dart';
 
@@ -194,7 +195,6 @@ class _ReturnPageState extends State<ReturnPage> {
           context.read<ReturnBloc>().add(ReturnClearMessage());
         }
 
-        // 👇 AQUÍ conectamos con el flujo de rental-format
         if (state.ended) {
           // Detenemos scanner antes de navegar
           await _ensureScanner(false);
@@ -234,62 +234,40 @@ class _ReturnPageState extends State<ReturnPage> {
                 color: Colors.black,
               ),
             ),
-            leading: IconButton(
-              icon: const Icon(Icons.notifications_none),
-              onPressed: () async {
-                await _ensureScanner(false);
-                final storage = const FlutterSecureStorage();
-                final userId = await storage.read(key: 'user_id');
-                if (userId == null || !context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('No se pudo identificar al usuario.'),
-                      backgroundColor: Colors.red,
-                    ),
-                  );
-                  await _ensureScanner(true);
-                  return;
-                }
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => BlocProvider(
-                      create: (_) => NotificationsBloc()
-                        ..add(StartRentalPolling(userId))
-                        ..add(const CheckWeather()),
-                      child: const NotificationsPage(),
-                    ),
-                  ),
-                );
-                await _ensureScanner(true);
-              },
-            ),
             actions: [
               IconButton(
+                icon: const Icon(Icons.notifications_none),
                 onPressed: () async {
                   await _ensureScanner(false);
+                  final storage = const FlutterSecureStorage();
+                  final userId = await storage.read(key: 'user_id');
+                  if (userId == null || !context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('No se pudo identificar al usuario.'),
+                        backgroundColor: Colors.red,
+                      ),
+                    );
+                    await _ensureScanner(true);
+                    return;
+                  }
                   await Navigator.push(
                     context,
                     MaterialPageRoute(
                       builder: (_) => BlocProvider(
-                        create: (_) =>
-                        ProfileBloc(repository: ProfileRepository())
-                          ..add(const LoadProfile('')),
-                        child: const ProfilePage(),
+                        create: (_) => NotificationsBloc()
+                          ..add(StartRentalPolling(userId))
+                          ..add(const CheckWeather()),
+                        child: const NotificationsPage(),
                       ),
                     ),
                   );
                   await _ensureScanner(true);
                 },
-                icon: const CircleAvatar(
-                  radius: 16,
-                  backgroundColor: Colors.white24,
-                  backgroundImage: AssetImage('assets/images/profile.png'),
-                ),
               ),
             ],
           ),
-          endDrawer: AppDrawer(),
+          
           body: Stack(
             children: [
               MobileScanner(
@@ -397,7 +375,16 @@ class _ReturnPageState extends State<ReturnPage> {
                 Builder(
                   builder: (context) => IconButton(
                     icon: const Icon(Icons.menu, color: Colors.black),
-                    onPressed: () => Scaffold.of(context).openEndDrawer(),
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => MenuPage(
+                            onRentTap: () {},
+                          ),
+                        ),
+                      );
+                    },
                   ),
                 ),
               ],
