@@ -4,7 +4,6 @@ import 'package:flutter_sombri_ya/presentation/blocs/notifications/notifications
 import 'package:flutter_sombri_ya/views/notifications/notifications_page.dart';
 import 'package:flutter_sombri_ya/presentation/blocs/notifications/notifications_bloc.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:hive/hive.dart';
 
 import '../../../config/ollama_config.dart';
 import '../../../core/services/secure_storage_service.dart';
@@ -15,12 +14,11 @@ import '../../../presentation/blocs/chat/chat_bloc.dart';
 import '../history/history_page.dart';
 import '../payment/payment_methods_page.dart';
 import '../chat/chat_page.dart';
-import '../help/help_page.dart';  
+import '../help/help_page.dart';
 import '../nfc_registration/register_nfc_station_page.dart';
-
-
-
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import '../profile/profile_page.dart';
+import 'package:flutter_sombri_ya/presentation/blocs/profile/profile_bloc.dart';
+import 'package:flutter_sombri_ya/data/repositories/profile_repository.dart';
 
 class MenuPage extends StatelessWidget {
   MenuPage({super.key});
@@ -55,7 +53,7 @@ class MenuPage extends StatelessWidget {
             ..add(StartRentalPolling(userId))
             ..add(const CheckWeather()),
           child: const NotificationsPage(),
-        ), 
+        ),
       ),
     );
   }
@@ -66,55 +64,86 @@ class MenuPage extends StatelessWidget {
       backgroundColor: const Color(0xFFE9F9FF),
       appBar: AppBar(
         title: const Text('Más'),
-        backgroundColor: const Color(0xFF00B4D8),
+        backgroundColor: const Color(0xFF90E0EF),
         elevation: 0,
       ),
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.white,
+            Material(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              child: InkWell(
                 borderRadius: BorderRadius.circular(16),
-              ),
-              child: Row(
-                children: [
-                  const CircleAvatar(
-                    radius: 28,
-                    child: Icon(Icons.person, size: 30),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: FutureBuilder<String>(
-                      future: _loadUserName(),
-                      builder: (context, snapshot) {
-                        final name = snapshot.data ?? 'Usuario';
-                        return Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              name,
-                              style: GoogleFonts.cormorantGaramond(
-                                fontSize: 22,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              'Mi perfil >',
-                              style: GoogleFonts.cormorantGaramond(
-                                fontSize: 16,
-                                color: Colors.grey,
-                              ),
-                            ),
-                          ],
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) {
+                        return BlocProvider(
+                          create: (_) =>
+                              ProfileBloc(repository: ProfileRepository()),
+                          child: const ProfilePage(),
                         );
                       },
                     ),
+                  );
+                },
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Row(
+                    children: [
+                      const CircleAvatar(
+                        radius: 30,
+                        backgroundColor: Color(0xFF90E0EF),
+                        child: Icon(
+                          Icons.person,
+                          color: Colors.white,
+                          size: 30,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: FutureBuilder<String>(
+                          future: _loadUserName(),
+                          builder: (context, snapshot) {
+                            final name = snapshot.data ?? 'Usuario';
+                            return Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  name,
+                                  style: GoogleFonts.cormorantGaramond(
+                                    fontSize: 22,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Row(
+                                  children: [
+                                    Text(
+                                      'Mi perfil',
+                                      style: GoogleFonts.cormorantGaramond(
+                                        fontSize: 16,
+                                        color: Colors.grey,
+                                      ),
+                                    ),
+                                    const Icon(
+                                      Icons.chevron_right,
+                                      size: 16,
+                                      color: Colors.grey,
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            );
+                          },
+                        ),
+                      ),
+                    ],
                   ),
-                ],
+                ),
               ),
             ),
 
@@ -141,9 +170,7 @@ class MenuPage extends StatelessWidget {
                     onTap: () {
                       Navigator.push(
                         context,
-                        MaterialPageRoute(
-                          builder: (_) => const HistoryPage(),
-                        ),
+                        MaterialPageRoute(builder: (_) => const HistoryPage()),
                       );
                     },
                   ),
@@ -162,7 +189,6 @@ class MenuPage extends StatelessWidget {
                         context,
                         MaterialPageRoute(
                           builder: (_) {
-
                             final service = OllamaService(
                               ollamaBaseUrl: OllamaConfig.ollamaBaseUrl,
                               model: OllamaConfig.model,
@@ -185,9 +211,7 @@ class MenuPage extends StatelessWidget {
                     onTap: () {
                       Navigator.push(
                         context,
-                        MaterialPageRoute(
-                          builder: (_) => const HelpPage(),
-                        ),
+                        MaterialPageRoute(builder: (_) => const HelpPage()),
                       );
                     },
                   ),
@@ -199,8 +223,9 @@ class MenuPage extends StatelessWidget {
                       if (token == null) {
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(
-                            content:
-                                Text('No se encontró el token de autenticación'),
+                            content: Text(
+                              'No se encontró el token de autenticación',
+                            ),
                           ),
                         );
                         return;
@@ -261,10 +286,7 @@ class _MenuItem extends StatelessWidget {
                 Icon(icon, color: Colors.grey[800]),
                 const SizedBox(width: 16),
                 Expanded(
-                  child: Text(
-                    title,
-                    style: const TextStyle(fontSize: 16),
-                  ),
+                  child: Text(title, style: const TextStyle(fontSize: 16)),
                 ),
                 const Icon(Icons.chevron_right),
               ],
