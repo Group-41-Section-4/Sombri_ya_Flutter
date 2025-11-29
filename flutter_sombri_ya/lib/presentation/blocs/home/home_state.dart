@@ -46,6 +46,7 @@ class HomeState extends Equatable {
     List<Station>? nearbyStations,
     String? selectedStationId,
     ConnectivityStatus? connectivityStatus,
+    bool clearSelectedStationId = false,
   }) {
     return HomeState(
       isLoading: isLoading ?? this.isLoading,
@@ -57,7 +58,9 @@ class HomeState extends Equatable {
       mapType: mapType ?? this.mapType,
       markers: markers ?? this.markers,
       nearbyStations: nearbyStations ?? this.nearbyStations,
-      selectedStationId: selectedStationId ?? this.selectedStationId,
+      selectedStationId: clearSelectedStationId
+          ? null
+          : (selectedStationId ?? this.selectedStationId),
       connectivityStatus: connectivityStatus ?? this.connectivityStatus,
     );
   }

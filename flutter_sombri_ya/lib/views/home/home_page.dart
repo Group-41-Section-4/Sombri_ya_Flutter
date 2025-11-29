@@ -51,6 +51,7 @@ import '../../data/models/station_model.dart';
 
 import '../../../core/connectivity/connectivity_service.dart';
 import '../../presentation/blocs/connectivity/connectivity_cubit.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 
 class HomePage extends StatelessWidget {
   const HomePage({super.key});
@@ -466,6 +467,17 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
                       ),
                     );
                   }
+
+                  Station? selectedStation;
+                  if (state.selectedStationId != null) {
+                    for (final st in state.nearbyStations) {
+                      if (st.id == state.selectedStationId) {
+                        selectedStation = st;
+                        break;
+                      }
+                    }
+                  }
+
                   return Stack(
                     children: [
                       GoogleMap(
@@ -483,6 +495,9 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
                         myLocationButtonEnabled: true,
                         mapToolbarEnabled: false,
                         zoomControlsEnabled: false,
+                        onTap: (_) {
+                          context.read<HomeBloc>().add(const ClearSelectedStation());
+                        }
                       ),
 
                       if (state.isLoading)
@@ -576,6 +591,21 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
                           },
                         ),
                       ),
+
+                      if (selectedStation != null)
+                        Positioned(
+                          left: 16,
+                          right: 16,
+                          bottom: kBottomNavigationBarHeight +
+                              MediaQuery.of(context).padding.bottom +
+                              90,
+                          child: StationPhotoCard(
+                            station: selectedStation!,
+                            onClose: () => context
+                                .read<HomeBloc>()
+                                .add(const ClearSelectedStation()),
+                          ),
+                        ),
                     ],
                   );
                 },
@@ -784,3 +814,105 @@ class EstacionesSheet extends StatelessWidget {
     );
   }
 }
+
+class StationPhotoCard extends StatelessWidget {
+  final Station station;
+  final VoidCallback onClose;
+
+  const StationPhotoCard({
+    super.key,
+    required this.station,
+    required this.onClose,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final int ocupadas = station.totalUmbrellas - station.availableUmbrellas;
+    final imageUrl = station.imageUrl; 
+
+    return Material(
+      elevation: 6,
+      borderRadius: BorderRadius.circular(16),
+      color: Colors.white,
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Row(
+          children: [
+            ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: SizedBox(
+                width: 90,
+                height: 90,
+                child: CachedNetworkImage(
+                  imageUrl: imageUrl,
+                  fit: BoxFit.cover,
+                  placeholder: (context, url) =>
+                      const Center(child: CircularProgressIndicator()),
+                  errorWidget: (context, url, error) =>
+                      const Icon(Icons.image_not_supported, size: 40),
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    station.placeName,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    station.description,
+                    style: const TextStyle(color: Colors.grey),
+                  ),
+                  Row(
+                    children: [
+                      const Icon(Icons.umbrella, size: 16, color: Colors.green),
+                      const SizedBox(width: 4),
+                      Text(
+                        '${station.availableUmbrellas} disp.',
+                        style: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.green,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      const Icon(Icons.umbrella, size:16, color: Colors.red),
+                      const SizedBox(width: 4),
+                      Text(
+                        '$ocupadas ocup.',
+                        style: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.red,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    '${station.distanceMeters.toStringAsFixed(0)} mts',
+                    style: const TextStyle(fontSize: 12),
+                  ),
+                ],
+              ),
+            ),
+            IconButton(
+              icon: const Icon(Icons.close),
+              onPressed: onClose,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+

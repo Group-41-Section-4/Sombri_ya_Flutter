@@ -27,6 +27,8 @@ import '../../widgets/app_drawer.dart';
 import '../../core/net/is_online.dart';
 import '../menu/menu_page.dart';
 
+import '../rental_format/rental_format_page.dart';
+
 String bytesToHexColonUpper(Uint8List bytes) => bytes
     .map((b) => b.toRadixString(16).padLeft(2, '0'))
     .join(':')
@@ -162,12 +164,15 @@ class _ReturnPageState extends State<ReturnPage> {
   Widget build(BuildContext context) {
     return BlocConsumer<ReturnBloc, ReturnState>(
       listenWhen: (prev, curr) =>
-          prev.loading != curr.loading ||
+      prev.loading != curr.loading ||
           prev.ended != curr.ended ||
           prev.message != curr.message ||
-          prev.error != curr.error,
+          prev.error != curr.error ||
+          prev.nfcBusy != curr.nfcBusy,
       listener: (context, state) async {
+        // Controlar scanner según loading / nfcBusy
         await _ensureScanner(!state.loading && !state.nfcBusy);
+
         if (state.message != null) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
@@ -178,6 +183,7 @@ class _ReturnPageState extends State<ReturnPage> {
           );
           context.read<ReturnBloc>().add(ReturnClearMessage());
         }
+
         if (state.error != null) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
@@ -188,8 +194,29 @@ class _ReturnPageState extends State<ReturnPage> {
           );
           context.read<ReturnBloc>().add(ReturnClearMessage());
         }
+
         if (state.ended) {
-          if (mounted) Navigator.pop(context, "returned");
+          // Detenemos scanner antes de navegar
+          await _ensureScanner(false);
+
+          if (!mounted) return;
+
+          final rentalId = state.activeRentalId;
+
+          if (rentalId != null) {
+            // Vamos a la pantalla para crear el rental-format (reporte de problema)
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(
+                builder: (_) => RentalFormatPage(
+                  rentalId: rentalId,
+                ),
+              ),
+            );
+          } else {
+            // Fallback: si no tenemos rentalId, volvemos notificando que terminó
+            Navigator.pop(context, "returned");
+          }
         }
       },
       builder: (context, state) {
@@ -240,8 +267,7 @@ class _ReturnPageState extends State<ReturnPage> {
               ),
             ],
           ),
-
-          endDrawer: AppDrawer(),
+          
           body: Stack(
             children: [
               MobileScanner(
@@ -315,12 +341,12 @@ class _ReturnPageState extends State<ReturnPage> {
                         onPressed: state.nfcBusy
                             ? null
                             : () async {
-                                if (!isOnline(context)) {
-                                  _showOfflineSnackOnce();
-                                  return;
-                                }
-                                await _handleNfc();
-                              },
+                          if (!isOnline(context)) {
+                            _showOfflineSnackOnce();
+                            return;
+                          }
+                          await _handleNfc();
+                        },
                       ),
                     ],
                   ),
@@ -367,7 +393,7 @@ class _ReturnPageState extends State<ReturnPage> {
             ),
           ),
           floatingActionButtonLocation:
-              FloatingActionButtonLocation.centerDocked,
+          FloatingActionButtonLocation.centerDocked,
         );
       },
     );

@@ -9,6 +9,7 @@ import 'package:nfc_manager/nfc_manager.dart';
 import 'core/providers/api_provider.dart';
 import 'core/services/secure_storage_service.dart';
 import 'data/repositories/auth_repository.dart';
+import 'data/repositories/report_repository.dart';
 import 'presentation/blocs/auth/auth_bloc.dart';
 
 import 'presentation/blocs/connectivity/connectivity_cubit.dart';
@@ -76,6 +77,10 @@ class MyApp extends StatelessWidget {
           create: (_) => WeatherService(
             jsonStalePeriod: const Duration(hours: 12),
           ),
+        ),
+        RepositoryProvider<ReportRepository>(
+          create: (_) => ReportRepository(baseUrl: kBaseUrl),
+          child: const MyApp(),
         ),
       ],
       child: MultiBlocProvider(
