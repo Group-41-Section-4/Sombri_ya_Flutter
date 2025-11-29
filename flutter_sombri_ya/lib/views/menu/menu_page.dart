@@ -19,6 +19,7 @@ import '../nfc_registration/register_nfc_station_page.dart';
 import '../profile/profile_page.dart';
 import 'package:flutter_sombri_ya/presentation/blocs/profile/profile_bloc.dart';
 import 'package:flutter_sombri_ya/data/repositories/profile_repository.dart';
+import '../legal/terms_and_conditions_page.dart';
 
 class MenuPage extends StatelessWidget {
   MenuPage({super.key});
@@ -278,11 +279,17 @@ class MenuPage extends StatelessWidget {
             ),
 
             const SizedBox(height: 8),
-            Text(
-              'Términos y condiciones',
-              style: GoogleFonts.cormorantGaramond(
-                fontSize: 14,
-                color: Colors.grey[700],
+            GestureDetector(
+              onTap: () async {
+                await Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => const TermsAndConditionsPage(),
+                  ),
+                );
+              },
+              child: const Text(
+                'Términos y condiciones',
+                style: TextStyle(decoration: TextDecoration.underline),
               ),
             ),
           ],
