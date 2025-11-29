@@ -4,7 +4,6 @@ import 'package:flutter_sombri_ya/presentation/blocs/notifications/notifications
 import 'package:flutter_sombri_ya/views/notifications/notifications_page.dart';
 import 'package:flutter_sombri_ya/presentation/blocs/notifications/notifications_bloc.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:hive/hive.dart';
 
 import '../../../config/ollama_config.dart';
 import '../../../core/services/secure_storage_service.dart';
@@ -15,17 +14,41 @@ import '../../../presentation/blocs/chat/chat_bloc.dart';
 import '../history/history_page.dart';
 import '../payment/payment_methods_page.dart';
 import '../chat/chat_page.dart';
-import '../help/help_page.dart';  
+import '../help/help_page.dart';
 import '../nfc_registration/register_nfc_station_page.dart';
-
-
-
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import '../profile/profile_page.dart';
+import 'package:flutter_sombri_ya/presentation/blocs/profile/profile_bloc.dart';
+import 'package:flutter_sombri_ya/data/repositories/profile_repository.dart';
 
 class MenuPage extends StatelessWidget {
   MenuPage({super.key});
 
   final SecureStorageService _secureStorage = const SecureStorageService();
+  final ProfileRepository _profileRepository = ProfileRepository();
+
+  String? _resolveProfileImageUrl(String? raw) {
+    if (raw == null || raw.isEmpty) return null;
+    if (raw.startsWith('http')) return raw;
+    const base = 'https://sombri-ya-back-4def07fa1804.herokuapp.com';
+    if (!raw.startsWith('/')) {
+      return '$base/$raw';
+    }
+    return '$base$raw';
+  }
+
+  Future<Map<String, String?>> _loadHeaderInfo() async {
+    final userId = await _secureStorage.readUserId();
+    try {
+      if (userId != null && userId.isNotEmpty) {
+        final profile = await _profileRepository.getProfile(userId);
+        final name = (profile['name'] ?? 'Usuario').toString();
+        final img = profile['profileImageUrl'] as String?;
+        return {'name': name, 'profileImageUrl': img};
+      }
+    } catch (_) {}
+    final fallbackName = await _secureStorage.readUserName() ?? 'Usuario';
+    return {'name': fallbackName, 'profileImageUrl': null};
+  }
 
   Future<String> _loadUserName() async {
     return await _secureStorage.readUserName() ?? 'Usuario';
@@ -55,7 +78,7 @@ class MenuPage extends StatelessWidget {
             ..add(StartRentalPolling(userId))
             ..add(const CheckWeather()),
           child: const NotificationsPage(),
-        ), 
+        ),
       ),
     );
   }
@@ -66,55 +89,95 @@ class MenuPage extends StatelessWidget {
       backgroundColor: const Color(0xFFE9F9FF),
       appBar: AppBar(
         title: const Text('Más'),
-        backgroundColor: const Color(0xFF00B4D8),
+        backgroundColor: const Color(0xFF90E0EF),
         elevation: 0,
       ),
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.white,
+            Material(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              child: InkWell(
                 borderRadius: BorderRadius.circular(16),
-              ),
-              child: Row(
-                children: [
-                  const CircleAvatar(
-                    radius: 28,
-                    child: Icon(Icons.person, size: 30),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: FutureBuilder<String>(
-                      future: _loadUserName(),
-                      builder: (context, snapshot) {
-                        final name = snapshot.data ?? 'Usuario';
-                        return Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              name,
-                              style: GoogleFonts.cormorantGaramond(
-                                fontSize: 22,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              'Mi perfil >',
-                              style: GoogleFonts.cormorantGaramond(
-                                fontSize: 16,
-                                color: Colors.grey,
-                              ),
-                            ),
-                          ],
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) {
+                        return BlocProvider(
+                          create: (_) =>
+                              ProfileBloc(repository: ProfileRepository()),
+                          child: const ProfilePage(),
                         );
                       },
                     ),
+                  );
+                },
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: FutureBuilder<Map<String, String?>>(
+                    future: _loadHeaderInfo(),
+                    builder: (context, snapshot) {
+                      final data = snapshot.data;
+                      final name = data?['name'] ?? 'Usuario';
+                      final rawUrl = data?['profileImageUrl'];
+                      final imageUrl = _resolveProfileImageUrl(rawUrl);
+
+                      return Row(
+                        children: [
+                          CircleAvatar(
+                            radius: 30,
+                            backgroundColor: const Color(0xFF90E0EF),
+                            backgroundImage: imageUrl != null
+                                ? NetworkImage(imageUrl)
+                                : null,
+                            child: imageUrl == null
+                                ? const Icon(
+                                    Icons.person,
+                                    color: Colors.white,
+                                    size: 30,
+                                  )
+                                : null,
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  name,
+                                  style: GoogleFonts.cormorantGaramond(
+                                    fontSize: 22,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Row(
+                                  children: [
+                                    Text(
+                                      'Mi perfil',
+                                      style: GoogleFonts.cormorantGaramond(
+                                        fontSize: 16,
+                                        color: Colors.grey,
+                                      ),
+                                    ),
+                                    const Icon(
+                                      Icons.chevron_right,
+                                      size: 16,
+                                      color: Colors.grey,
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      );
+                    },
                   ),
-                ],
+                ),
               ),
             ),
 
@@ -141,9 +204,7 @@ class MenuPage extends StatelessWidget {
                     onTap: () {
                       Navigator.push(
                         context,
-                        MaterialPageRoute(
-                          builder: (_) => const HistoryPage(),
-                        ),
+                        MaterialPageRoute(builder: (_) => const HistoryPage()),
                       );
                     },
                   ),
@@ -162,7 +223,6 @@ class MenuPage extends StatelessWidget {
                         context,
                         MaterialPageRoute(
                           builder: (_) {
-
                             final service = OllamaService(
                               ollamaBaseUrl: OllamaConfig.ollamaBaseUrl,
                               model: OllamaConfig.model,
@@ -185,9 +245,7 @@ class MenuPage extends StatelessWidget {
                     onTap: () {
                       Navigator.push(
                         context,
-                        MaterialPageRoute(
-                          builder: (_) => const HelpPage(),
-                        ),
+                        MaterialPageRoute(builder: (_) => const HelpPage()),
                       );
                     },
                   ),
@@ -199,8 +257,9 @@ class MenuPage extends StatelessWidget {
                       if (token == null) {
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(
-                            content:
-                                Text('No se encontró el token de autenticación'),
+                            content: Text(
+                              'No se encontró el token de autenticación',
+                            ),
                           ),
                         );
                         return;
@@ -261,10 +320,7 @@ class _MenuItem extends StatelessWidget {
                 Icon(icon, color: Colors.grey[800]),
                 const SizedBox(width: 16),
                 Expanded(
-                  child: Text(
-                    title,
-                    style: const TextStyle(fontSize: 16),
-                  ),
+                  child: Text(title, style: const TextStyle(fontSize: 16)),
                 ),
                 const Icon(Icons.chevron_right),
               ],

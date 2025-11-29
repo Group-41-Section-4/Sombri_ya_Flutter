@@ -39,14 +39,7 @@ void main() async {
 
   await NotificationService.init(
     onTap: (payload) {
-      navigatorKey.currentState?.pushAndRemoveUntil(
-        MaterialPageRoute(
-          builder: (_) => const RentPage(),
-        ),
-            (route) => false,
-      );
-    },
-  );
+  });
 
   await RainAlertScheduler.cancelAll();
   await RainAlertScheduler.registerPeriodic();

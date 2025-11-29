@@ -56,3 +56,19 @@ class ChangePassword extends ProfileEvent {
 class ClearProfileMessages extends ProfileEvent {
   const ClearProfileMessages();
 }
+
+class UpdateProfilePhoto extends ProfileEvent {
+  final String imagePath;
+  const UpdateProfilePhoto(this.imagePath);
+
+  @override
+  List<Object?> get props => [imagePath];
+}
+
+class DeleteAccount extends ProfileEvent {
+  final bool hard;
+  const DeleteAccount({this.hard = false});
+
+  @override
+  List<Object?> get props => [hard];
+}

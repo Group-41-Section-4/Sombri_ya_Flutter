@@ -31,6 +31,18 @@ class AuthRepository {
       final token = data['accessToken'] as String;
       final decoded = JwtDecoder.decode(token);
       final userId = decoded['sub'] as String;
+      final user = data['user'] as Map<String, dynamic>;
+      if (user != null) {
+        final userEmail = user['email'] as String?;
+        final userName = user['name'] as String?;
+
+        if (userEmail != null && userEmail.isNotEmpty) {
+          await storage.saveUserEmail(userEmail);
+        }
+        if (userName != null && userName.isNotEmpty) {
+          await storage.saveUserName(userName);
+        }
+      }
 
       await storage.saveToken(token);
       await storage.saveUserId(userId);

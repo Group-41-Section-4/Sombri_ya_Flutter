@@ -401,8 +401,6 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
                 ],
               ),
 
-              endDrawer: AppDrawer(),
-
               body: BlocConsumer<HomeBloc, HomeState>(
                 listenWhen: (prev, current) =>
                     prev.locationError != current.locationError ||
@@ -423,50 +421,16 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
                   }
                   if (state.userPosition != null) {
                     context.read<WeatherCubit>().refreshAt(
-                      lat: state.userPosition!.latitude,
-                      lon: state.userPosition!.longitude,
-                    );
+                          lat: state.userPosition!.latitude,
+                          lon: state.userPosition!.longitude,
+                        );
                   }
                 },
                 builder: (context, state) {
                   final isOffline =
                       state.connectivityStatus != ConnectivityStatus.online;
 
-                  if (isOffline) {
-                    return Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          SizedBox(
-                            width: 300,
-                            height: 300,
-                            child: Image.asset(
-                              'assets/images/gato.jpeg',
-                              fit: BoxFit.contain,
-                            ),
-                          ),
-                          const SizedBox(height: 20),
-                          Text(
-                            '¡Miau! Parece que perdimos la conexión...',
-                            style: GoogleFonts.robotoSlab(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.grey.shade700,
-                            ),
-                            textAlign: TextAlign.center,
-                          ),
-                          const SizedBox(height: 8),
-                          const Text(
-                            'Esperando a que vuelva el internet para mostrar el mapa.',
-                            style: TextStyle(color: Colors.grey),
-                          ),
-                          const SizedBox(height: 20),
-                          if (state.isLoading)
-                            const CircularProgressIndicator(),
-                        ],
-                      ),
-                    );
-                  }
+                  // 🔹 YA NO HACEMOS `if (isOffline) return gato;`
 
                   Station? selectedStation;
                   if (state.selectedStationId != null) {
@@ -480,10 +444,10 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
 
                   return Stack(
                     children: [
+                      // Mapa SIEMPRE se dibuja, haya o no internet
                       GoogleMap(
                         initialCameraPosition: CameraPosition(
-                          target:
-                              state.cameraTarget ??
+                          target: state.cameraTarget ??
                               const LatLng(4.603083, -74.065130),
                           zoom: state.cameraZoom,
                         ),
@@ -496,12 +460,16 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
                         mapToolbarEnabled: false,
                         zoomControlsEnabled: false,
                         onTap: (_) {
-                          context.read<HomeBloc>().add(const ClearSelectedStation());
-                        }
+                          context
+                              .read<HomeBloc>()
+                              .add(const ClearSelectedStation());
+                        },
                       ),
 
                       if (state.isLoading)
                         const Center(child: CircularProgressIndicator()),
+
+                      // Icono del clima
                       Positioned(
                         top: 12,
                         left: 12,
@@ -515,8 +483,7 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
                               child: Padding(
                                 padding: const EdgeInsets.all(6),
                                 child: WeatherIcon(
-                                  condition:
-                                      _weatherForUI?.condition ??
+                                  condition: _weatherForUI?.condition ??
                                       WeatherCondition.unknown,
                                   isNight: _weatherForUI?.isNight ?? false,
                                   size: 30,
@@ -527,6 +494,7 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
                         ),
                       ),
 
+                      // Botón ESTACIONES
                       Positioned(
                         top: 16,
                         left: 0,
@@ -565,10 +533,11 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
                           ),
                         ),
                       ),
+
+                      // Botón de voz
                       Positioned(
                         right: 16,
-                        bottom:
-                            kBottomNavigationBarHeight +
+                        bottom: kBottomNavigationBarHeight +
                             MediaQuery.of(context).padding.bottom +
                             12,
                         child: BlocBuilder<VoiceBloc, VoiceState>(
@@ -592,6 +561,7 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
                         ),
                       ),
 
+                      // Card de estación seleccionada
                       if (selectedStation != null)
                         Positioned(
                           left: 16,
@@ -606,10 +576,64 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
                                 .add(const ClearSelectedStation()),
                           ),
                         ),
+
+                      // 🔹 Banner offline (en vez de pantalla bloqueada)
+                      if (isOffline)
+                        Positioned(
+                          top: 80,
+                          left: 16,
+                          right: 16,
+                          child: Material(
+                            elevation: 4,
+                            borderRadius: BorderRadius.circular(16),
+                            color: Colors.white,
+                            child: Padding(
+                              padding:
+                                  const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                              child: Row(
+                                children: [
+                                  SizedBox(
+                                    width: 60,
+                                    height: 60,
+                                    child: Image.asset(
+                                      'assets/images/gato.jpeg',
+                                      fit: BoxFit.contain,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          '¡Miau! Sin conexión',
+                                          style: GoogleFonts.robotoSlab(
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.bold,
+                                            color: Colors.grey.shade800,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 4),
+                                        const Text(
+                                          'Mostrando estaciones e imágenes guardadas hasta que vuelva el internet.',
+                                          style: TextStyle(
+                                            fontSize: 13,
+                                            color: Colors.grey,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
                     ],
                   );
                 },
               ),
+
               floatingActionButton: SizedBox(
                 width: 76,
                 height: 76,
@@ -650,7 +674,11 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
                         onPressed: () {
                           Navigator.push(
                             context,
-                            MaterialPageRoute(builder: (_) => MenuPage()),
+                            MaterialPageRoute(
+                              builder: (_) => MenuPage(
+                                onRentTap: _goToReturnIfActiveOrRentOtherwise,
+                              )
+                            ),
                           );
                         },
                       ),

@@ -2,15 +2,23 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'profile_event.dart';
 import 'profile_state.dart';
 import 'package:flutter_sombri_ya/data/repositories/profile_repository.dart';
+import 'package:flutter_sombri_ya/data/repositories/profile_repository.dart';
+import 'package:flutter_sombri_ya/data/repositories/history_repository.dart';
+import 'dart:io';
 
 class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
   final ProfileRepository repository;
+  final HistoryRepository historyRepository;
 
-  ProfileBloc({required this.repository}) : super(ProfileState.initial()) {
+  ProfileBloc({required this.repository, HistoryRepository? historyRepository})
+    : historyRepository = historyRepository ?? HistoryRepository(),
+      super(ProfileState.initial()) {
     on<LoadProfile>(_onLoad);
     on<RefreshProfile>(_onRefresh);
     on<UpdateProfileField>(_onUpdateField);
     on<ChangePassword>(_onChangePassword);
+    on<UpdateProfilePhoto>(_onUpdatePhoto);
+    on<DeleteAccount>(_onDeleteAccount);
     on<ClearProfileMessages>((e, emit) {
       emit(state.copyWith(successMessage: null, errorMessage: null));
     });
@@ -49,9 +57,36 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
     );
     try {
       final data = await repository.getProfile(e.userId);
-      final km = (data['total_pedometer_km'] as num?)?.toDouble() ?? 0.0;
-      emit(state.copyWith(loading: false, profile: data, totalDistanceKm: km));
-      // add(LoadTotalDistance(data['id']?.toString() ?? e.userId));
+
+      // Distancia total (km)
+      double? km = (data['total_pedometer_km'] as num?)?.toDouble();
+      if (km == null) {
+        try {
+          km = await repository.getTotalDistance(
+            (data['id'] ?? e.userId).toString(),
+          );
+        } catch (_) {
+          km = 0.0;
+        }
+      }
+      int rentalsCount = 0;
+      try {
+        final rentals = await historyRepository.syncHistoryFromApi(
+          (data['id'] ?? e.userId).toString(),
+        );
+        rentalsCount = rentals.length;
+      } catch (_) {
+        rentalsCount = state.umbrellaRentals ?? 0;
+      }
+
+      emit(
+        state.copyWith(
+          loading: false,
+          profile: data,
+          totalDistanceKm: km,
+          umbrellaRentals: rentalsCount,
+        ),
+      );
     } catch (_) {
       emit(
         state.copyWith(
@@ -65,9 +100,33 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
   Future<void> _onRefresh(RefreshProfile e, Emitter<ProfileState> emit) async {
     try {
       final data = await repository.getProfile(e.userId);
-      final km = (data['total_pedometer_km'] as num?)?.toDouble() ?? 0.0;
-      emit(state.copyWith(profile: data, totalDistanceKm: km));
-      // add(LoadTotalDistance(data['id']?.toString() ?? e.userId));
+
+      double? km = (data['total_pedometer_km'] as num?)?.toDouble();
+      if (km == null) {
+        try {
+          km = await repository.getTotalDistance(
+            (data['id'] ?? e.userId).toString(),
+          );
+        } catch (_) {
+          km = state.totalDistanceKm ?? 0.0;
+        }
+      }
+
+      int rentalsCount = state.umbrellaRentals ?? 0;
+      try {
+        final rentals = await historyRepository.syncHistoryFromApi(
+          (data['id'] ?? e.userId).toString(),
+        );
+        rentalsCount = rentals.length;
+      } catch (_) {}
+
+      emit(
+        state.copyWith(
+          profile: data,
+          totalDistanceKm: km,
+          umbrellaRentals: rentalsCount,
+        ),
+      );
     } catch (_) {
       emit(state.copyWith(errorMessage: 'No se pudo actualizar el perfil.'));
     }
@@ -152,6 +211,42 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
       );
     } catch (_) {
       emit(state.copyWith(errorMessage: 'No se pudo cambiar la contraseña.'));
+    }
+  }
+
+  Future<void> _onUpdatePhoto(
+    UpdateProfilePhoto e,
+    Emitter<ProfileState> emit,
+  ) async {
+    try {
+      final file = File(e.imagePath);
+      final url = await repository.uploadProfileImage(file);
+      if (url == null) {
+        emit(state.copyWith(errorMessage: 'No se pudo actualizar la foto.'));
+        return;
+      }
+      final updated = Map<String, dynamic>.from(state.profile ?? {});
+      updated['profileImageUrl'] = url;
+      emit(
+        state.copyWith(
+          profile: updated,
+          successMessage: 'Foto de perfil actualizada.',
+        ),
+      );
+    } catch (_) {
+      emit(state.copyWith(errorMessage: 'No se pudo actualizar la foto.'));
+    }
+  }
+
+  Future<void> _onDeleteAccount(
+    DeleteAccount e,
+    Emitter<ProfileState> emit,
+  ) async {
+    try {
+      await repository.deleteAccount(hard: e.hard);
+      emit(state.copyWith(successMessage: 'Cuenta eliminada correctamente.'));
+    } catch (_) {
+      emit(state.copyWith(errorMessage: 'No se pudo eliminar la cuenta.'));
     }
   }
 }

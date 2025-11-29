@@ -1,167 +1,205 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
-
-import '../../presentation/blocs/help/help_bloc.dart';
-import '../../presentation/blocs/help/help_event.dart';
-import '../../presentation/blocs/help/help_state.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 class HelpPage extends StatelessWidget {
   const HelpPage({super.key});
 
+  static const Color _blue = Color(0xFF90E0EF);
+  static const Color _background = Color(0xFFF6FBFF);
+
   @override
   Widget build(BuildContext context) {
-    return BlocProvider(
-      create: (_) => HelpBloc()..add(HelpStarted()),
-      child: Scaffold(
-        backgroundColor: const Color(0xFFE9F9FF),
-        appBar: AppBar(
-          title: const Text('Ayuda'),
-          backgroundColor: const Color(0xFF00B4D8),
-          elevation: 0,
+    return Scaffold(
+      backgroundColor: _background,
+      appBar: AppBar(
+        backgroundColor: _blue,
+        foregroundColor: Colors.black,
+        centerTitle: true,
+        title: Text(
+          'Ayuda',
+          style: GoogleFonts.cormorantGaramond(
+            fontSize: 22,
+            fontWeight: FontWeight.bold,
+            color: Colors.black,
+          ),
         ),
-        body: BlocBuilder<HelpBloc, HelpState>(
-          builder: (context, state) {
-            if (state.isLoading && state.faqs.isEmpty) {
-              return const Center(child: CircularProgressIndicator());
-            }
-
-            return SingleChildScrollView(
-              padding: const EdgeInsets.all(16),
-              child: Column(
+      ),
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: ListView(
+            children: const [
+              _HelpSectionCard(
+                title: 'Preguntas frecuentes',
                 children: [
-                  if (state.offlineMode)
-                    Container(
-                      padding: const EdgeInsets.all(8),
-                      margin: const EdgeInsets.only(bottom: 12),
-                      decoration: BoxDecoration(
-                        color: Colors.orange[100],
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Text(
-                        state.fromCache
-                            ? 'Estás viendo la última versión guardada de la ayuda (sin conexión).'
-                            : 'Sin conexión. Algunas funciones podrían no estar disponibles.',
-                        style: const TextStyle(fontSize: 12),
-                      ),
-                    ),
-                  if (state.error != null)
-                    Container(
-                      padding: const EdgeInsets.all(8),
-                      margin: const EdgeInsets.only(bottom: 12),
-                      decoration: BoxDecoration(
-                        color: Colors.red[100],
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Text(state.error!),
-                    ),
-
-                  _SectionCard(
-                    title: 'Preguntas frecuentes',
-                    child: Column(
-                      children: state.faqs
-                          .map(
-                            (f) => ListTile(
-                              title: Text(
-                                f.question,
-                                style: const TextStyle(
-                                    fontWeight: FontWeight.bold),
-                              ),
-                              subtitle: Text(f.answer),
-                            ),
-                          )
-                          .toList(),
-                    ),
+                  _HelpFaqItem(
+                    question: '¿Qué métodos de pago tienen disponibles?',
+                    answer: 'Recomendamos tarjetas y Nequi.',
                   ),
-
-                  const SizedBox(height: 16),
-
-                  _SectionCard(
-                    title: 'Tutoriales',
-                    child: Column(
-                      children: state.tutorials
-                          .map(
-                            (t) => ListTile(
-                              title: Text(t.title),
-                              trailing: const Icon(Icons.play_circle_outline),
-                              onTap: () {
-                                // TODO: abrir video / paso a paso
-                              },
-                            ),
-                          )
-                          .toList(),
-                    ),
+                  SizedBox(height: 12),
+                  _HelpFaqItem(
+                    question: '¿Qué hago si olvidé mi contraseña?',
+                    answer:
+                        'Puedes recuperar tu cuenta desde la opción "Perfil".',
                   ),
-
-                  const SizedBox(height: 16),
-
-                  _SectionCard(
-                    title: 'Contáctanos',
-                    child: Column(
-                      children: const [
-                        ListTile(
-                          leading: Icon(Icons.mail_outline),
-                          title: Text('ayuda@sombriya.com'),
-                        ),
-                        ListTile(
-                          leading: Icon(Icons.chat_bubble_outline),
-                          title: Text('Sombri-YA'),
-                        ),
-                      ],
-                    ),
-                  ),
-
-                  const SizedBox(height: 16),
-
-                  if (state.isLoading)
-                    const Center(child: CircularProgressIndicator()),
-
-                  if (!state.isLoading)
-                    TextButton.icon(
-                      onPressed: () {
-                        context.read<HelpBloc>().add(HelpRefreshed());
-                      },
-                      icon: const Icon(Icons.refresh),
-                      label: const Text('Actualizar'),
-                    ),
                 ],
               ),
-            );
-          },
+              SizedBox(height: 16),
+              _HelpSectionCard(
+                title: 'Tutoriales',
+                children: [
+                  _HelpSimpleItem(text: 'Reservar una sombrilla'),
+                  SizedBox(height: 8),
+                  _HelpSimpleItem(text: 'Agregar métodos de pago'),
+                  SizedBox(height: 8),
+                  _HelpSimpleItem(text: 'Reportar una sombrilla dañada'),
+                ],
+              ),
+              SizedBox(height: 16),
+              _HelpSectionCard(
+                title: 'Contáctanos',
+                children: [
+                  _HelpContactRow(
+                    icon: Icons.email_outlined,
+                    label: 'ayuda@sombriya.com',
+                  ),
+                  SizedBox(height: 8),
+                  _HelpContactRow(
+                    icon: Icons.chat_bubble_outline,
+                    label: '@Sombri-YA',
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
 }
 
-class _SectionCard extends StatelessWidget {
+class _HelpSectionCard extends StatelessWidget {
   final String title;
-  final Widget child;
+  final List<Widget> children;
 
-  const _SectionCard({
+  const _HelpSectionCard({
     required this.title,
-    required this.child,
+    required this.children,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-      ),
-      elevation: 0,
+    return Material(
+      color: Colors.white,
+      elevation: 1,
+      borderRadius: BorderRadius.circular(16),
       child: Padding(
-        padding: const EdgeInsets.all(12),
+        padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(title,
-                style:
-                    const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 8),
-            child,
+            Text(
+              title,
+              style: GoogleFonts.cormorantGaramond(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Colors.black87,
+              ),
+            ),
+            const SizedBox(height: 12),
+            ...children,
           ],
         ),
       ),
+    );
+  }
+}
+
+class _HelpFaqItem extends StatelessWidget {
+  final String question;
+  final String answer;
+
+  const _HelpFaqItem({
+    required this.question,
+    required this.answer,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          question,
+          style: const TextStyle(
+            fontWeight: FontWeight.w600,
+            fontSize: 14,
+            color: Colors.black87,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          answer,
+          style: const TextStyle(
+            fontSize: 13,
+            color: Colors.black54,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _HelpSimpleItem extends StatelessWidget {
+  final String text;
+
+  const _HelpSimpleItem({required this.text});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        const Icon(Icons.play_circle_outline, size: 18, color: Colors.black54),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Text(
+            text,
+            style: const TextStyle(
+              fontSize: 14,
+              color: Colors.black87,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _HelpContactRow extends StatelessWidget {
+  final IconData icon;
+  final String label;
+
+  const _HelpContactRow({
+    required this.icon,
+    required this.label,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Icon(icon, size: 18, color: Colors.black54),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Text(
+            label,
+            style: const TextStyle(
+              fontSize: 14,
+              color: Colors.black87,
+            ),
+          ),
+        ),
+      ],
     );
   }
 }
