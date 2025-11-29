@@ -1,5 +1,9 @@
+import 'dart:convert';
 import 'dart:io';
+
 import 'package:http/http.dart' as http;
+
+import '../models/rental_format_model.dart';
 
 class ReportRepository {
   final String baseUrl;
@@ -35,7 +39,6 @@ class ReportRepository {
       );
     }
 
-
     final streamedResponse = await _client.send(request);
     final response = await http.Response.fromStream(streamedResponse);
 
@@ -44,5 +47,24 @@ class ReportRepository {
         'Error enviando reporte: ${response.statusCode} - ${response.body}',
       );
     }
+  }
+
+  Future<List<RentalFormat>> getFormatsByRentalId(String rentalId) async {
+    final uri = Uri.parse('$baseUrl/rental-format/rental/$rentalId');
+
+    final response = await _client.get(uri);
+
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      throw Exception(
+        'Error obteniendo formatos de renta: '
+            '${response.statusCode} - ${response.body}',
+      );
+    }
+
+    final List<dynamic> data = jsonDecode(response.body) as List<dynamic>;
+
+    return data
+        .map((e) => RentalFormat.fromJson(e as Map<String, dynamic>))
+        .toList();
   }
 }

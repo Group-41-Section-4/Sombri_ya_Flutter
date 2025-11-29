@@ -1,4 +1,5 @@
 import 'dart:developer' as dev;
+
 import '../providers/api_provider.dart';
 import '../models/rental_model.dart';
 import 'package:flutter_sombri_ya/data/local/database.dart';
@@ -49,12 +50,15 @@ class HistoryRepository {
       final List<dynamic> data = await _api.getWithParams('/rentals', {
         'user_id': userId,
       });
+
       final all = data
           .map((j) => Rental.fromJson(j as Map<String, dynamic>))
           .toList(growable: false);
+
       final completed = all
           .where((r) => r.status.toLowerCase() == 'completed')
           .toList(growable: false);
+
       dev.log(
         '[HistoryRepository] ok /rentals?user_id -> completed=${completed.length}',
         name: 'history',
@@ -70,6 +74,34 @@ class HistoryRepository {
     }
 
     return <Rental>[];
+  }
+
+  Future<Rental> getRentalById(String rentalId) async {
+    try {
+      dev.log(
+        '[HistoryRepository] GET /rentals/$rentalId',
+        name: 'history',
+      );
+
+      final dynamic data =
+      await _api.getWithParams('/rentals/$rentalId', {});
+
+      if (data is Map<String, dynamic>) {
+        return Rental.fromJson(data);
+      } else if (data is List && data.isNotEmpty) {
+        return Rental.fromJson(data.first as Map<String, dynamic>);
+      } else {
+        throw Exception('Respuesta inesperada al obtener rentals/$rentalId');
+      }
+    } catch (e, st) {
+      dev.log(
+        '[HistoryRepository] fail /rentals/$rentalId',
+        name: 'history',
+        error: e,
+        stackTrace: st,
+      );
+      rethrow;
+    }
   }
 
   Rental _mapEntryToRental(RentalEntry entry) {
