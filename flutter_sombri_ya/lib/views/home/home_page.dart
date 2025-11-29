@@ -676,7 +676,7 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
                             context,
                             MaterialPageRoute(
                               builder: (_) => MenuPage(
-                                onRentTap: _goToReturnIfActiveOrRentOtherwise,
+                                //onRentTap: _goToReturnIfActiveOrRentOtherwise,
                               )
                             ),
                           );

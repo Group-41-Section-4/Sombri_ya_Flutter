@@ -222,7 +222,6 @@ class _ReturnPageState extends State<ReturnPage> {
       builder: (context, state) {
         final scheme = Theme.of(context).colorScheme;
 
-        // 🔹 Si estamos offline, bloqueamos el flujo y mostramos gato + reintentar
         if (state.isOffline) {
           return Scaffold(
             appBar: AppBar(
@@ -339,7 +338,6 @@ class _ReturnPageState extends State<ReturnPage> {
                           context,
                           MaterialPageRoute(
                             builder: (_) => MenuPage(
-                              onRentTap: () {},
                             ),
                           ),
                         );
@@ -524,7 +522,6 @@ class _ReturnPageState extends State<ReturnPage> {
                         context,
                         MaterialPageRoute(
                           builder: (_) => MenuPage(
-                            onRentTap: () {},
                           ),
                         ),
                       );

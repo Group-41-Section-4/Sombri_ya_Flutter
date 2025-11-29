@@ -630,7 +630,6 @@ class _RentPageState extends State<RentPage> {
                               context,
                               MaterialPageRoute(
                                 builder: (_) => MenuPage(
-                                  onRentTap: () {},
                                 ),
                               ),
                             ),

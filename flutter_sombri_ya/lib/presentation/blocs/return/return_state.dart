@@ -42,5 +42,5 @@ class ReturnState extends Equatable {
 
 
   @override
-  List<Object?> get props => [loading, activeRentalId, ended, message, error, nfcBusy];
+  List<Object?> get props => [loading, activeRentalId, ended, message, error, nfcBusy, isOffline,];
 }
