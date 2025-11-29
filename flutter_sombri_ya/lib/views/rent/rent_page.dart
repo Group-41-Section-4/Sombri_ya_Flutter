@@ -37,10 +37,11 @@ import '../notifications/notifications_page.dart';
 import '../profile/profile_page.dart';
 import '../return/return_page.dart';
 
-import '../../widgets/app_drawer.dart';
 import '../../services/location_service.dart';
 
 import '../../core/net/is_online.dart';
+
+import '../menu/menu_page.dart';
 
 /// ---------- Utils ----------
 String bytesToHexColonUpper(Uint8List bytes) => bytes
@@ -400,7 +401,7 @@ class _RentPageState extends State<RentPage> {
             return Scaffold(
               key: _scaffoldKey,
               appBar: AppBar(
-                backgroundColor: _barColor, // Color estático
+                backgroundColor: _barColor, 
                 centerTitle: true,
                 foregroundColor: Colors.black,
                 title: Text(
@@ -411,68 +412,42 @@ class _RentPageState extends State<RentPage> {
                     color: Colors.black,
                   ),
                 ),
-                // Campana de notificaciones (leading)
-                leading: IconButton(
-                  icon: const Icon(
-                    Icons.notifications_none,
-                    color: Colors.black,
-                  ),
-                  onPressed: () async {
-                    await _ensureScanner(false);
-                    final storage = const FlutterSecureStorage();
-                    final userId = await storage.read(key: 'user_id');
-                    if (userId == null || !context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('No se pudo identificar al usuario.'),
-                          backgroundColor: Colors.red,
-                        ),
-                      );
-                      await _ensureScanner(true);
-                      return;
-                    }
-                    await Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => BlocProvider(
-                          create: (_) => NotificationsBloc()
-                            ..add(StartRentalPolling(userId))
-                            ..add(const CheckWeather()),
-                          child: const NotificationsPage(),
-                        ),
-                      ),
-                    );
-                    await _ensureScanner(true);
-                  },
-                ),
-                // Avatar de perfil (actions)
                 actions: [
                   IconButton(
+                    icon: const Icon(
+                      Icons.notifications_none,
+                      color: Colors.black,
+                    ),
                     onPressed: () async {
                       await _ensureScanner(false);
-                      await Navigator.push(
-                        context,
+                      final storage = const FlutterSecureStorage();
+                      final userId = await storage.read(key: 'user_id');
+                      if (userId == null || !context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('No se pudo identificar al usuario.'),
+                            backgroundColor: Colors.red,
+                          ),
+                        );
+                        await _ensureScanner(true);
+                        return;
+                      }
+                    await Navigator.push(
+                      context,
                         MaterialPageRoute(
                           builder: (_) => BlocProvider(
-                            create: (_) =>
-                                ProfileBloc(repository: ProfileRepository())
-                                  ..add(const LoadProfile('')),
-                            child: const ProfilePage(),
+                            create: (_) => NotificationsBloc()
+                              ..add(StartRentalPolling(userId))
+                              ..add(const CheckWeather()),
+                            child: const NotificationsPage(),
                           ),
                         ),
                       );
                       await _ensureScanner(true);
                     },
-                    icon: const CircleAvatar(
-                      radius: 16,
-                      backgroundColor: Colors.white24,
-                      backgroundImage: AssetImage('assets/images/profile.png'),
-                    ),
                   ),
                 ],
               ),
-
-              endDrawer: AppDrawer(),
 
               body: Stack(
                 children: [
@@ -650,7 +625,16 @@ class _RentPageState extends State<RentPage> {
                       child: Builder(
                         builder: (context) => IconButton(
                           icon: const Icon(Icons.menu, color: Colors.black),
-                          onPressed: () => Scaffold.of(context).openEndDrawer(),
+                          onPressed: () => {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => MenuPage(
+                                  onRentTap: () {},
+                                ),
+                              ),
+                            ),
+                          },
                         ),
                       ),
                     ),

@@ -620,7 +620,11 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
                         onPressed: () {
                           Navigator.push(
                             context,
-                            MaterialPageRoute(builder: (_) => MenuPage()),
+                            MaterialPageRoute(
+                              builder: (_) => MenuPage(
+                                onRentTap: _goToReturnIfActiveOrRentOtherwise,
+                              )
+                            ),
                           );
                         },
                       ),
