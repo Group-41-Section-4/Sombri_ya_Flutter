@@ -24,6 +24,31 @@ class MenuPage extends StatelessWidget {
   MenuPage({super.key});
 
   final SecureStorageService _secureStorage = const SecureStorageService();
+  final ProfileRepository _profileRepository = ProfileRepository();
+
+  String? _resolveProfileImageUrl(String? raw) {
+    if (raw == null || raw.isEmpty) return null;
+    if (raw.startsWith('http')) return raw;
+    const base = 'https://sombri-ya-back-4def07fa1804.herokuapp.com';
+    if (!raw.startsWith('/')) {
+      return '$base/$raw';
+    }
+    return '$base$raw';
+  }
+
+  Future<Map<String, String?>> _loadHeaderInfo() async {
+    final userId = await _secureStorage.readUserId();
+    try {
+      if (userId != null && userId.isNotEmpty) {
+        final profile = await _profileRepository.getProfile(userId);
+        final name = (profile['name'] ?? 'Usuario').toString();
+        final img = profile['profileImageUrl'] as String?;
+        return {'name': name, 'profileImageUrl': img};
+      }
+    } catch (_) {}
+    final fallbackName = await _secureStorage.readUserName() ?? 'Usuario';
+    return {'name': fallbackName, 'profileImageUrl': null};
+  }
 
   Future<String> _loadUserName() async {
     return await _secureStorage.readUserName() ?? 'Usuario';
@@ -92,24 +117,33 @@ class MenuPage extends StatelessWidget {
                 },
                 child: Padding(
                   padding: const EdgeInsets.all(16),
-                  child: Row(
-                    children: [
-                      const CircleAvatar(
-                        radius: 30,
-                        backgroundColor: Color(0xFF90E0EF),
-                        child: Icon(
-                          Icons.person,
-                          color: Colors.white,
-                          size: 30,
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: FutureBuilder<String>(
-                          future: _loadUserName(),
-                          builder: (context, snapshot) {
-                            final name = snapshot.data ?? 'Usuario';
-                            return Column(
+                  child: FutureBuilder<Map<String, String?>>(
+                    future: _loadHeaderInfo(),
+                    builder: (context, snapshot) {
+                      final data = snapshot.data;
+                      final name = data?['name'] ?? 'Usuario';
+                      final rawUrl = data?['profileImageUrl'];
+                      final imageUrl = _resolveProfileImageUrl(rawUrl);
+
+                      return Row(
+                        children: [
+                          CircleAvatar(
+                            radius: 30,
+                            backgroundColor: const Color(0xFF90E0EF),
+                            backgroundImage: imageUrl != null
+                                ? NetworkImage(imageUrl)
+                                : null,
+                            child: imageUrl == null
+                                ? const Icon(
+                                    Icons.person,
+                                    color: Colors.white,
+                                    size: 30,
+                                  )
+                                : null,
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
@@ -137,11 +171,11 @@ class MenuPage extends StatelessWidget {
                                   ],
                                 ),
                               ],
-                            );
-                          },
-                        ),
-                      ),
-                    ],
+                            ),
+                          ),
+                        ],
+                      );
+                    },
                   ),
                 ),
               ),
