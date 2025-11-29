@@ -27,13 +27,15 @@ class ReturnState extends Equatable {
   }) {
     return ReturnState(
       loading: loading ?? this.loading,
-      activeRentalId: activeRentalId,
+      activeRentalId: activeRentalId ?? this.activeRentalId,
       ended: ended ?? this.ended,
       message: message,
       error: error,
       nfcBusy: nfcBusy ?? this.nfcBusy,
     );
   }
+
+
 
   @override
   List<Object?> get props => [loading, activeRentalId, ended, message, error, nfcBusy];

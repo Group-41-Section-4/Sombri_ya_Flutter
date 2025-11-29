@@ -32,6 +32,8 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
     on<RecenterMap>(_onRecenter);
     on<ToggleMapType>(_onToggleMapType);
     on<UpdateConnectivity>(_onUpdateConnectivity);
+    on<StationMarkerTapped>(_onStationMarkerTapped);
+    on<ClearSelectedStation>(_onClearSelectedStation);
 
     _connectivitySubscription = _connectivityCubit.stream.listen((status) {
       add(UpdateConnectivity(status));
@@ -112,10 +114,13 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
           markerId: MarkerId(station.id),
           position: LatLng(station.latitude, station.longitude),
           icon: stationIcon ?? BitmapDescriptor.defaultMarker,
-          infoWindow: InfoWindow(
-            title: station.placeName,
-            snippet: '${station.availableUmbrellas} sombrillas disponibles',
+          infoWindow: const InfoWindow(
+            title: '',
+            snippet: '',
           ),
+          onTap: () {
+            add(StationMarkerTapped(station));
+          },
         ),
       );
     }
@@ -136,5 +141,19 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
         ? MapType.satellite
         : MapType.normal;
     emit(state.copyWith(mapType: next));
+  }
+
+  void _onStationMarkerTapped(
+    StationMarkerTapped event,
+    Emitter<HomeState> emit,
+  ) {
+    emit(state.copyWith(selectedStationId: event.station.id));
+  }
+
+  void _onClearSelectedStation(
+    ClearSelectedStation event,
+    Emitter<HomeState> emit,
+  ) {
+    emit(state.copyWith(clearSelectedStationId: true));
   }
 }
