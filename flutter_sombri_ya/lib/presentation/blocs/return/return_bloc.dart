@@ -9,6 +9,17 @@ import '../../../core/services/pedometer_service.dart';
 import 'return_event.dart';
 import 'return_state.dart';
 
+import 'dart:io';
+
+bool _looksLikeNetworkError(Object e) {
+  if (e is SocketException) return true;
+  final msg = e.toString();
+  return msg.contains('Failed host lookup') ||
+         msg.contains('Connection closed before full header was received') ||
+         msg.contains('Failed to connect') ||
+         msg.contains('Network is unreachable');
+}
+
 class ReturnBloc extends Bloc<ReturnEvent, ReturnState> {
   final RentalRepository repo;
   final ProfileRepository profileRepo;
@@ -43,30 +54,61 @@ class ReturnBloc extends Bloc<ReturnEvent, ReturnState> {
 
   Future<void> _onInit(ReturnInit event, Emitter<ReturnState> emit) async {
     emit(
-      state.copyWith(loading: true, ended: false, message: null, error: null),
+      state.copyWith(
+        loading: true,
+        ended: false,
+        message: null,
+        error: null,
+        isOffline: false, 
+      ),
     );
     try {
       final userId = await repo.readUserId();
       if (userId == null) {
-        emit(state.copyWith(loading: false, error: 'Usuario no encontrado.'));
+        emit(
+          state.copyWith(
+            loading: false,
+            error: 'Usuario no encontrado.',
+          ),
+        );
         return;
       }
+
       final backId = await repo.getActiveRentalIdFromBackend(userId);
       if (backId == null) {
         await repo.clearLocalRentalId();
       } else {
         await repo.writeLocalRentalId(backId);
       }
-      emit(state.copyWith(loading: false, activeRentalId: backId));
-    } catch (e) {
+
       emit(
         state.copyWith(
           loading: false,
-          error: 'Error al verificar renta activa: $e',
+          activeRentalId: backId,
+          isOffline: false,
         ),
       );
+    } catch (e) {
+      if (_looksLikeNetworkError(e)) {
+        emit(
+          state.copyWith(
+            loading: false,
+            error: null,
+            isOffline: true,
+          ),
+        );
+      } else {
+        emit(
+          state.copyWith(
+            loading: false,
+            error: 'Error al verificar renta activa. Intenta de nuevo.',
+            isOffline: false,
+          ),
+        );
+      }
     }
   }
+
 
   Future<void> _endFlow({
     required Emitter<ReturnState> emit,
@@ -78,15 +120,12 @@ class ReturnBloc extends Bloc<ReturnEvent, ReturnState> {
       return;
     }
 
-    // Future Handler + async/await
     _d('POST /rentals/end userId=$userId stationEndId=$stationEndId');
     await repo.endRental(userId: userId, stationEndId: stationEndId);
     await repo.clearLocalRentalId();
 
-    // Handler
     final double distanceKm = _pedometer.stopAndGetDistanceKm();
 
-    // Future + Handler
     if (distanceKm > 0.01) {
       try {
         await profileRepo.addPedometerDistance(distanceKm);

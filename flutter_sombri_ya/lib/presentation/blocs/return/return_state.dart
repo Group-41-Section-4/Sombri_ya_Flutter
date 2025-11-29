@@ -7,6 +7,7 @@ class ReturnState extends Equatable {
   final String? message;   
   final String? error;     
   final bool nfcBusy;
+  final bool isOffline;
 
   const ReturnState({
     this.loading = false,
@@ -15,6 +16,7 @@ class ReturnState extends Equatable {
     this.message,
     this.error,
     this.nfcBusy = false,
+    this.isOffline = false,
   });
 
   ReturnState copyWith({
@@ -24,6 +26,7 @@ class ReturnState extends Equatable {
     String? message,
     String? error,
     bool? nfcBusy,
+    bool? isOffline,
   }) {
     return ReturnState(
       loading: loading ?? this.loading,
@@ -32,6 +35,7 @@ class ReturnState extends Equatable {
       message: message,
       error: error,
       nfcBusy: nfcBusy ?? this.nfcBusy,
+      isOffline: isOffline ?? this.isOffline
     );
   }
 

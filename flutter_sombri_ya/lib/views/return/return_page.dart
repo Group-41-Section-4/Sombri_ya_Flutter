@@ -221,6 +221,151 @@ class _ReturnPageState extends State<ReturnPage> {
       },
       builder: (context, state) {
         final scheme = Theme.of(context).colorScheme;
+
+        // 🔹 Si estamos offline, bloqueamos el flujo y mostramos gato + reintentar
+        if (state.isOffline) {
+          return Scaffold(
+            appBar: AppBar(
+              backgroundColor: const Color(0xFF90E0EF),
+              foregroundColor: Colors.black,
+              centerTitle: true,
+              title: Text(
+                'Devolver sombrilla',
+                style: GoogleFonts.cormorantGaramond(
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black,
+                ),
+              ),
+              actions: [
+                IconButton(
+                  icon: const Icon(Icons.notifications_none),
+                  onPressed: () async {
+                    // igual que antes
+                    await _ensureScanner(false);
+                    final storage = const FlutterSecureStorage();
+                    final userId = await storage.read(key: 'user_id');
+                    if (userId == null || !context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('No se pudo identificar al usuario.'),
+                          backgroundColor: Colors.red,
+                        ),
+                      );
+                      await _ensureScanner(true);
+                      return;
+                    }
+                    await Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => BlocProvider(
+                          create: (_) => NotificationsBloc()
+                            ..add(StartRentalPolling(userId))
+                            ..add(const CheckWeather()),
+                          child: const NotificationsPage(),
+                        ),
+                      ),
+                    );
+                    await _ensureScanner(true);
+                  },
+                ),
+              ],
+            ),
+            body: Center(
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    SizedBox(
+                      width: 220,
+                      height: 220,
+                      child: Image.asset(
+                        'assets/images/gato.jpeg',
+                        fit: BoxFit.contain,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      'Sin conexión para devolver',
+                      style: GoogleFonts.robotoSlab(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.grey.shade800,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 8),
+                    const Text(
+                      'Necesitamos conexión para verificar tu renta activa y procesar la devolución.\n'
+                      'Por favor revisa tu internet e inténtalo de nuevo.',
+                      style: TextStyle(color: Colors.grey),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 20),
+                    ElevatedButton.icon(
+                      onPressed: () {
+                        // Volvemos a intentar inicializar el flujo
+                        context.read<ReturnBloc>().add(ReturnInit());
+                      },
+                      icon: const Icon(Icons.refresh),
+                      label: const Text('Reintentar'),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            bottomNavigationBar: BottomAppBar(
+              shape: const CircularNotchedRectangle(),
+              color: const Color(0xFF90E0EF),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.home, color: Colors.black),
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const HomePage()),
+                      );
+                    },
+                  ),
+                  const SizedBox(width: 48),
+                  Builder(
+                    builder: (context) => IconButton(
+                      icon: const Icon(Icons.menu, color: Colors.black),
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => MenuPage(
+                              onRentTap: () {},
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            floatingActionButton: FloatingActionButton(
+              backgroundColor: Colors.transparent,
+              elevation: 6,
+              shape: const CircleBorder(),
+              onPressed: () {},
+              child: Image.asset(
+                'assets/images/home_button.png',
+                width: 100,
+                height: 100,
+              ),
+            ),
+            floatingActionButtonLocation:
+                FloatingActionButtonLocation.centerDocked,
+          );
+        }
+
+        // 🔹 Si NO estamos offline, mantenemos el flujo normal que ya tenías
         return Scaffold(
           appBar: AppBar(
             backgroundColor: const Color(0xFF90E0EF),
@@ -267,7 +412,6 @@ class _ReturnPageState extends State<ReturnPage> {
               ),
             ],
           ),
-          
           body: Stack(
             children: [
               MobileScanner(
@@ -341,12 +485,12 @@ class _ReturnPageState extends State<ReturnPage> {
                         onPressed: state.nfcBusy
                             ? null
                             : () async {
-                          if (!isOnline(context)) {
-                            _showOfflineSnackOnce();
-                            return;
-                          }
-                          await _handleNfc();
-                        },
+                                if (!isOnline(context)) {
+                                  _showOfflineSnackOnce();
+                                  return;
+                                }
+                                await _handleNfc();
+                              },
                       ),
                     ],
                   ),
@@ -402,9 +546,10 @@ class _ReturnPageState extends State<ReturnPage> {
             ),
           ),
           floatingActionButtonLocation:
-          FloatingActionButtonLocation.centerDocked,
+              FloatingActionButtonLocation.centerDocked,
         );
       },
+
     );
   }
 
