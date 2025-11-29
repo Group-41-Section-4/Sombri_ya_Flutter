@@ -375,7 +375,16 @@ class _ReturnPageState extends State<ReturnPage> {
                 Builder(
                   builder: (context) => IconButton(
                     icon: const Icon(Icons.menu, color: Colors.black),
-                    onPressed: () => Scaffold.of(context).openEndDrawer(),
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => MenuPage(
+                            onRentTap: () {},
+                          ),
+                        ),
+                      );
+                    },
                   ),
                 ),
               ],

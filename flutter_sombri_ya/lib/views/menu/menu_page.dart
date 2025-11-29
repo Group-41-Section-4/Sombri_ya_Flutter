@@ -18,12 +18,6 @@ import '../nfc_registration/register_nfc_station_page.dart';
 import '../notifications/notifications_page.dart';
 import '../payment/payment_methods_page.dart';
 
-import '../nfc_registration/register_nfc_station_page.dart';
-import '../profile/profile_page.dart';
-import 'package:flutter_sombri_ya/presentation/blocs/profile/profile_bloc.dart';
-import 'package:flutter_sombri_ya/data/repositories/profile_repository.dart';
-
-
 class MenuPage extends StatelessWidget {
   final VoidCallback onRentTap;
   final SecureStorageService _secureStorage;
@@ -132,62 +126,8 @@ class MenuPage extends StatelessWidget {
                         );
                       },
                     ),
-                  );
-                },
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Row(
-                    children: [
-                      const CircleAvatar(
-                        radius: 30,
-                        backgroundColor: Color(0xFF90E0EF),
-                        child: Icon(
-                          Icons.person,
-                          color: Colors.white,
-                          size: 30,
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: FutureBuilder<String>(
-                          future: _loadUserName(),
-                          builder: (context, snapshot) {
-                            final name = snapshot.data ?? 'Usuario';
-                            return Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  name,
-                                  style: GoogleFonts.cormorantGaramond(
-                                    fontSize: 22,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                                const SizedBox(height: 4),
-                                Row(
-                                  children: [
-                                    Text(
-                                      'Mi perfil',
-                                      style: GoogleFonts.cormorantGaramond(
-                                        fontSize: 16,
-                                        color: Colors.grey,
-                                      ),
-                                    ),
-                                    const Icon(
-                                      Icons.chevron_right,
-                                      size: 16,
-                                      color: Colors.grey,
-                                    ),
-                                  ],
-                                ),
-                              ],
-                            );
-                          },
-                        ),
-                      ),
-                    ],
                   ),
-                ),
+                ],
               ),
             ),
 
@@ -199,7 +139,7 @@ class MenuPage extends StatelessWidget {
                 child: ListView(
                   children: [
                     _MenuItem(
-                      icon: Icons.payment_rounded,
+                      icon: Icons.payment,
                       title: 'Métodos de pago',
                       onTap: () {
                         Navigator.push(
@@ -211,7 +151,7 @@ class MenuPage extends StatelessWidget {
                       },
                     ),
                     _MenuItem(
-                      icon: Icons.history_rounded,
+                      icon: Icons.bookmark_border,
                       title: 'Historial',
                       onTap: () {
                         Navigator.push(
