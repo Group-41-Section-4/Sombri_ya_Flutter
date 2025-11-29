@@ -43,9 +43,10 @@ void main() async {
         MaterialPageRoute(
           builder: (_) => const RentPage(),
         ),
-        (route) => false,
+            (route) => false,
       );
-  });
+    },
+  );
 
   await RainAlertScheduler.cancelAll();
   await RainAlertScheduler.registerPeriodic();
@@ -86,7 +87,6 @@ class MyApp extends StatelessWidget {
         ),
         RepositoryProvider<ReportRepository>(
           create: (_) => ReportRepository(baseUrl: kBaseUrl),
-          child: const MyApp(),
         ),
       ],
       child: MultiBlocProvider(
@@ -102,39 +102,50 @@ class MyApp extends StatelessWidget {
             create: (ctx) => WeatherCubit(weather: ctx.read<WeatherService>()),
           ),
         ],
-        child: MaterialApp(
-          title: 'Sombri-Ya',
-          debugShowCheckedModeBanner: false,
-          navigatorKey: navigatorKey,
-          theme: ThemeData(
-            useMaterial3: true,
-            colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF28BCEF)),
-          ),
-          routes: {
-            RentPage.routeName: (ctx) {
-              return RepositoryProvider(
-                create: (_) => RentalRepository(
-                  storage: const FlutterSecureStorage(),
-                ),
-                child: BlocProvider(
-                  create: (blocCtx) =>
-                      RentBloc(repo: blocCtx.read<RentalRepository>()),
-                  child: const RentPage(),
-                ),
-              );
-            },
-            '/reset': (ctx) {
-              final args =
-                  ModalRoute.of(ctx)!.settings.arguments as Map<String, String>;
-              final userId = args['userId']!;
-              final token = args['token']!;
-              return ResetPasswordPage(userId: userId, token: token);
-            },
-            '/login': (ctx) => const LoginPage(),
+        child: BlocListener<ConnectivityCubit, ConnectivityStatus>(
+          listenWhen: (previous, current) =>
+          previous != current &&
+              current == ConnectivityStatus.online,
+          listener: (context, state) async {
+            final reportRepo = context.read<ReportRepository>();
+            await reportRepo.syncOfflineReports();
           },
-          builder: (context, child) =>
-              AppShell(child: child ?? const SizedBox()),
-          home: const SplashScreen(),
+          child: MaterialApp(
+            title: 'Sombri-Ya',
+            debugShowCheckedModeBanner: false,
+            navigatorKey: navigatorKey,
+            theme: ThemeData(
+              useMaterial3: true,
+              colorScheme: ColorScheme.fromSeed(
+                seedColor: const Color(0xFF28BCEF),
+              ),
+            ),
+            routes: {
+              RentPage.routeName: (ctx) {
+                return RepositoryProvider(
+                  create: (_) => RentalRepository(
+                    storage: const FlutterSecureStorage(),
+                  ),
+                  child: BlocProvider(
+                    create: (blocCtx) =>
+                        RentBloc(repo: blocCtx.read<RentalRepository>()),
+                    child: const RentPage(),
+                  ),
+                );
+              },
+              '/reset': (ctx) {
+                final args = ModalRoute.of(ctx)!.settings.arguments
+                as Map<String, String>;
+                final userId = args['userId']!;
+                final token = args['token']!;
+                return ResetPasswordPage(userId: userId, token: token);
+              },
+              '/login': (ctx) => const LoginPage(),
+            },
+            builder: (context, child) =>
+                AppShell(child: child ?? const SizedBox()),
+            home: const SplashScreen(),
+          ),
         ),
       ),
     );
@@ -195,8 +206,10 @@ class _SplashScreenState extends State<SplashScreen> {
                       onPressed: () {
                         Navigator.pushReplacementNamed(context, '/login');
                       },
-                      child: const Text('Iniciar Sesión',
-                          style: TextStyle(fontSize: 20)),
+                      child: const Text(
+                        'Iniciar Sesión',
+                        style: TextStyle(fontSize: 20),
+                      ),
                     ),
                     const Spacer(flex: 3),
                   ],

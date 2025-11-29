@@ -5,6 +5,7 @@ import 'package:http/http.dart' as http;
 
 import '../providers/api_provider.dart';
 import '../models/rental_model.dart';
+import '../models/rental_export_row.dart';
 
 class RentalRepository {
   final ApiProvider _apiProvider = ApiProvider();
@@ -114,6 +115,30 @@ class RentalRepository {
       rethrow;
     }
   }
+
+  Future<RentalExportRow> fetchRentalDetail(String rentalId) async {
+    final response = await _apiProvider.get(
+      '/rentals/export_rent',
+      queryParameters: {'id': rentalId},
+    );
+
+    if (response.statusCode != 200) {
+      throw Exception('Error al obtener el detalle de la renta');
+    }
+
+    final List<dynamic> jsonList =
+    jsonDecode(response.body) as List<dynamic>;
+
+    if (jsonList.isEmpty) {
+      throw Exception('No se encontró la renta');
+    }
+
+    final Map<String, dynamic> json =
+    jsonList.first as Map<String, dynamic>;
+
+    return RentalExportRow.fromJson(json);
+  }
+
 
 
   Future<String?> stationIdByTagUid(String uid) async {

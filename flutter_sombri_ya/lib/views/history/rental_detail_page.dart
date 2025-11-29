@@ -1,8 +1,9 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
-import 'dart:convert';
 
 import '../../../data/repositories/history_repository.dart';
 import '../../../data/repositories/report_repository.dart';
@@ -12,7 +13,7 @@ import '../../presentation/blocs/rental_detail/rental_detail_event.dart';
 import '../../presentation/blocs/rental_detail/rental_detail_state.dart';
 import '../../../data/models/rental_format_model.dart';
 import '../../presentation/blocs/connectivity/connectivity_cubit.dart';
-import '../../../data/models/rental_model.dart';
+import '../../../data/models/rental_export_row.dart';
 
 class RentalDetailPage extends StatelessWidget {
   final String rentalId;
@@ -88,7 +89,6 @@ class RentalDetailPage extends StatelessWidget {
           ),
         ),
         backgroundColor: const Color(0xFFFFFDFD),
-
         body: BlocBuilder<ConnectivityCubit, ConnectivityStatus>(
           builder: (context, connectivityStatus) {
             final isOffline = connectivityStatus != ConnectivityStatus.online;
@@ -118,13 +118,14 @@ class RentalDetailPage extends StatelessWidget {
                 }
 
                 if (state is RentalDetailLoaded) {
-                  final Rental rental = state.rental;
+
+                  final RentalExportRow rental = state.rental;
                   final List<RentalFormat> formats = state.formats;
                   final RentalFormat? report =
                   formats.isNotEmpty ? formats.first : null;
 
-                  final start = rental.startTime;
-                  final end = rental.endTime ??
+                  final DateTime start = rental.startTime ?? DateTime.now();
+                  final DateTime end = rental.endTime ??
                       start.add(
                         Duration(minutes: rental.durationMinutes ?? 0),
                       );
@@ -148,7 +149,6 @@ class RentalDetailPage extends StatelessWidget {
                             ],
                           ),
                         ),
-
                       Expanded(
                         child: RefreshIndicator(
                           onRefresh: () async {
@@ -262,6 +262,7 @@ class RentalDetailPage extends StatelessWidget {
                                   ),
                                   const SizedBox(height: 24),
 
+
                                   ListTile(
                                     contentPadding: EdgeInsets.zero,
                                     leading: const Icon(
@@ -275,7 +276,7 @@ class RentalDetailPage extends StatelessWidget {
                                       ),
                                     ),
                                     subtitle: Text(
-                                      rental.stationStartName ??
+                                      rental.startStationName ??
                                           'Estación de inicio',
                                     ),
                                   ),
@@ -294,7 +295,7 @@ class RentalDetailPage extends StatelessWidget {
                                       ),
                                     ),
                                     subtitle: Text(
-                                      rental.stationEndName ??
+                                      rental.endStationName ??
                                           'Estación final',
                                     ),
                                   ),
@@ -312,16 +313,19 @@ class RentalDetailPage extends StatelessWidget {
                                     ),
                                     child: Row(
                                       children: [
-                                        const Icon(Icons.info_outline,
-                                            size: 20),
+                                        const Icon(
+                                          Icons.info_outline,
+                                          size: 20,
+                                        ),
                                         const SizedBox(width: 8),
                                         Expanded(
                                           child: Text(
                                             report != null
                                                 ? 'Reporte enviado. Está siendo revisado.'
                                                 : 'Aún no has enviado un reporte para esta renta.',
-                                            style:
-                                            const TextStyle(fontSize: 13),
+                                            style: const TextStyle(
+                                              fontSize: 13,
+                                            ),
                                           ),
                                         ),
                                       ],
@@ -350,29 +354,30 @@ class RentalDetailPage extends StatelessWidget {
                                         if (report == null)
                                           const Text(
                                             'No se ha registrado ningún reporte para esta renta.',
-                                            style:
-                                            TextStyle(color: Colors.grey),
+                                            style: TextStyle(
+                                              color: Colors.grey,
+                                            ),
                                           )
                                         else ...[
                                           if (report.imageBase64 != null &&
-                                              report
-                                                  .imageBase64!.isNotEmpty) ...[
-                                            SizedBox(
-                                              height: 80,
-                                              width: 80,
-                                              child: ClipRRect(
-                                                borderRadius:
-                                                BorderRadius.circular(12),
-                                                child: Image.memory(
-                                                  base64Decode(
-                                                    report.imageBase64!,
+                                              report.imageBase64!.isNotEmpty)
+                                            ...[
+                                              SizedBox(
+                                                height: 80,
+                                                width: 80,
+                                                child: ClipRRect(
+                                                  borderRadius:
+                                                  BorderRadius.circular(12),
+                                                  child: Image.memory(
+                                                    base64Decode(
+                                                      report.imageBase64!,
+                                                    ),
+                                                    fit: BoxFit.cover,
                                                   ),
-                                                  fit: BoxFit.cover,
                                                 ),
                                               ),
-                                            ),
-                                            const SizedBox(height: 12),
-                                          ],
+                                              const SizedBox(height: 12),
+                                            ],
                                           Row(
                                             children: [
                                               const Text('Calificación: '),

@@ -1,5 +1,5 @@
 import 'package:equatable/equatable.dart';
-import '../../../data/models/rental_model.dart';
+import '../../../data/models/rental_export_row.dart';
 import '../../../data/models/rental_format_model.dart';
 
 abstract class RentalDetailState extends Equatable {
@@ -14,7 +14,7 @@ class RentalDetailInitial extends RentalDetailState {}
 class RentalDetailLoading extends RentalDetailState {}
 
 class RentalDetailLoaded extends RentalDetailState {
-  final Rental rental;
+  final RentalExportRow rental;
   final List<RentalFormat> formats;
 
   const RentalDetailLoaded({
