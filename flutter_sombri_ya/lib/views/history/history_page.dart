@@ -12,6 +12,8 @@ import '../../../data/repositories/history_repository.dart';
 import '../../../core/connectivity/connectivity_service.dart';
 import '../../presentation/blocs/connectivity/connectivity_cubit.dart';
 
+import 'rental_detail_page.dart';
+
 class HistoryPage extends StatefulWidget {
   const HistoryPage({super.key});
 
@@ -56,14 +58,18 @@ class _HistoryPageState extends State<HistoryPage> {
     return 'Duración: ${hours.toStringAsFixed(1)} horas';
   }
 
-  Widget _historyTile(Rental item) {
+  Widget _historyTile(BuildContext context, Rental item) {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
         color: const Color(0xFFB1E6F3),
         borderRadius: BorderRadius.circular(16),
         boxShadow: const [
-          BoxShadow(color: Colors.black26, blurRadius: 4, offset: Offset(2, 2)),
+          BoxShadow(
+            color: Colors.black26,
+            blurRadius: 4,
+            offset: Offset(2, 2),
+          ),
         ],
       ),
       child: ListTile(
@@ -77,6 +83,14 @@ class _HistoryPageState extends State<HistoryPage> {
           DateFormat('hh:mm a').format(item.startTime),
           style: const TextStyle(fontSize: 12),
         ),
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => RentalDetailPage(rentalId: item.id),
+            ),
+          );
+        },
       ),
     );
   }
@@ -149,7 +163,7 @@ class _HistoryPageState extends State<HistoryPage> {
           value: _bloc,
           child: Scaffold(
             appBar: AppBar(
-              backgroundColor: Color(0xFF90E0EF),
+              backgroundColor: const Color(0xFF90E0EF),
               foregroundColor: Colors.black,
               centerTitle: true,
               title: Text(
@@ -203,7 +217,8 @@ class _HistoryPageState extends State<HistoryPage> {
                       physics: const AlwaysScrollableScrollPhysics(),
                       padding: const EdgeInsets.all(16),
                       itemCount: history.length,
-                      itemBuilder: (_, i) => _historyTile(history[i]),
+                      itemBuilder: (context, i) =>
+                          _historyTile(context, history[i]),
                     );
                   }
                   return const SizedBox.shrink();

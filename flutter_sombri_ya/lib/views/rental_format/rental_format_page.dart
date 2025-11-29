@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:image_picker/image_picker.dart';
 
+import '../../core/connectivity/connectivity_service.dart';
+import '../../presentation/blocs/connectivity/connectivity_cubit.dart';
 import '../../presentation/blocs/rental_format/rental_format_bloc.dart';
 import '../../presentation/blocs/rental_format/rental_format_event.dart';
 import '../../presentation/blocs/rental_format/rental_format_state.dart';
@@ -22,11 +24,15 @@ class RentalFormatPage extends StatelessWidget {
   Widget build(BuildContext context) {
     final reportRepository = RepositoryProvider.of<ReportRepository>(context);
 
+
     return BlocProvider(
-      create: (_) => RentalFormatBloc(
-        repository: reportRepository,
-        rentalId: rentalId,
-      ),
+      create: (_) {
+        return RentalFormatBloc(
+          repository: reportRepository,
+          rentalId: rentalId,
+          connectivityCubit: context.read<ConnectivityCubit>(),
+        );
+      },
       child: _ReportProblemView(rentalId: rentalId),
     );
   }
@@ -51,6 +57,23 @@ class _ReportProblemView extends StatelessWidget {
           previous.errorMessage != current.errorMessage,
       listener: (context, state) {
         if (state.submitSuccess) {
+          final connectivityStatus =
+              context.read<ConnectivityCubit>().state;
+          final isOnline =
+              connectivityStatus == ConnectivityStatus.online;
+
+
+
+          if (!isOnline) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text(
+                  'Estás sin conexión. El reporte se guardó y se enviará automáticamente cuando tengas internet.',
+                ),
+              ),
+            );
+          }
+
           Navigator.of(context).pushReplacement(
             MaterialPageRoute(
               builder: (_) => ReportSentPage(),
@@ -81,6 +104,38 @@ class _ReportProblemView extends StatelessWidget {
         body: SafeArea(
           child: Column(
             children: [
+              BlocBuilder<ConnectivityCubit, ConnectivityStatus>(
+                builder: (context, status) {
+                  final isOffline =
+                      status != ConnectivityStatus.online;
+
+
+                  if (!isOffline) {
+                    return const SizedBox.shrink();
+                  }
+
+                  return Container(
+                    width: double.infinity,
+                    color: Colors.amber[200],
+                    padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: const [
+                        Icon(Icons.wifi_off, size: 16),
+                        SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            'Estás sin conexión. Tu reporte se guardará y se enviará automáticamente cuando vuelva el internet.',
+                            style: TextStyle(fontSize: 12),
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              ),
+
               Expanded(
                 child: SingleChildScrollView(
                   keyboardDismissBehavior:
@@ -162,9 +217,9 @@ class _RatingRow extends StatelessWidget {
                 ),
                 onPressed: () {
                   final current = state.someInt;
-
                   final nextRating =
                   (current == starIndex) ? 0 : starIndex;
+
 
                   context
                       .read<RentalFormatBloc>()
@@ -178,8 +233,6 @@ class _RatingRow extends StatelessWidget {
     );
   }
 }
-
-
 
 class _DescriptionField extends StatelessWidget {
   const _DescriptionField();
@@ -215,9 +268,11 @@ class _DescriptionField extends StatelessWidget {
               ),
             ),
           ),
-          onChanged: (value) => context
-              .read<RentalFormatBloc>()
-              .add(DescriptionChanged(value)),
+          onChanged: (value) {
+            context
+                .read<RentalFormatBloc>()
+                .add(DescriptionChanged(value));
+          },
         );
       },
     );
@@ -240,9 +295,11 @@ class _ImagePickerBox extends StatelessWidget {
     );
 
     if (picked != null) {
+
       context
           .read<RentalFormatBloc>()
           .add(ImageChanged(File(picked.path)));
+    } else {
     }
   }
 
@@ -282,7 +339,9 @@ class _ImagePickerBox extends StatelessWidget {
       buildWhen: (p, c) => p.imageFile != c.imageFile,
       builder: (context, state) {
         return InkWell(
-          onTap: () => _showImageSourceSheet(context),
+          onTap: () {
+            _showImageSourceSheet(context);
+          },
           borderRadius: BorderRadius.circular(20),
           child: Container(
             height: 110,
@@ -351,6 +410,7 @@ class _SubmitButton extends StatelessWidget {
             onPressed: state.isSubmitting || !state.isValid
                 ? null
                 : () {
+
               context
                   .read<RentalFormatBloc>()
                   .add(const SubmitReportPressed());
@@ -369,7 +429,8 @@ class _SubmitButton extends StatelessWidget {
               height: 20,
               child: CircularProgressIndicator(
                 strokeWidth: 2,
-                valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                valueColor:
+                AlwaysStoppedAnimation<Color>(Colors.white),
               ),
             )
                 : const Text(

@@ -9,11 +9,13 @@ class ApiProvider {
 
   dynamic decodeJson(String bdy) => json.decode(bdy);
 
-  Future<dynamic> getWithParams(
-    String endpoint,
-    Map<String, String> params,
-  ) async {
-    final uri = Uri.parse('$_baseUrl$endpoint').replace(queryParameters: params);
+  /// GET genérico con query params opcionales
+  Future<dynamic> get(
+      String endpoint, {
+        Map<String, String>? queryParameters,
+      }) async {
+    final uri = Uri.parse('$_baseUrl$endpoint')
+        .replace(queryParameters: queryParameters);
 
     try {
       final response = await http.get(uri).timeout(_timeout);
@@ -23,10 +25,18 @@ class ApiProvider {
     }
   }
 
+  /// Mantengo getWithParams por compatibilidad, pero ahora usa get()
+  Future<dynamic> getWithParams(
+      String endpoint,
+      Map<String, String> params,
+      ) {
+    return get(endpoint, queryParameters: params);
+  }
+
   Future<dynamic> getWithBody(
-    String endpoint,
-    Map<String, dynamic> body,
-  ) async {
+      String endpoint,
+      Map<String, dynamic> body,
+      ) async {
     final uri = Uri.parse('$_baseUrl$endpoint');
 
     try {
@@ -43,10 +53,10 @@ class ApiProvider {
   }
 
   Future<dynamic> post(
-    String endpoint, {
-    Map<String, dynamic>? body,
-    Map<String, String>? headers,
-  }) async {
+      String endpoint, {
+        Map<String, dynamic>? body,
+        Map<String, String>? headers,
+      }) async {
     final uri = Uri.parse('$_baseUrl$endpoint');
 
     try {
@@ -57,10 +67,10 @@ class ApiProvider {
 
       final response = await http
           .post(
-            uri,
-            headers: mergedHeaders,
-            body: body == null ? null : json.encode(body),
-          )
+        uri,
+        headers: mergedHeaders,
+        body: body == null ? null : json.encode(body),
+      )
           .timeout(_timeout);
 
       return _handleResponse(response);
@@ -71,14 +81,9 @@ class ApiProvider {
 
   dynamic _handleResponse(http.Response response) {
     if (response.statusCode >= 200 && response.statusCode < 300) {
-
       if (response.body.isEmpty) return null;
       return json.decode(response.body);
     } else {
-      print(
-        '[ApiProvider] Error: ${response.request?.method} ${response.request?.url} '
-        '| status: ${response.statusCode} | body: ${response.body}',
-      );
       throw Exception('HTTP ${response.statusCode}: ${response.body}');
     }
   }
