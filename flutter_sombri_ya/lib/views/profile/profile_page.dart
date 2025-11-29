@@ -88,6 +88,7 @@ class _ProfilePageState extends State<ProfilePage> {
 
           final name = state.profile?['name'] ?? 'Cargando...';
           final email = state.profile?['email'] ?? 'cargando@email.com';
+          final profileImageUrl = state.profile?['profileImageUrl'] as String?;
           final distanceKm = state.totalDistanceKm ?? 0.0;
           final progress = (distanceKm / _goalKm).clamp(0.0, 1.0);
           final distanceMeters = (distanceKm * 1000).toInt();
@@ -105,7 +106,7 @@ class _ProfilePageState extends State<ProfilePage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  _buildProfileHeader(name, email),
+                  _buildProfileHeader(name, email, profileImageUrl),
                   const SizedBox(height: 30),
 
                   _buildActivitySection(progress, distanceMeters, _goalKm),
@@ -131,13 +132,27 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
 
-  Widget _buildProfileHeader(String name, String email) {
+  String? _resolveProfileImageUrl(String? raw) {
+    if (raw == null || raw.isEmpty) return null;
+    if (raw.startsWith('http')) return raw;
+    const base = 'https://sombri-ya-back-4def07fa1804.herokuapp.com';
+    if (!raw.startsWith('/')) {
+      return '$base/$raw';
+    }
+    return '$base$raw';
+  }
+
+  Widget _buildProfileHeader(String name, String email, String? rawImageUrl) {
+    final imageUrl = _resolveProfileImageUrl(rawImageUrl);
     return Column(
       children: [
-        const CircleAvatar(
+        CircleAvatar(
           radius: 50,
-          backgroundColor: Colors.grey,
-          child: Icon(Icons.person, size: 50, color: Colors.white),
+          backgroundColor: Colors.grey[300],
+          backgroundImage: imageUrl != null ? NetworkImage(imageUrl) : null,
+          child: imageUrl == null
+              ? const Icon(Icons.person, size: 50, color: Colors.white)
+              : null,
         ),
         const SizedBox(height: 12),
         Text(

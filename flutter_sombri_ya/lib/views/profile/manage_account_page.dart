@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:image_picker/image_picker.dart';
 
 import 'package:flutter_sombri_ya/presentation/blocs/profile/profile_bloc.dart';
 import 'package:flutter_sombri_ya/presentation/blocs/profile/profile_event.dart';
@@ -10,8 +11,8 @@ import '../../main.dart';
 
 class ManageAccountPage extends StatelessWidget {
   const ManageAccountPage({super.key});
-  static const int _nameMax = 20, _emailMax = 40, _passMax = 12;
 
+  static const int _nameMax = 20, _emailMax = 40, _passMax = 12;
   final FlutterSecureStorage _storage = const FlutterSecureStorage();
 
   String? _validateName(String? v) {
@@ -55,26 +56,50 @@ class ManageAccountPage extends StatelessWidget {
     await _storage.delete(key: 'user_id');
     await _storage.delete(key: 'user_name');
 
-    if (!context.mounted) return;
     Navigator.of(context).pushAndRemoveUntil(
       MaterialPageRoute(builder: (_) => const SplashScreen()),
       (route) => false,
     );
   }
 
-  void _deleteAccount(BuildContext context) {
+  Future<void> _pickAndUploadPhoto(
+    BuildContext context,
+    ProfileBloc bloc,
+  ) async {
+    final picker = ImagePicker();
+    final picked = await picker.pickImage(
+      source: ImageSource.gallery,
+      imageQuality: 85,
+    );
+    if (picked == null) return;
+
+    bloc.add(UpdateProfilePhoto(picked.path));
+  }
+
+  void _confirmDeleteAccount(BuildContext context, ProfileBloc bloc) {
     showDialog<void>(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Eliminar Cuenta'),
         content: const Text(
-          'Esta funcionalidad aún no está disponible. '
-          'Pronto podrás solicitar la eliminación de tu cuenta desde la app.',
+          'Esta acción eliminará tu cuenta y tus datos asociados. '
+          '¿Seguro que deseas continuar?',
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Entendido'),
+            child: const Text('Cancelar'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context);
+              bloc.add(const DeleteAccount());
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Eliminar'),
           ),
         ],
       ),
@@ -105,8 +130,8 @@ class ManageAccountPage extends StatelessWidget {
       case 'email':
         label = 'Correo';
         maxLength = _emailMax;
-        keyboardType = TextInputType.emailAddress;
         validator = _validateEmail;
+        keyboardType = TextInputType.emailAddress;
         break;
       default:
         return;
@@ -255,7 +280,7 @@ class ManageAccountPage extends StatelessWidget {
     final bloc = context.read<ProfileBloc>();
 
     return BlocConsumer<ProfileBloc, ProfileState>(
-      listener: (context, state) {
+      listener: (context, state) async {
         if (state.errorMessage != null) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text('Error: ${state.errorMessage}')),
@@ -263,9 +288,13 @@ class ManageAccountPage extends StatelessWidget {
           bloc.add(const ClearProfileMessages());
         }
         if (state.successMessage != null) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Éxito: ${state.successMessage}')),
-          );
+          final msg = state.successMessage!;
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text('Éxito: $msg')));
+          if (msg == 'Cuenta eliminada correctamente.') {
+            await _logout(context);
+          }
           bloc.add(const ClearProfileMessages());
         }
       },
@@ -317,15 +346,7 @@ class ManageAccountPage extends StatelessWidget {
                   icon: Icons.camera_alt_outlined,
                   title: 'Editar Foto',
                   subtitle: 'Editar tu foto de perfil',
-                  onTap: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text(
-                          'Funcionalidad de Edición de Foto Pendiente',
-                        ),
-                      ),
-                    );
-                  },
+                  onTap: () => _pickAndUploadPhoto(context, bloc),
                 ),
                 const Divider(height: 30, thickness: 1),
                 _ActionItem(
@@ -339,7 +360,7 @@ class ManageAccountPage extends StatelessWidget {
                   icon: Icons.delete_forever,
                   title: 'Eliminar Cuenta',
                   color: Colors.red,
-                  onTap: () => _deleteAccount(context),
+                  onTap: () => _confirmDeleteAccount(context, bloc),
                 ),
                 if (state.loading)
                   const Padding(

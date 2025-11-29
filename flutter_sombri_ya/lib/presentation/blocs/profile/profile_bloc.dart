@@ -4,6 +4,7 @@ import 'profile_state.dart';
 import 'package:flutter_sombri_ya/data/repositories/profile_repository.dart';
 import 'package:flutter_sombri_ya/data/repositories/profile_repository.dart';
 import 'package:flutter_sombri_ya/data/repositories/history_repository.dart';
+import 'dart:io';
 
 class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
   final ProfileRepository repository;
@@ -16,6 +17,8 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
     on<RefreshProfile>(_onRefresh);
     on<UpdateProfileField>(_onUpdateField);
     on<ChangePassword>(_onChangePassword);
+    on<UpdateProfilePhoto>(_onUpdatePhoto);
+    on<DeleteAccount>(_onDeleteAccount);
     on<ClearProfileMessages>((e, emit) {
       emit(state.copyWith(successMessage: null, errorMessage: null));
     });
@@ -208,6 +211,42 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
       );
     } catch (_) {
       emit(state.copyWith(errorMessage: 'No se pudo cambiar la contraseña.'));
+    }
+  }
+
+  Future<void> _onUpdatePhoto(
+    UpdateProfilePhoto e,
+    Emitter<ProfileState> emit,
+  ) async {
+    try {
+      final file = File(e.imagePath);
+      final url = await repository.uploadProfileImage(file);
+      if (url == null) {
+        emit(state.copyWith(errorMessage: 'No se pudo actualizar la foto.'));
+        return;
+      }
+      final updated = Map<String, dynamic>.from(state.profile ?? {});
+      updated['profileImageUrl'] = url;
+      emit(
+        state.copyWith(
+          profile: updated,
+          successMessage: 'Foto de perfil actualizada.',
+        ),
+      );
+    } catch (_) {
+      emit(state.copyWith(errorMessage: 'No se pudo actualizar la foto.'));
+    }
+  }
+
+  Future<void> _onDeleteAccount(
+    DeleteAccount e,
+    Emitter<ProfileState> emit,
+  ) async {
+    try {
+      await repository.deleteAccount(hard: e.hard);
+      emit(state.copyWith(successMessage: 'Cuenta eliminada correctamente.'));
+    } catch (_) {
+      emit(state.copyWith(errorMessage: 'No se pudo eliminar la cuenta.'));
     }
   }
 }
