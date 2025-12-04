@@ -5,8 +5,7 @@ import 'rental_detail_event.dart';
 import 'rental_detail_state.dart';
 import '../../../data/repositories/history_repository.dart';
 import '../../../data/repositories/report_repository.dart';
-// Asegúrate de importar el modelo correcto:
-import '../../../data/models/rental_export_row.dart'; // <-- ajusta la ruta si es distinta
+import '../../../data/models/rental_export_row.dart';
 
 class RentalDetailBloc extends Bloc<RentalDetailEvent, RentalDetailState> {
   final HistoryRepository historyRepository;
