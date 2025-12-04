@@ -43,7 +43,6 @@ import '../../core/net/is_online.dart';
 
 import '../menu/menu_page.dart';
 
-/// ---------- Utils ----------
 String bytesToHexColonUpper(Uint8List bytes) => bytes
     .map((b) => b.toRadixString(16).padLeft(2, '0'))
     .join(':')
@@ -73,7 +72,6 @@ Uint8List? _extractRawIdFromTagData(Map<dynamic, dynamic> tagData) {
   return null;
 }
 
-/// ---------- Page ----------
 class RentPage extends StatefulWidget {
   static const routeName = '/rent';
   final GpsCoord? userPosition;
@@ -282,11 +280,11 @@ class _RentPageState extends State<RentPage> {
 
     await _ensureScanner(true);
   }
-  
+
   Future<void> _goToProfile(BuildContext context) async {
-    await Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => const ProfilePage()),
-    );
+    await Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (_) => const ProfilePage()));
   }
 
   Future<void> _goToNotifications(BuildContext context) async {
@@ -300,7 +298,6 @@ class _RentPageState extends State<RentPage> {
     );
   }
 
-  /// ---------- UI ----------
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
@@ -344,7 +341,6 @@ class _RentPageState extends State<RentPage> {
               prev.hasActiveRental != curr.hasActiveRental ||
               prev.nfcBusy != curr.nfcBusy,
           listener: (context, state) async {
-            // Control fino del scanner
             await _ensureScanner(!state.loading && !state.nfcBusy);
 
             if (state.message != null && mounted) {
@@ -401,7 +397,7 @@ class _RentPageState extends State<RentPage> {
             return Scaffold(
               key: _scaffoldKey,
               appBar: AppBar(
-                backgroundColor: _barColor, 
+                backgroundColor: _barColor,
                 centerTitle: true,
                 foregroundColor: Colors.black,
                 title: Text(
@@ -432,8 +428,8 @@ class _RentPageState extends State<RentPage> {
                         await _ensureScanner(true);
                         return;
                       }
-                    await Navigator.push(
-                      context,
+                      await Navigator.push(
+                        context,
                         MaterialPageRoute(
                           builder: (_) => BlocProvider(
                             create: (_) => NotificationsBloc()
@@ -481,7 +477,6 @@ class _RentPageState extends State<RentPage> {
                       },
                     ),
 
-                  // Marco de guía de escaneo
                   Align(
                     alignment: Alignment.center,
                     child: Container(
@@ -502,7 +497,6 @@ class _RentPageState extends State<RentPage> {
                     ),
                   ),
 
-                  // Botones de acción (NFC / Devolución)
                   Positioned(
                     bottom: 120,
                     left: 0,
@@ -553,7 +547,6 @@ class _RentPageState extends State<RentPage> {
                     ),
                   ),
 
-                  // FAB de voz (mic)
                   Positioned(
                     right: 16,
                     bottom:
@@ -628,10 +621,7 @@ class _RentPageState extends State<RentPage> {
                           onPressed: () => {
                             Navigator.push(
                               context,
-                              MaterialPageRoute(
-                                builder: (_) => MenuPage(
-                                ),
-                              ),
+                              MaterialPageRoute(builder: (_) => MenuPage()),
                             ),
                           },
                         ),
